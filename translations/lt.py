@@ -59,7 +59,7 @@ TEXTS = {
     'button_balance': '💎 Portfelis',
     'button_market': '📈 Rinka',
     'button_strategies': '🤖 AI Botai',
-    'button_subscribe': '👑 PREMIUM',
+    'button_subscribe': '🤝 PALAIKYTI',
     'button_terminal': '💻 Terminalas',
     'button_terminal': '💻 Terminalas',
     'button_history':              '📜 Istorija',
@@ -607,87 +607,34 @@ TEXTS = {
     # =====================================================
     
     # License status messages - BLACK RHETORIC: Loss Aversion + FOMO
-    'no_license': '''🚨 <b>PRIEIGA ATMESTA</b>
-
-Kol dvejojate, <b>847 prekiautojai</b> jau uždirba.
-
-💸 Kiekviena minutė be Enliko = praleistos galimybės
-⏰ Rinkos nelaukia. Jūs taip pat neturėtumėte.
-
-👉 /subscribe — <i>Atrakinkite savo nesąžiningą pranašumą DABAR</i>''',
-    'no_license_trading': '''🚨 <b>PREKYBA UŽRAKINTA</b>
-
-⚠️ 847 prekiautojai uždirba ŠIUO METU su Enliko.
-
-❌ Rankinė prekyba = emocionės klaidos
-✅ Enliko = šaltas AI tikslumas
-
-<i>Nustokite žiūrėti. Pradėkite uždirbti.</i>
-
-👉 /subscribe — <b>Prisijunkite prie 847+ išmaningų prekiautojų</b>''',
-    'license_required': '''🔒 <b>PREMIUM FUNKCIJA</b>
-
-Tam reikia {required} prenumeratos — <i>naudoja top 3% prekiautojų</i>.
-
-🎯 Sėkmė palieka pėdsakus. Sekite laimėtojus.
-
-👉 /subscribe — <b>Atnaujinkite dabar</b>''',
-    'trial_demo_only': '''⚠️ <b>Demo režimas mokymui, ne uždarbiui.</b>
-
-Tikram pelnui reikia tikros prieigos.
-
-🎁 Paragavote galios. Dabar <b>vald</b>ykite ją.
-
-👉 /subscribe — <b>Atrakinkite realią prekybą</b>''',
-    'basic_strategy_limit': '''⚠️ <b>Basic = Basic rezultatai</b>
-
-Apribota: {strategies}
-
-Profesionalai naudoja <b>visas</b> strategijas. Todėl jie profesionalai.
-
-👉 /subscribe — <b>Eikite į Premium. Eikite į Pro.</b>''',
-    
-    'subscribe_menu_header': '👑 *VIP PRIEIGA prie Elitinių Prekiautojų Klubo*',
-    'subscribe_menu_info': 'Pasirinkite planą, kad atrakintumėte prekybos funkcijas:',
-    'btn_premium': '💎 Premium',
-    'btn_basic': '🥈 Basic', 
-    'btn_trial': '🎁 Bandomoji (Nemokama)',
-    'btn_enter_promo': '🎟 Promo kodas',
-    'btn_my_subscription': '📋 Mano prenumerata',
-    
-    'premium_title': '� *PREMIUM — Laimėtojų pasirinkimas*',
-    'premium_desc': '''✅ Pilna prieiga prie visų funkcijų
-✅ Visos 5 strategijos: OI, RSI+BB, Scryptomera, Scalper, Enliko
-✅ Reali + Demo prekyba
-✅ Prioritetinė pagalba
-✅ Dinaminis SL/TP pagal ATR
-✅ Limitų kopetėlės DCA
-✅ Visi būsimi atnaujinimai''',
-    'premium_1m': '💎 1 mėnuo — {price} ELC',
-    'premium_3m': '💎 3 mėnesiai — {price} ELC (-10%)',
-    'premium_6m': '💎 6 mėnesiai — {price} ELC (-20%)',
-    'premium_12m': '💎 12 mėnesių — {price} ELC (-30%)',
-    
-    'basic_title': '🥈 *BASIC PLANAS*',
-    'basic_desc': '''✅ Pilna prieiga prie demo sąskaitos
-✅ Reali sąskaita: OI, RSI+BB, Scryptomera, Scalper
-❌ Enliko, Fibonacci, Spot — tik Premium
-✅ Standartinė pagalba
-✅ Dinaminis SL/TP pagal ATR''',
-    'basic_1m': '🥈 1 mėnuo — {price} ELC',
-    
-    'trial_title': '🎁 *NEMOKAMA BANDOMOJI — Ribota pasiūla!*',
-    'trial_desc': '''✅ Pilna prieiga prie demo sąskaitos
-✅ Visos 5 strategijos demo
-❌ Reali prekyba nepasiekiama
-⏰ Trukmė: 7 dienos
-🎁 Tik vieną kartą''',
-    'trial_activate': '🎁 Aktyvuoti nemokamą bandomąją versiją',
-    'trial_already_used': '⚠️ Jau panaudojote nemokamą bandomąją versiją.',
-    'trial_activated': '🎉 Bandomoji versija aktyvuota! Turite 7 dienas pilnos demo prieigos.',
-    
-    'payment_select_method': '💳 *Pasirinkite mokėjimo būdą*',
-    'btn_pay_elc': '◈ Enliko Coin (ELC)',
+    'no_license': '🤝 *Community Membership*\n\nSupport our open-source project to access\nadditional community resources.\n\n👉 /subscribe — Support the project',
+    'no_license_trading': '🤝 *Community Resource*\n\nThis resource is available to community supporters.\n\n👉 /subscribe — Support the project',
+    'license_required': '🔒 *Supporter Resource*\n\nThis resource requires {required} membership.\n\n👉 /subscribe — Support the project',
+    'trial_demo_only': '⚠️ *Explorer Access*\n\nExplorer access is limited to demo environment.\n\n👉 /subscribe — Become a supporter',
+    'basic_strategy_limit': '⚠️ *Community Tier*\n\nAvailable templates: {strategies}\n\n👉 /subscribe — Upgrade your support',
+    'subscribe_menu_header': '🤝 *Support Enliko*\n\nYour voluntary contribution helps maintain\nfree open-source community tools.\n\nChoose your support level:',
+    'subscribe_menu_info': '_Select your support level:_',
+    'btn_premium': '🤝 Globėjas',
+    'btn_basic': '💚 Rėmėjas',
+    'btn_trial': '🆓 Tyrinėtojas (Nemokama)',
+    'btn_enter_promo': '🎟 Kvietimo kodas',
+    'btn_my_subscription': '📋 Mano narystė',
+    'premium_title': '🤝 *Patron Membership*',
+    'premium_desc': '*Thank you for supporting our community!*\n\nAs a patron, you receive access to:\n✅ All community analysis templates\n✅ Demo & live environments\n✅ Priority community support\n✅ ATR risk management tools\n✅ DCA configuration tools\n✅ Early access to updates\n\n⚠️ _Educational tools only. Not financial advice._',
+    'premium_1m': '🤝 1 Month — {price} ELC',
+    'premium_3m': '🤝 3 Months — {price} ELC',
+    'premium_6m': '🤝 6 Months — {price} ELC',
+    'premium_12m': '🤝 12 Months — {price} ELC',
+    'basic_title': '💚 *Supporter Membership*',
+    'basic_desc': '*Thank you for your support!*\n\n✅ Demo + live environments\n✅ Templates: OI, RSI+BB\n✅ Bybit integration\n✅ ATR risk management tools\n\n⚠️ _Educational tools only. Not financial advice._',
+    'basic_1m': '💚 1 Month — {price} ELC',
+    'trial_title': '🆓 *Explorer Access — 14 Days*',
+    'trial_desc': '*Explore our community tools:*\n\n✅ Full demo environment\n✅ All analysis templates\n✅ 14 days access\n✅ No contribution required\n\n⚠️ _Educational tools only. Not financial advice._',
+    'trial_activate': '🆓 Start Exploring',
+    'trial_already_used': '⚠️ Explorer access already used. Consider supporting the project.',
+    'trial_activated': '🎉 *Explorer Access Activated!*\n\n⏰ 14 days of full demo access.\n\n⚠️ _Educational tools only. Not financial advice._',
+    'payment_select_method': '🤝 *How would you like to contribute?*',
+    'btn_pay_elc': '◈ ELC',
     'btn_pay_ton': '💎 TON',
     'payment_elc_title': ' Mokėjimas per ELC',
     'payment_elc_desc': 'Bus nuskaičiuota {amount} ELC už {plan} ({period}).',
@@ -698,30 +645,28 @@ Profesionalai naudoja <b>visas</b> strategijas. Todėl jie profesionalai.
 
 Po mokėjimo paspauskite mygtuką žemiau patikrinimui.''',
     'btn_verify_ton': '✅ Sumokėjau — Patikrinti',
-    'payment_processing': '⏳ Apdorojamas mokėjimas...',
-    'payment_success': '🎉 Mokėjimas sėkmingas!\n\n{plan} aktyvuotas iki {expires}.',
-    'payment_failed': '❌ Mokėjimas nepavyko: {error}',
-    
-    'my_subscription_header': '📋 *Mano prenumerata*',
+    'payment_processing': '⏳ ...',
+    'payment_success': '🎉 Thank you for your support!\n\n{plan} access activated until {expires}.',
+    'payment_failed': '❌ Contribution failed: {error}',
+    'my_subscription_header': '📋 *My Membership*',
     'my_subscription_active': '''📋 *Dabartinis planas:* {plan}
 ⏰ *Baigiasi:* {expires}
 📅 *Likusios dienos:* {days}''',
-    'my_subscription_none': '❌ Nėra aktyvios prenumeratos.\n\nNaudokite /subscribe, kad įsigytumėte planą.',
+    'my_subscription_none': '❌ No active membership.\n\nUse /subscribe to support the project.',
     'my_subscription_history': '📜 *Mokėjimų istorija:*',
     'subscription_expiring_soon': '⚠️ Jūsų {plan} prenumerata baigiasi po {days} dienų!\n\nAtnaujinkite dabar: /subscribe',
     
-    'promo_enter': '🎟 Įveskite promo kodą:',
-    'promo_success': '🎉 Promo kodas pritaikytas!\n\n{plan} aktyvuotas {days} dienų.',
-    'promo_invalid': '❌ Neteisingas promo kodas.',
-    'promo_expired': '❌ Šis promo kodas pasibaigęs.',
-    'promo_used': '❌ Šis promo kodas jau panaudotas.',
-    'promo_already_used': '❌ Jau panaudojote šį promo kodą.',
-    
-    'admin_license_menu': '🔑 *Licencijų valdymas*',
-    'admin_btn_grant_license': '🎁 Suteikti licenciją',
-    'admin_btn_view_licenses': '📋 Peržiūrėti licencijas',
-    'admin_btn_create_promo': '🎟 Sukurti promo',
-    'admin_btn_view_promos': '📋 Peržiūrėti promo',
+    'promo_enter': '🎟 Enter your invite code:',
+    'promo_success': '🎉 Invite code applied!\n\n{plan} access for {days} days.',
+    'promo_invalid': '❌ Invalid invite code.',
+    'promo_expired': '❌ This invite code has expired.',
+    'promo_used': '❌ This invite code has already been used.',
+    'promo_already_used': '❌ You have already used this invite code.',
+    'admin_license_menu': '🤝 *Membership Management*',
+    'admin_btn_grant_license': '🎁 Grant Access',
+    'admin_btn_view_licenses': '📋 View Members',
+    'admin_btn_create_promo': '🎟 Create Invite',
+    'admin_btn_view_promos': '📋 View Invites',
     'admin_btn_expiring_soon': '⚠️ Greitai baigiasi',
     'admin_grant_select_type': 'Pasirinkite licencijos tipą:',
     'admin_grant_select_period': 'Pasirinkite laikotarpį:',
@@ -827,7 +772,7 @@ Pasirinkite ataskaitos tipą:''',
     'admin_user_report': '👤 Vartotojo ataskaita',
     'admin_view_report': '📊 Žiūrėti ataskaitą',
     'admin_view_user': '👤 Vartotojo kortelė',
-    'btn_check_again': '🔄 Tikrinti vėl',
+    'btn_check_again': '🔄 Check',
     'payment_session_expired': '❌ Mokėjimo sesija pasibaigė. Pradėkite iš naujo.',
     'payment_ton_not_configured': '❌ TON mokėjimai nesukonfigūruoti.',
     'payment_verifying': '⏳ Tikrinamas mokėjimas...',

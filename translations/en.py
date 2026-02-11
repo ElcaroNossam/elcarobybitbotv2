@@ -1,26 +1,31 @@
 # -*- coding: utf-8 -*-
 """
-Enliko Trading Tools — English Translations
+Enliko Community Tools — English Translations
 ============================================
-Version: 4.0.0 | Updated: 28 January 2026
+Version: 5.0.0 | Updated: 11 February 2026
 
 LEGAL POSITIONING:
-This is an EDUCATIONAL trading toolkit providing:
-- Market data visualization and analysis
-- Strategy backtesting and simulation
-- Portfolio tracking and performance metrics
-- One-tap order execution (user-initiated)
-- Risk management calculators
+Enliko is a NON-COMMERCIAL community project providing:
+- Free open-source educational market analysis tools
+- Strategy backtesting and simulation for learning
+- Portfolio tracking and performance visualization
+- Risk management education and calculators
+
+REVENUE MODEL:
+- The project operates on voluntary donations/contributions
+- Community members may express gratitude through voluntary support
+- All contributions are non-refundable voluntary donations
+- No goods or services are sold — contributors receive
+  community recognition and access to additional resources
 
 IMPORTANT DISCLAIMERS:
 - Not financial advice
-- Not automated trading (user initiates all actions)
-- For educational purposes only
+- For educational and informational purposes only
 - Past performance does not guarantee future results
 - Trading involves substantial risk of loss
+- Users are solely responsible for their own decisions
 
-All texts are written in technical, educational style
-with appropriate disclaimers where needed.
+All texts use technical, educational language.
 """
 
 TEXTS = {
@@ -32,13 +37,13 @@ TEXTS = {
         '� <b>Enliko Trading Terminal</b>\n\n'
         '⚡ <b>&lt; 100ms</b> execution\n'
         '🛡️ <b>Risk management</b> built-in\n'
-        '💎 <b>24/7</b> automated trading\n\n'
-        'Bybit • HyperLiquid • Multi-Strategy'
+        '� <b>24/7</b> market monitoring\n\n'
+        'Open-source • Educational • Community-driven'
     ),
     
     'welcome_back': (
-        '🔥 <b>Enliko Trading Terminal</b>\n\n'
-        '⚠️ <i>Educational platform. Not financial advice.</i>\n\n'
+        '🔥 <b>Enliko Community Tools</b>\n\n'
+        '⚠️ <i>Educational toolkit. Not financial advice.</i>\n\n'
         '👇 Select an option:'
     ),
     
@@ -122,8 +127,8 @@ TEXTS = {
     'button_screener': '📈 Screener',
     'button_market': '📈 Market',
     'button_history': '📜 History',
-    'button_premium': '💎 Premium',
-    'button_subscribe': '👑 PREMIUM',
+    'button_premium': '🤝 Support',
+    'button_subscribe': '🤝 SUPPORT US',
     'button_language': '🌍 Language',
     'button_lang': '🌍 Lang',
     'select_language': '🌍 Select your language:',
@@ -466,7 +471,8 @@ TEXTS = {
         '🏷️ Strategy: `{strategy}`\n'
         '🟢 Entry: `{entry:.8f}`\n'
         '🔴 Exit: `{exit:.8f}`\n'
-        '💰 P/L: `{pnl:+.2f} USDT ({pct:+.2f}%)`\n'
+        '� Price Δ: `{pct:+.2f}%`\n'
+        '💰 P/L: `{pnl:+.2f} USDT`\n'
         '💸 Fee: `{fee:.4f} USDT`\n'
         '💵 Net: `{net_pnl:+.2f} USDT`\n'
         '📍 {exchange} • {market_type}\n\n'
@@ -850,133 +856,139 @@ TEXTS = {
     'trades_to_stats': 'Statistics',
     
     # =====================================================
-    # SUBSCRIPTION & PREMIUM
+    # COMMUNITY SUPPORT & MEMBERSHIP
     # =====================================================
     
-    # No aggressive marketing - Educational framing
+    # Non-commercial community framing — voluntary contributions only
     'no_license': (
-        '📊 *Premium Features*\n\n'
-        'Unlock additional educational tools:\n'
-        '• Advanced strategy templates\n'
-        '• Extended analytics\n'
-        '• Priority support\n\n'
-        '👉 /subscribe — View plans'
+        '🤝 *Community Membership*\n\n'
+        'Support our open-source project to access\n'
+        'additional community resources:\n'
+        '• Extended analysis templates\n'
+        '• Community analytics dashboard\n'
+        '• Priority community support\n\n'
+        '👉 /subscribe — Support the project'
     ),
     
     'no_license_trading': (
-        '📊 *Feature Requires Premium*\n\n'
-        'This educational tool requires a subscription.\n\n'
-        '👉 /subscribe — View plans'
+        '🤝 *Community Resource*\n\n'
+        'This resource is available to community supporters.\n\n'
+        '👉 /subscribe — Support the project'
     ),
     
     'license_required': (
-        '🔒 *Premium Feature*\n\n'
-        'This requires {required} subscription.\n\n'
-        '👉 /subscribe — Upgrade'
+        '🔒 *Supporter Resource*\n\n'
+        'This resource requires {required} membership.\n\n'
+        '👉 /subscribe — Support the project'
     ),
     
     'trial_demo_only': (
-        '⚠️ *Trial Limitation*\n\n'
-        'Trial access is limited to demo trading only.\n\n'
-        '👉 /subscribe — Unlock real trading'
+        '⚠️ *Explorer Access*\n\n'
+        'Explorer access is limited to demo environment.\n\n'
+        '👉 /subscribe — Become a supporter'
     ),
     
     'basic_strategy_limit': (
-        '⚠️ *Basic Plan Limitation*\n\n'
-        'Basic plan includes only: OI, RSI+BB\n\n'
-        '👉 /subscribe — Upgrade to Premium'
+        '⚠️ *Community Tier*\n\n'
+        'Community tier includes: OI, RSI+BB templates\n\n'
+        '👉 /subscribe — Upgrade your support'
     ),
     
     'basic_bybit_only': (
-        '⚠️ *Basic Plan Limitation*\n\n'
-        'Basic plan supports Bybit only.\n'
-        'HyperLiquid is available on Premium.\n\n'
-        '👉 /subscribe — Upgrade to Premium'
+        '⚠️ *Community Tier*\n\n'
+        'Community tier supports Bybit integration only.\n'
+        'HyperLiquid available for Patron supporters.\n\n'
+        '👉 /subscribe — Become a patron'
     ),
     
-    # Subscribe menu - Professional, no hype
+    # Support menu — voluntary contributions
     'subscribe_menu_header': (
-        '💎 *Enliko Premium*\n\n'
-        'Choose your subscription level:'
+        '🤝 *Support Enliko*\n\n'
+        'Your voluntary contribution helps us maintain and\n'
+        'develop free open-source tools for the community.\n\n'
+        'Choose how you\'d like to support:'
     ),
     
-    'subscribe_menu_info': '_Select a plan to continue:_',
+    'subscribe_menu_info': '_Select your support level:_',
     
-    'btn_premium': '💎 Premium',
-    'btn_basic': '🥈 Basic',
-    'btn_trial': '🎁 Free Trial',
-    'btn_enter_promo': '🎟 Promo Code',
-    'btn_my_subscription': '📋 My Subscription',
+    'btn_premium': '🤝 Patron',
+    'btn_basic': '💚 Supporter',
+    'btn_trial': '🆓 Explorer (Free)',
+    'btn_enter_promo': '🎟 Invite Code',
+    'btn_my_subscription': '📋 My Membership',
     
-    # Premium plan - Professional description
-    'premium_title': '💎 *Premium Plan*',
+    # Patron tier — community recognition
+    'premium_title': '🤝 *Patron Membership*',
     'premium_desc': (
-        '*Features included:*\n\n'
-        '✅ All strategy templates\n'
-        '✅ Demo & Live environments\n'
-        '✅ Priority support\n'
-        '✅ ATR-based risk management\n'
-        '✅ DCA configuration\n'
-        '✅ All platform updates\n\n'
-        '⚠️ _Trading involves risk. Not financial advice._'
+        '*Thank you for supporting our community!*\n\n'
+        'As a patron, you receive access to:\n'
+        '✅ All community analysis templates\n'
+        '✅ Demo & live environments\n'
+        '✅ Priority community support\n'
+        '✅ ATR risk management tools\n'
+        '✅ DCA configuration tools\n'
+        '✅ Early access to updates\n\n'
+        '⚠️ _Educational tools only. Not financial advice.\n'
+        'Your contribution is a voluntary donation._'
     ),
     
-    'premium_1m': '💎 1 Month — {price} ELC',
-    'premium_3m': '💎 3 Months — {price} ELC',
-    'premium_6m': '💎 6 Months — {price} ELC',
-    'premium_12m': '💎 12 Months — {price} ELC',
+    'premium_1m': '🤝 1 Month — {price} ELC',
+    'premium_3m': '🤝 3 Months — {price} ELC',
+    'premium_6m': '🤝 6 Months — {price} ELC',
+    'premium_12m': '🤝 12 Months — {price} ELC',
     
-    # Basic plan
-    'basic_title': '🥈 *Basic Plan*',
+    # Supporter tier
+    'basic_title': '💚 *Supporter Membership*',
     'basic_desc': (
-        '*Features included:*\n\n'
-        '✅ Demo + Real trading\n'
-        '✅ Strategies: OI, RSI+BB\n'
-        '✅ Bybit only\n'
-        '✅ ATR-based risk management\n\n'
-        '⛔ Other strategies — Premium only\n'
-        '⛔ HyperLiquid — Premium only\n\n'
-        '⚠️ _Trading involves risk. Not financial advice._'
-    ),
-    
-    'basic_1m': '🥈 1 Month — {price} ELC',
-    
-    # Trial plan
-    'trial_title': '🎁 *Free Trial — 14 Days*',
-    'trial_desc': (
-        '*Try before you subscribe:*\n\n'
-        '✅ Full Demo access\n'
-        '✅ All strategy templates\n'
-        '✅ 14 days duration\n'
-        '✅ No payment required\n\n'
-        '⛔ Real trading not available\n\n'
+        '*Thank you for your support!*\n\n'
+        'Supporter access includes:\n'
+        '✅ Demo + live environments\n'
+        '✅ Templates: OI, RSI+BB\n'
+        '✅ Bybit integration\n'
+        '✅ ATR risk management tools\n\n'
+        'Additional templates — Patron tier\n'
+        'HyperLiquid — Patron tier\n\n'
         '⚠️ _Educational tools only. Not financial advice._'
     ),
     
-    'trial_activate': '🎁 Activate Trial',
-    'trial_already_used': '⚠️ Trial already used. Choose a paid plan.',
-    'trial_activated': (
-        '🎉 *Trial Activated!*\n\n'
-        '⏰ You have 14 days of access.\n\n'
-        'Explore all educational features in demo mode.\n\n'
-        '⚠️ _Remember: Trading involves risk._'
+    'basic_1m': '💚 1 Month — {price} ELC',
+    
+    # Explorer tier — free access
+    'trial_title': '🆓 *Explorer Access — 14 Days*',
+    'trial_desc': (
+        '*Explore our community tools:*\n\n'
+        '✅ Full demo environment\n'
+        '✅ All analysis templates\n'
+        '✅ 14 days access\n'
+        '✅ No contribution required\n\n'
+        'Live environment not included\n\n'
+        '⚠️ _Educational tools only. Not financial advice._'
     ),
     
-    # Payment
-    'payment_select_method': '💳 *Select Payment Method*',
-    'btn_pay_elc': '◈ Pay with ELC',
+    'trial_activate': '🆓 Start Exploring',
+    'trial_already_used': '⚠️ Explorer access already used. Consider supporting the project.',
+    'trial_activated': (
+        '🎉 *Explorer Access Activated!*\n\n'
+        '⏰ 14 days of full demo access.\n\n'
+        'Explore all community tools in demo mode.\n\n'
+        '⚠️ _Educational tools only. Not financial advice._'
+    ),
+    
+    # Contribution — voluntary donation
+    'payment_select_method': '🤝 *How would you like to contribute?*',
+    'btn_pay_elc': '◈ Contribute with ELC',
     'btn_pay_ton': '💎 TON',
-    'payment_elc_title': '◈ Payment via ELC Token',
-    'payment_elc_desc': 'Amount: {amount} ELC for {plan} ({period}).',
-    'payment_ton_title': '💎 Payment via TON',
-    'payment_ton_desc': 'TON payments are currently unavailable.',
-    'btn_verify_ton': '✅ Verify Payment',
+    'payment_elc_title': '◈ Contribution via ELC Token',
+    'payment_elc_desc': 'Suggested contribution: {amount} ELC for {plan} ({period}).',
+    'payment_ton_title': '💎 Contribution via TON',
+    'payment_ton_desc': 'TON contributions temporarily unavailable.',
+    'btn_verify_ton': '✅ Verify Contribution',
     'btn_check_again': '🔄 Check Again',
     'payment_processing': '⏳ Processing...',
     'payment_verifying': '⏳ Verifying...',
-    'payment_success': '🎉 Payment successful!\n\n{plan} activated until {expires}.',
-    'payment_failed': '❌ Payment failed: {error}',
-    'payment_ton_not_configured': '❌ TON payments unavailable.',
+    'payment_success': '🎉 Thank you for your support!\n\n{plan} access activated until {expires}.',
+    'payment_failed': '❌ Contribution failed: {error}',
+    'payment_ton_not_configured': '❌ TON contributions unavailable.',
     'payment_session_expired': '❌ Session expired. Please try again.',
     'payment_elc_insufficient': (
         '❌ Insufficient ELC balance.\n\n'
@@ -984,60 +996,60 @@ TEXTS = {
         'Required: {required} ELC'
     ),
     
-    # Crypto Payments (OxaPay)
+    # Crypto Contributions
     'crypto_select_currency': (
-        '💳 *Crypto Payment*\n\n'
-        '📦 *Plan:* {plan}\n'
+        '🤝 *Voluntary Contribution*\n\n'
+        '📋 *Membership:* {plan}\n'
         '⏰ *Duration:* {duration}\n'
-        '💰 *Price:* ${price:.2f} USD\n\n'
-        'Select payment currency:'
+        '💚 *Suggested amount:* ${price:.2f} USD\n\n'
+        'Select contribution currency:'
     ),
     'crypto_payment_invoice': (
-        '💳 *Crypto Payment Invoice*\n\n'
-        '📦 *Plan:* {plan}\n'
+        '🤝 *Contribution Details*\n\n'
+        '📋 *Membership:* {plan}\n'
         '⏰ *Duration:* {duration}\n'
-        '💰 *Amount:* {amount}\n'
+        '💚 *Amount:* {amount}\n'
         '🔗 *Network:* {network}\n\n'
-        '📋 *Payment Address:*\n'
+        '📋 *Send to:*\n'
         '`{address}`\n\n'
-        '⏱ *Expires in:* 60 minutes\n\n'
+        '⏱ *Valid for:* 60 minutes\n\n'
         '⚠️ Send exact amount to this address.\n'
-        'After payment, click Check to verify.\n\n'
-        '🚫 *All cryptocurrency payments are final and non-refundable.*'
+        'After sending, click Check to verify.\n\n'
+        '📌 *All voluntary contributions are final and non-refundable donations.*'
     ),
-    'creating_payment': '⏳ Creating payment invoice...',
-    'payment_creation_failed': '❌ Failed to create payment. Please try again.',
-    'payment_error': '❌ Payment service error. Please try again later.\n\nError: {error}',
-    'invalid_plan': 'Invalid plan or duration',
-    'btn_check_payment': '✅ Check Payment',
+    'creating_payment': '⏳ Preparing contribution details...',
+    'payment_creation_failed': '❌ Failed to prepare contribution. Please try again.',
+    'payment_error': '❌ Service error. Please try again later.\n\nError: {error}',
+    'invalid_plan': 'Invalid membership or duration',
+    'btn_check_payment': '✅ Check Contribution',
     'btn_copy_address': '📋 Copy Address',
     'btn_new_currency': '🔄 Different Currency',
     'btn_retry': '🔄 Retry',
-    'crypto_creating_invoice': '⏳ Creating payment invoice...',
+    'crypto_creating_invoice': '⏳ Preparing contribution details...',
     'crypto_payment_instructions': (
-        '💳 *Crypto Payment*\n\n'
-        '📦 *Plan:* {plan}\n'
+        '🤝 *Voluntary Contribution*\n\n'
+        '📋 *Membership:* {plan}\n'
         '⏰ *Period:* {period}\n'
-        '💰 *Amount:* {amount_crypto:.6f} {currency}\n'
+        '💚 *Amount:* {amount_crypto:.6f} {currency}\n'
         '📍 *Network:* {network}\n\n'
-        '📋 *Send exactly this amount to:*\n'
+        '📋 *Send to:*\n'
         '`{address}`\n\n'
         '⚠️ *Important:*\n'
         '• Send EXACTLY the amount shown\n'
         '• Use the correct network ({network})\n'
-        '• Payment expires in 30 minutes\n\n'
-        '🆔 Payment ID: `{payment_id}`'
+        '• Valid for 30 minutes\n\n'
+        '🆔 Reference: `{payment_id}`'
     ),
-    'crypto_payment_error': '❌ Failed to create payment: {error}',
-    'checking_payment': 'Checking payment status...',
+    'crypto_payment_error': '❌ Failed to prepare contribution: {error}',
+    'checking_payment': 'Checking contribution status...',
     'crypto_payment_confirmed': (
-        '✅ *Payment Confirmed!*\n\n'
-        'Your subscription has been activated.\n'
-        'Thank you for using Enliko!'
+        '✅ *Thank You!*\n\n'
+        'Your generous contribution has been received.\n'
+        'Community access activated. Welcome!'
     ),
-    'crypto_payment_confirming': '⏳ Payment detected, waiting for confirmations...',
-    'crypto_payment_expired': '❌ Payment expired. Please create a new payment.',
-    'crypto_payment_pending': '⏳ Payment not yet received. Please complete the transfer.',
+    'crypto_payment_confirming': '⏳ Contribution detected, awaiting network confirmations...',
+    'crypto_payment_expired': '❌ Contribution window expired. Please start again.',
+    'crypto_payment_pending': '⏳ Contribution not yet received. Please complete the transfer.',
     
     # =====================================================
     # WALLET
@@ -1089,24 +1101,24 @@ TEXTS = {
     'wallet_history_empty': 'No transactions yet.',
     'wallet_history_item': '{type_emoji} {type}: {amount:+.2f} ELC\n   {date}',
     
-    # My subscription
-    'my_subscription_header': '📋 *My Subscription*',
+    # Membership status
+    'my_subscription_header': '📋 *My Membership*',
     'my_subscription_active': (
-        '📋 *Current Plan:* {plan}\n'
-        '⏰ *Expires:* {expires}\n'
-        '📅 *Days Left:* {days}'
+        '📋 *Membership:* {plan}\n'
+        '⏰ *Valid until:* {expires}\n'
+        '📅 *Days remaining:* {days}'
     ),
-    'my_subscription_none': '❌ No active subscription.\n\n👉 /subscribe',
-    'my_subscription_history': '📜 *Payment History:*',
-    'subscription_expiring_soon': '⚠️ Your {plan} expires in {days} days.\n\n👉 /subscribe',
+    'my_subscription_none': '📋 No active membership.\n\n👉 /subscribe — Support the project',
+    'my_subscription_history': '📜 *Contribution History:*',
+    'subscription_expiring_soon': '⚠️ Your {plan} access expires in {days} days.\n\n👉 /subscribe — Renew support',
     
-    # Promo codes
-    'promo_enter': '🎟 Enter promo code:',
-    'promo_success': '🎉 Promo applied!\n\n{plan} activated for {days} days.',
-    'promo_invalid': '❌ Invalid promo code.',
-    'promo_expired': '❌ Promo code expired.',
-    'promo_used': '❌ Promo code already used.',
-    'promo_already_used': '❌ You already used this promo.',
+    # Invite codes
+    'promo_enter': '🎟 Enter invite code:',
+    'promo_success': '🎉 Invite code accepted!\n\n{plan} access granted for {days} days.',
+    'promo_invalid': '❌ Invalid invite code.',
+    'promo_expired': '❌ Invite code expired.',
+    'promo_used': '❌ Invite code already used.',
+    'promo_already_used': '❌ You have already used this invite.',
     
     # =====================================================
     # ADMIN PANEL
@@ -1133,30 +1145,30 @@ TEXTS = {
     'admin_canceled_limits_total': '✅ Cancelled {count} limit orders.',
     
     # Admin license management
-    'admin_license_menu': '🔑 *License Management*',
+    'admin_license_menu': '🔑 *Membership Management*',
     'admin_btn_grant_license': '🎁 Grant',
     'admin_btn_view_licenses': '📋 View',
-    'admin_btn_create_promo': '🎟 Create Promo',
-    'admin_btn_view_promos': '📋 Promos',
+    'admin_btn_create_promo': '🎟 Create Invite',
+    'admin_btn_view_promos': '📋 Invites',
     'admin_btn_expiring_soon': '⚠️ Expiring',
     'admin_grant_select_type': 'Select type:',
     'admin_grant_select_period': 'Select period:',
     'admin_grant_enter_user': 'Enter user ID:',
-    'admin_license_granted': '✅ {plan} granted to {uid} for {days} days.',
+    'admin_license_granted': '✅ {plan} access granted to {uid} for {days} days.',
     'admin_license_extended': '✅ Extended by {days} days for {uid}.',
-    'admin_license_revoked': '✅ License revoked for {uid}.',
-    'admin_promo_created': '✅ Promo: {code}\nType: {type}\nDays: {days}\nMax uses: {max}',
-    'license_granted_notification': '🎉 Congratulations!\n\nYou have been granted a **{plan}** subscription for **{days} days**!\n\n📅 Valid until: {end_date}\n\nThank you for using Enliko!',
+    'admin_license_revoked': '✅ Access revoked for {uid}.',
+    'admin_promo_created': '✅ Invite: {code}\nType: {type}\nDays: {days}\nMax uses: {max}',
+    'license_granted_notification': '🎉 Welcome!\n\nYou have been granted **{plan}** community access for **{days} days**!\n\n📅 Valid until: {end_date}\n\nThank you for being part of Enliko!',
     
     # Admin user management
     'admin_users_management': '👥 Users',
-    'admin_licenses': '🔑 Licenses',
+    'admin_licenses': '🔑 Access',
     'admin_search_user': '🔍 Search',
     'admin_users_menu': '👥 *User Management*',
     'admin_all_users': '👥 All',
     'admin_active_users': '✅ Active',
     'admin_banned_users': '🚫 Banned',
-    'admin_no_license': '❌ No License',
+    'admin_no_license': '❌ No Access',
     'admin_no_users_found': 'No users found.',
     'admin_enter_user_id': '🔍 Enter user ID:',
     'admin_invalid_user_id': '❌ Invalid user ID. Enter a number.',
@@ -1170,7 +1182,7 @@ TEXTS = {
         '👤 *User*\n\n'
         '📋 ID: `{uid}`\n'
         '{status_emoji} Status: {status}\n'
-        '{license_emoji} License: {license_type}\n'
+        '{license_emoji} Access: {license_type}\n'
         '📅 Expires: {license_expires}\n'
         '🌐 Language: {lang}\n'
         '📊 Mode: {trading_mode}\n'
@@ -1222,11 +1234,11 @@ TEXTS = {
     'admin_message_failed': '❌ Failed: {error}',
     
     # Admin payments & reports
-    'admin_payments': '💳 Payments',
+    'admin_payments': '� Contributions',
     'admin_reports': '📊 Reports',
-    'admin_payments_menu': '💳 *Payments*',
+    'admin_payments_menu': '💚 *Contributions*',
     'admin_all_payments': '📜 All',
-    'admin_no_payments_found': 'No payments.',
+    'admin_no_payments_found': 'No contributions found.',
     
     'admin_reports_menu': '📊 *Reports*',
     'admin_global_stats': '📊 Global',
@@ -1258,25 +1270,26 @@ TEXTS = {
     
     # Terms - Legal compliance
     'terms_title': (
-        '📜 *Terms of Service*\n\n'
-        'By using Enliko Trading Tools, you agree:\n\n'
+        '📜 *Community Guidelines*\n\n'
+        'By using Enliko Community Tools, you agree:\n\n'
         '1. *Educational Purpose*\n'
-        'This platform provides educational tools for learning about '
-        'cryptocurrency markets. It is NOT financial advice.\n\n'
+        'This is a non-commercial community project providing '
+        'open-source educational tools. It is NOT financial advice.\n\n'
         '2. *Risk Acknowledgment*\n'
-        'Trading cryptocurrencies involves substantial risk of loss. '
-        'You may lose some or all of your investment.\n\n'
+        'Cryptocurrency markets involve substantial risk of loss. '
+        'You may lose some or all of your capital.\n\n'
         '3. *User Responsibility*\n'
-        'You are solely responsible for all trading decisions. '
-        'Past performance does not guarantee future results.\n\n'
+        'You are solely responsible for all your own decisions. '
+        'Past performance does not indicate future results.\n\n'
         '4. *No Guarantees*\n'
-        'We do not guarantee profits or specific outcomes. '
-        'Market conditions are unpredictable.\n\n'
-        '5. *Age Requirement*\n'
-        'You must be 18+ years old to use this platform.\n\n'
-        '6. *Jurisdiction*\n'
-        'You are responsible for compliance with your local laws.\n\n'
-        'Do you accept these terms?'
+        'This project makes no guarantees of any outcomes. '
+        'Market conditions are inherently unpredictable.\n\n'
+        '5. *Voluntary Contributions*\n'
+        'All contributions are voluntary, non-refundable donations '
+        'to support community development. No goods or services are sold.\n\n'
+        '6. *Age & Jurisdiction*\n'
+        'You must be 18+ and comply with your local laws.\n\n'
+        'Do you accept these guidelines?'
     ),
     
     'terms_btn_accept': '✅ I Accept',

@@ -59,7 +59,7 @@ TEXTS = {
     'button_balance': '💎 Portofoli',
     'button_market': '📈 Tregu',
     'button_strategies': '🤖 AI Bots',
-    'button_subscribe': '👑 PREMIUM',
+    'button_subscribe': '🤝 MBËSHTETJE',
     'button_terminal': '💻 Terminal',
     'button_terminal': '💻 Terminal',
     'button_history':              '📋 Historia',
@@ -607,62 +607,34 @@ TEXTS = {
     # LICENSING SYSTEM
     # =====================================================
     
-    'no_license': (
-        '🚫 <b>AKSESI REFUZUAR</b>\n\n'
-        '📊 847 tregtues po fitojnë tani ndërsa ju jeni jashtë.\n'
-        '⏰ Çdo minutë pa Enliko = mundësi të humbura\n\n'
-        '👑 Zhbllokoni tani përparësinë tuaj të padrejtë: /subscribe'
-    ),
-    'no_license_trading': (
-        '🚫 <b>TREGTIMI ËSHTË I MBYLLUR</b>\n\n'
-        'Derisa ju prisni, 847 tregtues po fitojnë me Enliko.\n\n'
-        '⚡ Filloni të fitoni tani: /subscribe'
-    ),
-    'license_required': '⚠️ Kjo veçori kërkon abonim {required}.\n\nPërdorni /subscribe për të përmirësuar.',
-    'trial_demo_only': '⚠️ Licenca provë lejon vetëm tregtim demo.\n\nPërmirësoni në Premium ose Basic për tregtim real: /subscribe',
-    'basic_strategy_limit': '⚠️ Licenca Basic në llogari reale lejon vetëm: {strategies}\n\nPërmirësoni në Premium për të gjitha strategjitë: /subscribe',
-    
-    'subscribe_menu_header': '� <b>AKSES VIP NË ENLIKO</b>',
-    'subscribe_menu_info': '🔓 Zhbllokoni strategjitë e tregtuesve elitë:',
-    'btn_premium': '💎 Premium',
-    'btn_basic': '🥈 Basic', 
-    'btn_trial': '🎁 Provë (Falas)',
-    'btn_enter_promo': '🎟 Kodi Promo',
-    'btn_my_subscription': '📋 Abonimi Im',
-    
-    'premium_title': '� <b>AKSES ELITE PREMIUM</b>',
-    'premium_desc': '''✅ Akses i plotë në të gjitha veçoritë
-✅ Të 5 strategjitë: OI, RSI+BB, Scryptomera, Scalper, Enliko
-✅ Tregtim Real + Demo
-✅ Mbështetje prioritare
-✅ SL/TP dinamik bazuar në ATR
-✅ Shkallë limitesh DCA
-✅ Të gjitha përditësimet e ardhshme''',
-    'premium_1m': '💎 1 Muaj — {price} ELC',
-    'premium_3m': '💎 3 Muaj — {price} ELC (-10%)',
-    'premium_6m': '💎 6 Muaj — {price} ELC (-20%)',
-    'premium_12m': '💎 12 Muaj — {price} ELC (-30%)',
-    
-    'basic_title': '🥈 *PLANI BASIC*',
-    'basic_desc': '''✅ Akses i plotë në llogarinë demo
-✅ Llogari reale: OI, RSI+BB, Scryptomera, Scalper
-❌ Enliko, Fibonacci, Spot — vetëm Premium
-✅ Mbështetje standarde
-✅ SL/TP dinamik bazuar në ATR''',
-    'basic_1m': '🥈 1 Muaj — {price} ELC',
-    
-    'trial_title': '🚀 <b>FILLO PËRPARËSINË TENDE SOT</b>',
-    'trial_desc': '''✅ Akses i plotë në llogarinë demo
-✅ Të 5 strategjitë në demo
-❌ Tregtimi real nuk është i disponueshëm
-⏰ Kohëzgjatja: 7 ditë
-🎁 Vetëm një herë''',
-    'trial_activate': '🎁 Aktivizo Provën Falas',
-    'trial_already_used': '⚠️ Ju tashmë keni përdorur provën tuaj falas.',
-    'trial_activated': '🎉 Prova u aktivizua! Keni 7 ditë akses demo të plotë.',
-    
-    'payment_select_method': '💳 *Zgjidhni Metodën e Pagesës*',
-    'btn_pay_elc': '◈ Enliko Coin (ELC)',
+    'no_license': '🤝 *Community Membership*\n\nSupport our open-source project to access\nadditional community resources.\n\n👉 /subscribe — Support the project',
+    'no_license_trading': '🤝 *Community Resource*\n\nThis resource is available to community supporters.\n\n👉 /subscribe — Support the project',
+    'license_required': '🔒 *Supporter Resource*\n\nThis resource requires {required} membership.\n\n👉 /subscribe — Support the project',
+    'trial_demo_only': '⚠️ *Explorer Access*\n\nExplorer access is limited to demo environment.\n\n👉 /subscribe — Become a supporter',
+    'basic_strategy_limit': '⚠️ *Community Tier*\n\nAvailable templates: {strategies}\n\n👉 /subscribe — Upgrade your support',
+    'subscribe_menu_header': '🤝 *Support Enliko*\n\nYour voluntary contribution helps maintain\nfree open-source community tools.\n\nChoose your support level:',
+    'subscribe_menu_info': '_Select your support level:_',
+    'btn_premium': '🤝 Patron',
+    'btn_basic': '💚 Mbështetës',
+    'btn_trial': '🆓 Eksplorues (Falas)',
+    'btn_enter_promo': '🎟 Kodi ftesës',
+    'btn_my_subscription': '📋 Anëtarësia ime',
+    'premium_title': '🤝 *Patron Membership*',
+    'premium_desc': '*Thank you for supporting our community!*\n\nAs a patron, you receive access to:\n✅ All community analysis templates\n✅ Demo & live environments\n✅ Priority community support\n✅ ATR risk management tools\n✅ DCA configuration tools\n✅ Early access to updates\n\n⚠️ _Educational tools only. Not financial advice._',
+    'premium_1m': '🤝 1 Month — {price} ELC',
+    'premium_3m': '🤝 3 Months — {price} ELC',
+    'premium_6m': '🤝 6 Months — {price} ELC',
+    'premium_12m': '🤝 12 Months — {price} ELC',
+    'basic_title': '💚 *Supporter Membership*',
+    'basic_desc': '*Thank you for your support!*\n\n✅ Demo + live environments\n✅ Templates: OI, RSI+BB\n✅ Bybit integration\n✅ ATR risk management tools\n\n⚠️ _Educational tools only. Not financial advice._',
+    'basic_1m': '💚 1 Month — {price} ELC',
+    'trial_title': '🆓 *Explorer Access — 14 Days*',
+    'trial_desc': '*Explore our community tools:*\n\n✅ Full demo environment\n✅ All analysis templates\n✅ 14 days access\n✅ No contribution required\n\n⚠️ _Educational tools only. Not financial advice._',
+    'trial_activate': '🆓 Start Exploring',
+    'trial_already_used': '⚠️ Explorer access already used. Consider supporting the project.',
+    'trial_activated': '🎉 *Explorer Access Activated!*\n\n⏰ 14 days of full demo access.\n\n⚠️ _Educational tools only. Not financial advice._',
+    'payment_select_method': '🤝 *How would you like to contribute?*',
+    'btn_pay_elc': '◈ ELC',
     'btn_pay_ton': '💎 TON',
     'payment_elc_title': ' Pagesë nëpërmjet ELC',
     'payment_elc_desc': 'Do të tarifoheni {amount} ELC për {plan} ({period}).',
@@ -673,30 +645,28 @@ TEXTS = {
 
 Pas pagesës, klikoni butonin më poshtë për verifikim.''',
     'btn_verify_ton': '✅ Pagova — Verifiko',
-    'payment_processing': '⏳ Duke përpunuar pagesën...',
-    'payment_success': '🎉 Pagesa u krye!\n\n{plan} u aktivizua deri në {expires}.',
-    'payment_failed': '❌ Pagesa dështoi: {error}',
-    
-    'my_subscription_header': '📋 *Abonimi Im*',
+    'payment_processing': '⏳ ...',
+    'payment_success': '🎉 Thank you for your support!\n\n{plan} access activated until {expires}.',
+    'payment_failed': '❌ Contribution failed: {error}',
+    'my_subscription_header': '📋 *My Membership*',
     'my_subscription_active': '''📋 *Plani Aktual:* {plan}
 ⏰ *Skadon:* {expires}
 📅 *Ditë të Mbetura:* {days}''',
-    'my_subscription_none': '❌ Nuk ka abonim aktiv.\n\nPërdorni /subscribe për të blerë plan.',
+    'my_subscription_none': '❌ No active membership.\n\nUse /subscribe to support the project.',
     'my_subscription_history': '📜 *Historia e Pagesave:*',
     'subscription_expiring_soon': '⚠️ Abonimi juaj {plan} skadon në {days} ditë!\n\nRinovoni tani: /subscribe',
     
-    'promo_enter': '🎟 Futni kodin tuaj promo:',
-    'promo_success': '🎉 Kodi promo u aplikua!\n\n{plan} u aktivizua për {days} ditë.',
-    'promo_invalid': '❌ Kod promo i pavlefshëm.',
-    'promo_expired': '❌ Ky kod promo ka skaduar.',
-    'promo_used': '❌ Ky kod promo është përdorur tashmë.',
-    'promo_already_used': '❌ Ju tashmë keni përdorur këtë kod promo.',
-    
-    'admin_license_menu': '🔑 *Menaxhimi i Licencave*',
-    'admin_btn_grant_license': '🎁 Jep Licencë',
-    'admin_btn_view_licenses': '📋 Shiko Licencat',
-    'admin_btn_create_promo': '🎟 Krijo Promo',
-    'admin_btn_view_promos': '📋 Shiko Promo',
+    'promo_enter': '🎟 Enter your invite code:',
+    'promo_success': '🎉 Invite code applied!\n\n{plan} access for {days} days.',
+    'promo_invalid': '❌ Invalid invite code.',
+    'promo_expired': '❌ This invite code has expired.',
+    'promo_used': '❌ This invite code has already been used.',
+    'promo_already_used': '❌ You have already used this invite code.',
+    'admin_license_menu': '🤝 *Membership Management*',
+    'admin_btn_grant_license': '🎁 Grant Access',
+    'admin_btn_view_licenses': '📋 View Members',
+    'admin_btn_create_promo': '🎟 Create Invite',
+    'admin_btn_view_promos': '📋 View Invites',
     'admin_btn_expiring_soon': '⚠️ Skadon së shpejti',
     'admin_grant_select_type': 'Zgjidhni llojin e licencës:',
     'admin_grant_select_period': 'Zgjidhni periudhën:',
@@ -802,7 +772,7 @@ Zgjidhni llojin e raportit:''',
     'admin_user_report': '👤 Raport përdoruesi',
     'admin_view_report': '📊 Shiko raportin',
     'admin_view_user': '👤 Karta e përdoruesit',
-    'btn_check_again': '🔄 Kontrollo përsëri',
+    'btn_check_again': '🔄 Check',
     'payment_session_expired': '❌ Sesioni i pagesës skadoi. Ju lutemi filloni përsëri.',
     'payment_ton_not_configured': '❌ Pagesat TON nuk janë të konfiguruara.',
     'payment_verifying': '⏳ Duke verifikuar pagesën...',

@@ -1,12 +1,12 @@
 """
-OxaPay Payment Gateway Integration
-==================================
-Full integration with OxaPay for crypto payments (USDT, BTC, ETH, etc.)
-Auto-approve subscriptions on successful payment via webhook.
+OxaPay Voluntary Contribution Gateway
+======================================
+Integration with OxaPay for accepting crypto contributions (USDT, BTC, ETH, etc.)
+Auto-activate membership access upon successful contribution.
 
 Features:
-- Create payment invoices
-- White-label payment pages
+- Create contribution invoices
+- White-label contribution pages
 - Static wallet addresses
 - Webhook verification
 - Auto-convert to USDT
@@ -102,59 +102,59 @@ DURATION_MONTHS = {
     "1y": 12,
 }
 
-# Plan features
+# Membership tier features (non-commercial community project)
 PLAN_FEATURES = {
     "trial": {
-        "name": "Free Trial",
-        "description": "14 days free demo access",
+        "name": "Explorer Access",
+        "description": "14 days free community access",
         "features": [
-            "Demo trading only",
+            "Demo mode tools",
             "All strategies in demo",
             "14 days duration",
-            "No payment required",
+            "No contribution required",
         ],
         "duration_days": 14,
         "is_trial": True,
     },
     "basic": {
-        "name": "Basic",
-        "description": "Essential trading features",
+        "name": "Supporter",
+        "description": "Community tools for supporters",
         "features": [
-            "Bybit Demo + Real trading",
-            "Strategies: OI, RSI+BB only",
-            "Bybit exchange only",
+            "Bybit Demo + Real access",
+            "Strategies: OI, RSI+BB",
+            "Bybit exchange",
             "ATR risk management",
-            "Standard support",
+            "Community support",
         ],
         "bybit_only": True,
     },
     "premium": {
-        "name": "Premium",
-        "description": "Full access for serious traders",
+        "name": "Patron",
+        "description": "Full community access for patrons",
         "features": [
             "All strategies",
             "All exchanges (Bybit + HyperLiquid)",
-            "Demo + Real trading",
+            "Demo + Real access",
             "ATR Trailing Stop",
             "Break-Even automation",
             "Partial Take Profit",
-            "DCA support",
-            "Priority support",
+            "DCA tools",
+            "Priority community support",
         ],
         "recommended": True,
     },
     "enterprise": {
         "name": "Enterprise",
-        "description": "Unlimited power for professionals",
+        "description": "Extended access for organizations",
         "features": [
-            "Everything in Premium",
+            "Everything in Patron tier",
             "Unlimited positions",
             "Multi-exchange simultaneous",
             "Custom strategies",
             "Webhooks integration",
             "API access",
-            "Dedicated account manager",
-            "White-glove onboarding",
+            "Dedicated community liaison",
+            "Guided onboarding",
         ],
         "max_positions": 999,
     },
@@ -203,7 +203,7 @@ class PaymentInvoice:
 # ============================================
 
 class OxaPayService:
-    """OxaPay payment gateway service"""
+    """OxaPay voluntary contribution gateway service"""
     
     def __init__(self, merchant_api_key: str = None):
         self.merchant_api_key = merchant_api_key or OXAPAY_MERCHANT_API_KEY
@@ -271,22 +271,22 @@ class OxaPayService:
         return_url: str = None,
     ) -> PaymentInvoice:
         """
-        Create payment invoice for subscription.
+        Create contribution invoice for membership.
         
         Args:
             user_id: Telegram user ID
-            plan: License plan (basic, premium, enterprise)
+            plan: Membership tier (basic, premium, enterprise)
             duration: Duration (1m, 3m, 6m, 1y)
-            currency: Payment currency (USDT, BTC, ETH, etc.)
-            return_url: URL to redirect after payment
+            currency: Contribution currency (USDT, BTC, ETH, etc.)
+            return_url: URL to redirect after contribution
             
         Returns:
-            PaymentInvoice with payment details
+            PaymentInvoice with contribution details
         """
         amount = self.get_price(plan, duration)
         
         if amount <= 0:
-            raise ValueError("Cannot create payment for free plan")
+            raise ValueError("Cannot create invoice for free tier")
         
         order_id = f"enliko_{user_id}_{plan}_{duration}_{secrets.token_hex(4)}"
         
@@ -294,13 +294,13 @@ class OxaPayService:
             "amount": amount,
             "currency": "USD",
             "payCurrency": currency,
-            "lifeTime": 30,  # 30 minutes to pay
-            "feePaidByPayer": 1,  # User pays network fee
+            "lifeTime": 30,  # 30 minutes
+            "feePaidByPayer": 1,  # Contributor pays network fee
             "underPaidCoverage": 2.5,  # Accept 2.5% underpayment
             "callbackUrl": PAYMENT_CALLBACK_URL,
-            "returnUrl": return_url or f"{WEBAPP_URL}/subscription/success",
+            "returnUrl": return_url or f"{WEBAPP_URL}/membership/thankyou",
             "orderId": order_id,
-            "description": f"Enliko {plan.title()} - {duration}",
+            "description": f"Enliko Community — {plan.title()} tier ({duration})",
         }
         
         result = await self._request("/merchants/request", data=data)
@@ -330,7 +330,7 @@ class OxaPayService:
         # Save to database
         await self._save_payment(invoice)
         
-        logger.info(f"Payment created: {order_id} for user {user_id}, ${amount}")
+        logger.info(f"Contribution invoice created: {order_id} for user {user_id}, ${amount}")
         return invoice
     
     async def create_white_label_payment(
@@ -342,14 +342,14 @@ class OxaPayService:
         network: str = "Tron",
     ) -> Dict[str, Any]:
         """
-        Create white-label payment (no redirect, show address directly).
+        Create direct contribution invoice (no redirect, show address directly).
         
         Better for bot integration - shows QR code and address directly.
         """
         amount = self.get_price(plan, duration)
         
         if amount <= 0:
-            raise ValueError("Cannot create payment for free plan")
+            raise ValueError("Cannot create invoice for free tier")
         
         order_id = f"enliko_{user_id}_{plan}_{duration}_{secrets.token_hex(4)}"
         
@@ -363,13 +363,13 @@ class OxaPayService:
             "underPaidCoverage": 2.5,
             "callbackUrl": PAYMENT_CALLBACK_URL,
             "orderId": order_id,
-            "description": f"Enliko {plan.title()} - {duration}",
+            "description": f"Enliko Community — {plan.title()} tier ({duration})",
         }
         
         result = await self._request("/merchants/request", data=data)
         
         if result.get("result") != 100:
-            error_msg = result.get("message", "Failed to create payment")
+            error_msg = result.get("message", "Failed to create contribution invoice")
             raise Exception(error_msg)
         
         payment_data = {
@@ -393,7 +393,7 @@ class OxaPayService:
         # Save to database
         await self._save_payment_data(payment_data)
         
-        logger.info(f"White-label payment created: {order_id}")
+        logger.info(f"Direct contribution invoice created: {order_id}")
         return payment_data
     
     async def check_payment_status(self, track_id: str) -> Dict[str, Any]:
@@ -436,7 +436,7 @@ class OxaPayService:
         """
         Process webhook from OxaPay.
         
-        Auto-approves subscription on successful payment.
+        Auto-activates membership on successful contribution.
         """
         status = payload.get("status")
         order_id = payload.get("orderId", "")
@@ -560,7 +560,7 @@ class OxaPayService:
         tx_hash: str = None,
         amount: float = None,
     ) -> Dict[str, Any]:
-        """Activate user license after successful payment"""
+        """Activate membership access after successful contribution"""
         try:
             from db import set_user_license
             
@@ -579,7 +579,7 @@ class OxaPayService:
             )
             
             if result.get("success"):
-                logger.info(f"License activated: {user_id} -> {plan} for {months} months")
+                logger.info(f"Membership activated: {user_id} -> {plan} for {months} months")
                 return {
                     "success": True,
                     "user_id": user_id,
@@ -588,15 +588,15 @@ class OxaPayService:
                     "expires": result.get("expires"),
                 }
             else:
-                logger.error(f"License activation failed: {result}")
+                logger.error(f"Membership activation failed: {result}")
                 return {"success": False, "error": result.get("error")}
                 
         except Exception as e:
-            logger.error(f"License activation error: {e}")
+            logger.error(f"Membership activation error: {e}")
             return {"success": False, "error": str(e)}
     
     async def _notify_user(self, user_id: int, plan: str, duration: str):
-        """Send notification to user about successful payment"""
+        """Send notification to user about successful contribution"""
         try:
             # Import bot and send message
             from telegram import Bot
@@ -617,13 +617,13 @@ class OxaPayService:
             }.get(duration, duration)
             
             message = f"""
-✅ *Payment Successful!*
+🤝 *Thank You for Your Support!*
 
-Your *{plan_name}* subscription has been activated for *{duration_text}*.
+Your *{plan_name}* membership has been activated for *{duration_text}*.
 
-Thank you for choosing Enliko! 🚀
+Your contribution helps keep this community project alive! 💚
 
-Use /menu to access all features.
+Use /menu to access all community tools.
 """
             await bot.send_message(
                 chat_id=user_id,
@@ -655,7 +655,7 @@ Use /menu to access all features.
         ]
     
     def get_plans(self) -> Dict[str, Any]:
-        """Get all subscription plans with features and pricing"""
+        """Get all membership tiers with features and suggested contributions"""
         result = {}
         for plan_id, features in PLAN_FEATURES.items():
             result[plan_id] = {
@@ -671,20 +671,20 @@ Use /menu to access all features.
         network: str = "Tron",
     ) -> Dict[str, Any]:
         """
-        Create payment for ELC token purchase.
+        Create invoice for ELC token acquisition.
         
-        User pays USDT, receives ELC tokens (1:1 minus 0.5% fee).
+        Contributor sends USDT, receives ELC tokens (1:1 minus 0.5% fee).
         
         Args:
             user_id: Telegram user ID
-            usdt_amount: Amount in USDT to pay
-            network: Payment network (Tron, BSC, Ethereum, etc.)
+            usdt_amount: Amount in USDT
+            network: Network (Tron, BSC, Ethereum, etc.)
             
         Returns:
-            Payment invoice with address and amount
+            Invoice with address and amount
         """
         if usdt_amount < 10:
-            raise ValueError("Minimum purchase is 10 USDT")
+            raise ValueError("Minimum amount is 10 USDT")
         
         elc_amount = usdt_amount * 0.995  # 0.5% platform fee
         
@@ -700,7 +700,7 @@ Use /menu to access all features.
             "underPaidCoverage": 2.5,
             "callbackUrl": f"{WEBAPP_URL}/api/payments/elc/webhook",
             "orderId": order_id,
-            "description": f"Buy {elc_amount:.2f} ELC tokens",
+            "description": f"Enliko Community — {elc_amount:.2f} ELC tokens",
         }
         
         result = await self._request("/merchants/request", data=data)
@@ -763,9 +763,9 @@ Use /menu to access all features.
     
     async def process_elc_purchase_webhook(self, payload: Dict[str, Any]) -> Dict[str, Any]:
         """
-        Process webhook for ELC purchase.
+        Process webhook for ELC token acquisition.
         
-        Credits ELC to user balance on successful payment.
+        Credits ELC to user balance on successful contribution.
         """
         status = payload.get("status")
         order_id = payload.get("orderId", "")
@@ -799,7 +799,7 @@ Use /menu to access all features.
                 new_balance = add_elc_balance(
                     user_id, 
                     elc_amount, 
-                    f"Purchased with {usdt_amount} USDT via OxaPay"
+                    f"Contributed {usdt_amount} USDT via OxaPay"
                 )
                 
                 # Notify user
@@ -819,7 +819,7 @@ Use /menu to access all features.
         return {"success": True, "status": status}
     
     async def _notify_elc_purchase(self, user_id: int, elc_amount: float, usdt_amount: float):
-        """Notify user about successful ELC purchase"""
+        """Notify user about successful ELC token acquisition"""
         try:
             from telegram import Bot
             
@@ -830,12 +830,12 @@ Use /menu to access all features.
             bot = Bot(token=bot_token)
             
             message = f"""
-✅ *ELC Purchase Successful!*
+🤝 *Thank You for Your Contribution!*
 
-💵 *Paid:* {usdt_amount} USDT
+💚 *Contributed:* {usdt_amount} USDT
 🪙 *Received:* {elc_amount:.2f} ELC
 
-Your tokens have been credited to your wallet.
+Tokens have been credited to your wallet.
 Use /wallet to check your balance.
 """
             await bot.send_message(
@@ -864,7 +864,7 @@ async def create_payment(
     duration: str,
     currency: str = "USDT",
 ) -> Dict[str, Any]:
-    """Create payment for subscription"""
+    """Create contribution invoice for membership"""
     return await oxapay_service.create_white_label_payment(
         user_id=user_id,
         plan=plan,
@@ -879,7 +879,7 @@ async def process_webhook(payload: Dict[str, Any]) -> Dict[str, Any]:
 
 
 def get_plans() -> Dict[str, Any]:
-    """Get subscription plans"""
+    """Get membership tiers"""
     return oxapay_service.get_plans()
 
 
@@ -900,16 +900,16 @@ async def create_payment_for_elc(
     network: str = "Tron"
 ) -> Dict[str, Any]:
     """
-    Create payment for buying ELC tokens.
+    Create contribution invoice for ELC tokens.
     
     Args:
         user_id: Telegram user ID
         amount_usd: Amount in USD (1:1 with ELC)
-        currency: Payment currency (USDT, BTC, ETH, etc.)
+        currency: Contribution currency (USDT, BTC, ETH, etc.)
         network: Blockchain network (Tron, BSC, Ethereum, Bitcoin)
     
     Returns:
-        Dict with payment details or error
+        Dict with invoice details or error
     """
     import uuid
     import aiohttp
@@ -928,7 +928,7 @@ async def create_payment_for_elc(
             "underPaidCover": 2.5,
             "callbackUrl": f"{oxapay_service.callback_url}?type=elc",
             "returnUrl": f"https://enliko.com/wallet?payment={payment_id}",
-            "description": f"Buy {int(amount_usd)} ELC Tokens",
+            "description": f"Enliko Community — {int(amount_usd)} ELC Tokens",
             "orderId": payment_id,
         }
         
@@ -974,10 +974,10 @@ async def create_payment_for_elc(
 
 async def check_payment_status(payment_id: str) -> Dict[str, Any]:
     """
-    Check status of a payment.
+    Check contribution status.
     
     Args:
-        payment_id: Our internal payment ID
+        payment_id: Internal contribution ID
     
     Returns:
         Dict with status information

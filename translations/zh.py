@@ -59,7 +59,7 @@ TEXTS = {
     'button_balance': '💎 投资组合',
     'button_market': '📈 市场',
     'button_strategies': '🤖 AI机器人',
-    'button_subscribe': '👑 高级版',
+    'button_subscribe': '🤝 支持我们',
     'button_terminal': '💻 终端',
     'button_terminal': '💻 终端',
     'button_history':              '📋 历史',
@@ -607,62 +607,34 @@ TEXTS = {
     # LICENSING SYSTEM
     # =====================================================
     
-    'no_license': (
-        '🚫 <b>访问被拒绝</b>\n\n'
-        '📊 847名交易者正在获利，而您被排除在外。\n'
-        '⏰ 没有Enliko的每一分钟 = 错过的机会\n\n'
-        '👑 立即解锁您的不公平优势: /subscribe'
-    ),
-    'no_license_trading': (
-        '🚫 <b>交易已锁定</b>\n\n'
-        '在您等待的同时，847名交易者正在用Enliko获利。\n\n'
-        '⚡ 立即开始盈利: /subscribe'
-    ),
-    'license_required': '⚠️ 此功能需要{required}订阅。\n\n使用 /subscribe 升级。',
-    'trial_demo_only': '⚠️ 试用许可证仅允许模拟交易。\n\n升级到Premium或Basic进行实盘交易: /subscribe',
-    'basic_strategy_limit': '⚠️ Basic许可证在实盘账户仅允许: {strategies}\n\n升级到Premium解锁所有策略: /subscribe',
-    
-    'subscribe_menu_header': '� <b>ENLIKO VIP访问</b>',
-    'subscribe_menu_info': '🔓 解锁精英交易者策略:',
-    'btn_premium': '💎 高级版',
-    'btn_basic': '🥈 基础版', 
-    'btn_trial': '🎁 试用（免费）',
-    'btn_enter_promo': '🎟 优惠码',
-    'btn_my_subscription': '📋 我的订阅',
-    
-    'premium_title': '� <b>精英PREMIUM访问</b>',
-    'premium_desc': '''✅ 完全访问所有功能
-✅ 所有5种策略: OI, RSI+BB, Scryptomera, Scalper, Enliko
-✅ 实盘 + 模拟交易
-✅ 优先支持
-✅ 基于ATR的动态SL/TP
-✅ 限价梯子DCA
-✅ 所有未来更新''',
-    'premium_1m': '💎 1个月 — {price} ELC',
-    'premium_3m': '💎 3个月 — {price} ELC (-10%)',
-    'premium_6m': '💎 6个月 — {price} ELC (-20%)',
-    'premium_12m': '💎 12个月 — {price} ELC (-30%)',
-    
-    'basic_title': '🥈 *基础计划*',
-    'basic_desc': '''✅ 完全访问模拟账户
-✅ 实盘账户: OI, RSI+BB, Scryptomera, Scalper
-❌ Enliko, Fibonacci, Spot — 仅限Premium
-✅ 标准支持
-✅ 基于ATR的动态SL/TP''',
-    'basic_1m': '🥈 1个月 — {price} ELC',
-    
-    'trial_title': '🚀 <b>今天就开始您的优势</b>',
-    'trial_desc': '''✅ 完全访问模拟账户
-✅ 模拟所有5种策略
-❌ 实盘交易不可用
-⏰ 期限: 7天
-🎁 仅限一次''',
-    'trial_activate': '🎁 激活免费试用',
-    'trial_already_used': '⚠️ 您已使用过免费试用。',
-    'trial_activated': '🎉 试用已激活！您有7天完整模拟访问权限。',
-    
-    'payment_select_method': '💳 *选择支付方式*',
-    'btn_pay_elc': '◈ Enliko Coin (ELC)',
+    'no_license': '🤝 *Community Membership*\n\nSupport our open-source project to access\nadditional community resources.\n\n👉 /subscribe — Support the project',
+    'no_license_trading': '🤝 *Community Resource*\n\nThis resource is available to community supporters.\n\n👉 /subscribe — Support the project',
+    'license_required': '🔒 *Supporter Resource*\n\nThis resource requires {required} membership.\n\n👉 /subscribe — Support the project',
+    'trial_demo_only': '⚠️ *Explorer Access*\n\nExplorer access is limited to demo environment.\n\n👉 /subscribe — Become a supporter',
+    'basic_strategy_limit': '⚠️ *Community Tier*\n\nAvailable templates: {strategies}\n\n👉 /subscribe — Upgrade your support',
+    'subscribe_menu_header': '🤝 *Support Enliko*\n\nYour voluntary contribution helps maintain\nfree open-source community tools.\n\nChoose your support level:',
+    'subscribe_menu_info': '_Select your support level:_',
+    'btn_premium': '🤝 赞助者',
+    'btn_basic': '💚 支持者',
+    'btn_trial': '🆓 体验 (免费)',
+    'btn_enter_promo': '🎟 邀请码',
+    'btn_my_subscription': '📋 我的会员',
+    'premium_title': '🤝 *Patron Membership*',
+    'premium_desc': '*Thank you for supporting our community!*\n\nAs a patron, you receive access to:\n✅ All community analysis templates\n✅ Demo & live environments\n✅ Priority community support\n✅ ATR risk management tools\n✅ DCA configuration tools\n✅ Early access to updates\n\n⚠️ _Educational tools only. Not financial advice._',
+    'premium_1m': '🤝 1 Month — {price} ELC',
+    'premium_3m': '🤝 3 Months — {price} ELC',
+    'premium_6m': '🤝 6 Months — {price} ELC',
+    'premium_12m': '🤝 12 Months — {price} ELC',
+    'basic_title': '💚 *Supporter Membership*',
+    'basic_desc': '*Thank you for your support!*\n\n✅ Demo + live environments\n✅ Templates: OI, RSI+BB\n✅ Bybit integration\n✅ ATR risk management tools\n\n⚠️ _Educational tools only. Not financial advice._',
+    'basic_1m': '💚 1 Month — {price} ELC',
+    'trial_title': '🆓 *Explorer Access — 14 Days*',
+    'trial_desc': '*Explore our community tools:*\n\n✅ Full demo environment\n✅ All analysis templates\n✅ 14 days access\n✅ No contribution required\n\n⚠️ _Educational tools only. Not financial advice._',
+    'trial_activate': '🆓 Start Exploring',
+    'trial_already_used': '⚠️ Explorer access already used. Consider supporting the project.',
+    'trial_activated': '🎉 *Explorer Access Activated!*\n\n⏰ 14 days of full demo access.\n\n⚠️ _Educational tools only. Not financial advice._',
+    'payment_select_method': '🤝 *How would you like to contribute?*',
+    'btn_pay_elc': '◈ ELC',
     'btn_pay_ton': '💎 TON',
     'payment_elc_title': ' 通过ELC支付',
     'payment_elc_desc': '将收取{amount} ELC用于{plan}（{period}）。',
@@ -673,30 +645,28 @@ TEXTS = {
 
 支付后，点击下方按钮验证。''',
     'btn_verify_ton': '✅ 已支付 — 验证',
-    'payment_processing': '⏳ 处理支付中...',
-    'payment_success': '🎉 支付成功！\n\n{plan}已激活至{expires}。',
-    'payment_failed': '❌ 支付失败: {error}',
-    
-    'my_subscription_header': '📋 *我的订阅*',
+    'payment_processing': '⏳ ...',
+    'payment_success': '🎉 Thank you for your support!\n\n{plan} access activated until {expires}.',
+    'payment_failed': '❌ Contribution failed: {error}',
+    'my_subscription_header': '📋 *My Membership*',
     'my_subscription_active': '''📋 *当前计划:* {plan}
 ⏰ *到期时间:* {expires}
 📅 *剩余天数:* {days}''',
-    'my_subscription_none': '❌ 没有有效订阅。\n\n使用 /subscribe 购买计划。',
+    'my_subscription_none': '❌ No active membership.\n\nUse /subscribe to support the project.',
     'my_subscription_history': '📜 *支付历史:*',
     'subscription_expiring_soon': '⚠️ 您的{plan}订阅将在{days}天后到期！\n\n立即续订: /subscribe',
     
-    'promo_enter': '🎟 输入您的优惠码:',
-    'promo_success': '🎉 优惠码已应用！\n\n{plan}已激活{days}天。',
-    'promo_invalid': '❌ 无效的优惠码。',
-    'promo_expired': '❌ 此优惠码已过期。',
-    'promo_used': '❌ 此优惠码已被使用。',
-    'promo_already_used': '❌ 您已使用过此优惠码。',
-    
-    'admin_license_menu': '🔑 *许可证管理*',
-    'admin_btn_grant_license': '🎁 授予许可证',
-    'admin_btn_view_licenses': '📋 查看许可证',
-    'admin_btn_create_promo': '🎟 创建优惠码',
-    'admin_btn_view_promos': '📋 查看优惠码',
+    'promo_enter': '🎟 Enter your invite code:',
+    'promo_success': '🎉 Invite code applied!\n\n{plan} access for {days} days.',
+    'promo_invalid': '❌ Invalid invite code.',
+    'promo_expired': '❌ This invite code has expired.',
+    'promo_used': '❌ This invite code has already been used.',
+    'promo_already_used': '❌ You have already used this invite code.',
+    'admin_license_menu': '🤝 *Membership Management*',
+    'admin_btn_grant_license': '🎁 Grant Access',
+    'admin_btn_view_licenses': '📋 View Members',
+    'admin_btn_create_promo': '🎟 Create Invite',
+    'admin_btn_view_promos': '📋 View Invites',
     'admin_btn_expiring_soon': '⚠️ 即将到期',
     'admin_grant_select_type': '选择许可证类型:',
     'admin_grant_select_period': '选择期限:',
@@ -802,7 +772,7 @@ TEXTS = {
     'admin_user_report': '👤 用户报告',
     'admin_view_report': '📊 查看报告',
     'admin_view_user': '👤 用户卡片',
-    'btn_check_again': '🔄 重新检查',
+    'btn_check_again': '🔄 Check',
     'payment_session_expired': '❌ 支付会话已过期。请重新开始。',
     'payment_ton_not_configured': '❌ TON支付未配置。',
     'payment_verifying': '⏳ 验证支付中...',

@@ -65,7 +65,7 @@ TEXTS = {
     'button_balance': '💎 المحفظة',
     'button_market': '📈 السوق',
     'button_strategies': '🤖 روبوتات AI',
-    'button_subscribe': '👑 بريميوم',
+    'button_subscribe': '🤝 ادعمنا',
     'button_terminal': '💻 الطرفية',
     'button_terminal': '💻 الطرفية',
     'button_history':              '📜 السجل',
@@ -620,87 +620,34 @@ TEXTS = {
     # =====================================================
     
     # License status messages - BLACK RHETORIC: Loss Aversion + FOMO
-    'no_license': '''🚨 <b>تم رفض الوصول</b>
-
-بينما تتردد، <b>847 متداولاً</b> يحققون أرباحاً الآن.
-
-💸 كل دقيقة بدون Enliko = فرص ضائعة
-⏰ الأسواق لا تنتظر. وأنت أيضاً.
-
-👉 /subscribe — <i>افتح ميزتك الفريدة الآن</i>''',
-    'no_license_trading': '''🚨 <b>التداول مقفل</b>
-
-⚠️ 847 متداولاً يكسبون الآن مع Enliko.
-
-❌ التداول اليدوي = أخطاء عاطفية
-✅ Enliko = دقة الذكاء الاصطناعي الباردة
-
-<i>توقف عن المشاهدة. ابدأ الربح.</i>
-
-👉 /subscribe — <b>انضم إلى 847+ متداول ذكي</b>''',
-    'license_required': '''🔒 <b>ميزة PREMIUM</b>
-
-هذا يتطلب اشتراك {required} — <i>يستخدمها أفضل 3% من المتداولين</i>.
-
-🎯 النجاح يترك أدلة. اتبع الفائزين.
-
-👉 /subscribe — <b>الترقية الآن</b>''',
-    'trial_demo_only': '''⚠️ <b>الوضع التجريبي للتعلم، ليس للربح.</b>
-
-الأرباح الحقيقية تتطلب وصولاً حقيقياً.
-
-🎁 لقد تذوقت القوة. الآن <b>امتلكها</b>.
-
-👉 /subscribe — <b>افتح التداول الحقيقي</b>''',
-    'basic_strategy_limit': '''⚠️ <b>Basic = نتائج Basic</b>
-
-أنت مقيد بـ: {strategies}
-
-المحترفون يستخدمون <b>جميع</b> الاستراتيجيات. لهذا هم محترفون.
-
-👉 /subscribe — <b>انتقل إلى Premium. كن محترفاً.</b>''',
-    
-    'subscribe_menu_header': '👑 *وصول VIP إلى نادي المتداولين النخبة*',
-    'subscribe_menu_info': 'اختر خطتك لفتح ميزات التداول:',
-    'btn_premium': '💎 Premium',
-    'btn_basic': '🥈 Basic', 
-    'btn_trial': '🎁 تجربة (مجاني)',
-    'btn_enter_promo': '🎟 كود ترويجي',
-    'btn_my_subscription': '📋 اشتراكي',
-    
-    'premium_title': '� *PREMIUM — اختيار الفائزين*',
-    'premium_desc': '''✅ وصول كامل لجميع الميزات
-✅ جميع الاستراتيجيات الـ5: OI, RSI+BB, Scryptomera, Scalper, Enliko
-✅ تداول حقيقي + تجريبي
-✅ دعم أولوية
-✅ SL/TP ديناميكي مبني على ATR
-✅ سلم الليمت DCA
-✅ جميع التحديثات المستقبلية''',
-    'premium_1m': '💎 1 شهر — {price} ELC',
-    'premium_3m': '💎 3 أشهر — {price} ELC (-10%)',
-    'premium_6m': '💎 6 أشهر — {price} ELC (-20%)',
-    'premium_12m': '💎 12 شهر — {price} ELC (-30%)',
-    
-    'basic_title': '🥈 *خطة BASIC*',
-    'basic_desc': '''✅ وصول كامل للحساب التجريبي
-✅ الحساب الحقيقي: OI, RSI+BB, Scryptomera, Scalper
-❌ Enliko, Fibonacci, Spot — Premium فقط
-✅ دعم عادي
-✅ SL/TP ديناميكي مبني على ATR''',
-    'basic_1m': '🥈 1 شهر — {price} ELC',
-    
-    'trial_title': '🎁 *تجربة مجانية — عرض محدود!*',
-    'trial_desc': '''✅ وصول كامل للحساب التجريبي
-✅ جميع الاستراتيجيات الـ5 على التجريبي
-❌ التداول الحقيقي غير متاح
-⏰ المدة: 7 أيام
-🎁 مرة واحدة فقط''',
-    'trial_activate': '🎁 تفعيل التجربة المجانية',
-    'trial_already_used': '⚠️ لقد استخدمت تجربتك المجانية بالفعل.',
-    'trial_activated': '🎉 تم تفعيل التجربة! لديك 7 أيام من الوصول التجريبي الكامل.',
-    
-    'payment_select_method': '💳 *اختر طريقة الدفع*',
-    'btn_pay_elc': '◈ Enliko Coin (ELC)',
+    'no_license': '🤝 *Community Membership*\n\nSupport our open-source project to access\nadditional community resources.\n\n👉 /subscribe — Support the project',
+    'no_license_trading': '🤝 *Community Resource*\n\nThis resource is available to community supporters.\n\n👉 /subscribe — Support the project',
+    'license_required': '🔒 *Supporter Resource*\n\nThis resource requires {required} membership.\n\n👉 /subscribe — Support the project',
+    'trial_demo_only': '⚠️ *Explorer Access*\n\nExplorer access is limited to demo environment.\n\n👉 /subscribe — Become a supporter',
+    'basic_strategy_limit': '⚠️ *Community Tier*\n\nAvailable templates: {strategies}\n\n👉 /subscribe — Upgrade your support',
+    'subscribe_menu_header': '🤝 *Support Enliko*\n\nYour voluntary contribution helps maintain\nfree open-source community tools.\n\nChoose your support level:',
+    'subscribe_menu_info': '_Select your support level:_',
+    'btn_premium': '🤝 داعم رئيسي',
+    'btn_basic': '💚 داعم',
+    'btn_trial': '🆓 استكشاف (مجاني)',
+    'btn_enter_promo': '🎟 رمز الدعوة',
+    'btn_my_subscription': '📋 عضويتي',
+    'premium_title': '🤝 *Patron Membership*',
+    'premium_desc': '*Thank you for supporting our community!*\n\nAs a patron, you receive access to:\n✅ All community analysis templates\n✅ Demo & live environments\n✅ Priority community support\n✅ ATR risk management tools\n✅ DCA configuration tools\n✅ Early access to updates\n\n⚠️ _Educational tools only. Not financial advice._',
+    'premium_1m': '🤝 1 Month — {price} ELC',
+    'premium_3m': '🤝 3 Months — {price} ELC',
+    'premium_6m': '🤝 6 Months — {price} ELC',
+    'premium_12m': '🤝 12 Months — {price} ELC',
+    'basic_title': '💚 *Supporter Membership*',
+    'basic_desc': '*Thank you for your support!*\n\n✅ Demo + live environments\n✅ Templates: OI, RSI+BB\n✅ Bybit integration\n✅ ATR risk management tools\n\n⚠️ _Educational tools only. Not financial advice._',
+    'basic_1m': '💚 1 Month — {price} ELC',
+    'trial_title': '🆓 *Explorer Access — 14 Days*',
+    'trial_desc': '*Explore our community tools:*\n\n✅ Full demo environment\n✅ All analysis templates\n✅ 14 days access\n✅ No contribution required\n\n⚠️ _Educational tools only. Not financial advice._',
+    'trial_activate': '🆓 Start Exploring',
+    'trial_already_used': '⚠️ Explorer access already used. Consider supporting the project.',
+    'trial_activated': '🎉 *Explorer Access Activated!*\n\n⏰ 14 days of full demo access.\n\n⚠️ _Educational tools only. Not financial advice._',
+    'payment_select_method': '🤝 *How would you like to contribute?*',
+    'btn_pay_elc': '◈ ELC',
     'btn_pay_ton': '💎 TON',
     'payment_elc_title': ' الدفع عبر ELC',
     'payment_elc_desc': 'سيتم خصم {amount} ELC مقابل {plan} ({period}).',
@@ -711,30 +658,28 @@ TEXTS = {
 
 بعد الدفع، انقر على الزر أدناه للتحقق.''',
     'btn_verify_ton': '✅ دفعت — تحقق',
-    'payment_processing': '⏳ جاري معالجة الدفع...',
-    'payment_success': '🎉 نجح الدفع!\n\n{plan} مفعل حتى {expires}.',
-    'payment_failed': '❌ فشل الدفع: {error}',
-    
-    'my_subscription_header': '📋 *اشتراكي*',
+    'payment_processing': '⏳ ...',
+    'payment_success': '🎉 Thank you for your support!\n\n{plan} access activated until {expires}.',
+    'payment_failed': '❌ Contribution failed: {error}',
+    'my_subscription_header': '📋 *My Membership*',
     'my_subscription_active': '''📋 *الخطة الحالية:* {plan}
 ⏰ *ينتهي:* {expires}
 📅 *الأيام المتبقية:* {days}''',
-    'my_subscription_none': '❌ لا يوجد اشتراك نشط.\n\nاستخدم /subscribe لشراء خطة.',
+    'my_subscription_none': '❌ No active membership.\n\nUse /subscribe to support the project.',
     'my_subscription_history': '📜 *سجل المدفوعات:*',
     'subscription_expiring_soon': '⚠️ اشتراكك {plan} ينتهي خلال {days} أيام!\n\nجدد الآن: /subscribe',
     
-    'promo_enter': '🎟 أدخل الكود الترويجي:',
-    'promo_success': '🎉 تم تطبيق الكود الترويجي!\n\n{plan} مفعل لمدة {days} أيام.',
-    'promo_invalid': '❌ كود ترويجي غير صالح.',
-    'promo_expired': '❌ هذا الكود الترويجي منتهي الصلاحية.',
-    'promo_used': '❌ هذا الكود الترويجي مستخدم بالفعل.',
-    'promo_already_used': '❌ لقد استخدمت هذا الكود الترويجي بالفعل.',
-    
-    'admin_license_menu': '🔑 *إدارة التراخيص*',
-    'admin_btn_grant_license': '🎁 منح ترخيص',
-    'admin_btn_view_licenses': '📋 عرض التراخيص',
-    'admin_btn_create_promo': '🎟 إنشاء كود',
-    'admin_btn_view_promos': '📋 عرض الأكواد',
+    'promo_enter': '🎟 Enter your invite code:',
+    'promo_success': '🎉 Invite code applied!\n\n{plan} access for {days} days.',
+    'promo_invalid': '❌ Invalid invite code.',
+    'promo_expired': '❌ This invite code has expired.',
+    'promo_used': '❌ This invite code has already been used.',
+    'promo_already_used': '❌ You have already used this invite code.',
+    'admin_license_menu': '🤝 *Membership Management*',
+    'admin_btn_grant_license': '🎁 Grant Access',
+    'admin_btn_view_licenses': '📋 View Members',
+    'admin_btn_create_promo': '🎟 Create Invite',
+    'admin_btn_view_promos': '📋 View Invites',
     'admin_btn_expiring_soon': '⚠️ ينتهي قريباً',
     'admin_grant_select_type': 'اختر نوع الترخيص:',
     'admin_grant_select_period': 'اختر الفترة:',
@@ -840,7 +785,7 @@ TEXTS = {
     'admin_user_report': '👤 تقرير المستخدم',
     'admin_view_report': '📊 عرض التقرير',
     'admin_view_user': '👤 بطاقة المستخدم',
-    'btn_check_again': '🔄 تحقق مرة أخرى',
+    'btn_check_again': '🔄 Check',
     'payment_session_expired': '❌ انتهت جلسة الدفع. يرجى البدء من جديد.',
     'payment_ton_not_configured': '❌ مدفوعات TON غير مهيأة.',
     'payment_verifying': '⏳ جارٍ التحقق من الدفع...',

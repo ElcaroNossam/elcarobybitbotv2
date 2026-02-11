@@ -1133,9 +1133,9 @@ SIGNAL_CHANNEL_IDS = _parse_chat_ids("SIGNAL_CHANNEL_IDS", "SIGNAL_CHANNEL_ID", 
 SIGNAL_CHANNEL_IDS = list(dict.fromkeys(SIGNAL_CHANNEL_IDS))
 
 # =====================================================
-# LICENSE PRICING - ENLIKO COIN (ELC)
-# 1 ELC = 1 USDT (pegged stablecoin)
-# Premium: $100/mo, $90/mo x3, $80/mo x6, $70/mo x12
+# COMMUNITY MEMBERSHIP - VOLUNTARY CONTRIBUTIONS
+# All amounts are suggested donations (1 ELC = 1 USDT)
+# Patron: suggested $100/mo, Supporter: suggested $50/mo
 # =====================================================
 
 # Import blockchain module (Sovereign Monetary System)
@@ -1156,20 +1156,20 @@ from core.blockchain import (
     SOVEREIGN_OWNER_ID, SOVEREIGN_OWNER_NAME, CHAIN_ID, CHAIN_NAME
 )
 
-# ELC prices (1 ELC = 1 USDT)
-PREMIUM_ELC_1M = 100.0    # $100
-PREMIUM_ELC_3M = 270.0    # $270 ($90/mo)
-PREMIUM_ELC_6M = 480.0    # $480 ($80/mo)
-PREMIUM_ELC_12M = 840.0   # $840 ($70/mo)
+# Suggested contribution amounts (1 ELC = 1 USDT)
+PREMIUM_ELC_1M = 100.0    # Patron tier - suggested monthly
+PREMIUM_ELC_3M = 270.0    # Patron 3mo (-10%)
+PREMIUM_ELC_6M = 480.0    # Patron 6mo (-20%)
+PREMIUM_ELC_12M = 840.0   # Patron 12mo (-30%)
 
-# Basic plan (50% of premium)
-BASIC_ELC_1M = 50.0       # $50
-BASIC_ELC_3M = 135.0      # $135 ($45/mo)
-BASIC_ELC_6M = 240.0      # $240 ($40/mo)
-BASIC_ELC_12M = 420.0     # $420 ($35/mo)
+# Supporter tier (50% of patron)
+BASIC_ELC_1M = 50.0       # Supporter monthly
+BASIC_ELC_3M = 135.0      # Supporter 3mo
+BASIC_ELC_6M = 240.0      # Supporter 6mo
+BASIC_ELC_12M = 420.0     # Supporter 12mo
 
-TRIAL_PRICE = 0  # Free trial
-TRIAL_DAYS = 7   # Trial duration
+TRIAL_PRICE = 0  # Free explorer access
+TRIAL_DAYS = 7   # Explorer access duration
 
 # ELC Payment wallet (platform master wallet)
 ELC_MASTER_WALLET = "0xELC000000000000000000000000000000001"
@@ -1178,24 +1178,24 @@ ELC_MASTER_WALLET = "0xELC000000000000000000000000000000001"
 # ELC will eventually deprecated as the primary payment token
 ELC_PRICE_USD = 1.0  # 1 ELC = 1 USD
 
-# Enterprise plan pricing (5x Premium)
-ENTERPRISE_ELC_1M = 500.0     # $500
-ENTERPRISE_ELC_3M = 1350.0    # $1350 ($450/mo)
-ENTERPRISE_ELC_6M = 2400.0    # $2400 ($400/mo)
-ENTERPRISE_ELC_12M = 4200.0   # $4200 ($350/mo)
+# Enterprise tier (5x Patron)
+ENTERPRISE_ELC_1M = 500.0     # Enterprise monthly
+ENTERPRISE_ELC_3M = 1350.0    # Enterprise 3mo
+ENTERPRISE_ELC_6M = 2400.0    # Enterprise 6mo
+ENTERPRISE_ELC_12M = 4200.0   # Enterprise 12mo
 
-# License price mapping (ELC - our super token, 1 ELC = 1 USD)
+# Membership contribution mapping (ELC token, 1 ELC = 1 USD)
 LICENSE_PRICES = {
-    "premium": {
+    "premium": {  # Patron tier
         "elc": {1: PREMIUM_ELC_1M, 3: PREMIUM_ELC_3M, 6: PREMIUM_ELC_6M, 12: PREMIUM_ELC_12M},
     },
-    "basic": {
+    "basic": {  # Supporter tier
         "elc": {1: BASIC_ELC_1M, 3: BASIC_ELC_3M, 6: BASIC_ELC_6M, 12: BASIC_ELC_12M},
     },
-    "enterprise": {
+    "enterprise": {  # Enterprise tier
         "elc": {1: ENTERPRISE_ELC_1M, 3: ENTERPRISE_ELC_3M, 6: ENTERPRISE_ELC_6M, 12: ENTERPRISE_ELC_12M},
     },
-    "trial": {
+    "trial": {  # Explorer access
         "elc": {1: 0},
     },
 }
@@ -23733,8 +23733,8 @@ async def on_admin_cb(update: Update, ctx: ContextTypes.DEFAULT_TYPE):
         # Build user list header
         filter_labels = {
             "all": "all", "active": "✅ active", "banned": "🚫 banned",
-            "premium": "💎 premium", "basic": "🥈 basic", "trial": "🎁 trial",
-            "no_license": "❌ no license"
+            "premium": "🤝 patron", "basic": "🥈 supporter", "trial": "🎁 explorer",
+            "no_license": "❌ no access"
         }
         header = f"👥 *Users ({filter_labels.get(filter_type, filter_type)})* — Page {page + 1}/{total_pages}"
         header += f"\n📊 Total: {total} users\n"
@@ -23747,7 +23747,7 @@ async def on_admin_cb(update: Update, ctx: ContextTypes.DEFAULT_TYPE):
         # [❌ Delete] → quick delete action
         for u in users:
             status = "🚫" if u["is_banned"] else "✅" if u["is_allowed"] else "⏳"
-            license_icon = {"premium": "💎", "basic": "🥈", "trial": "🎁", "enterprise": "👑"}.get(u["license_type"], "❌")
+            license_icon = {"premium": "🤝", "basic": "🥈", "trial": "🎁", "enterprise": "👑"}.get(u["license_type"], "❌")
             days = f"{u['license_days_left']}d" if u.get("license_days_left") else ""
             
             # Column 1: Status + User ID → opens full user card with all actions
@@ -24691,9 +24691,9 @@ async def on_admin_cb(update: Update, ctx: ContextTypes.DEFAULT_TYPE):
         ctx.user_data["broadcast_target"] = target
         
         target_labels = {
-            "all": "всем пользователям",
-            "premium": "только Premium",
-            "active": "только активным"
+            "all": "all users",
+            "premium": "Patron members",
+            "active": "active members"
         }
         
         await q.edit_message_text(
@@ -24948,7 +24948,7 @@ async def show_user_card(q, ctx, target_uid: int):
     import datetime
     
     status_emoji = "🚫" if user["is_banned"] else "✅" if user["is_allowed"] else "⏳"
-    license_emoji = {"premium": "💎", "basic": "🥈", "trial": "🎁"}.get(user["current_license"], "❌")
+    license_emoji = {"premium": "🤝", "basic": "🥈", "trial": "🎁"}.get(user["current_license"], "❌")
     
     # Format dates
     first_seen = datetime.datetime.fromtimestamp(user["first_seen_ts"]).strftime("%Y-%m-%d") if user["first_seen_ts"] else "—"
@@ -25549,10 +25549,11 @@ async def text_handler(update: Update, ctx: ContextTypes.DEFAULT_TYPE):
     if text == ctx.t.get("button_api_settings", "🔑 API"):
         return await cmd_api_settings(update, ctx)
     
-    # Subscribe button
-    if text in [ctx.t.get('button_subscribe', '👑 PREMIUM'), 
+    # Support / membership button
+    if text in [ctx.t.get('button_subscribe', '🤝 SUPPORT US'), 
+                "🤝 Support", "🤝 Patron", "🤝 SUPPORT US",
                 "💎 Premium", "💎 Subscribe", "👑 PREMIUM", "👑 VIP",
-                "👑 ПРЕМИУМ"]:
+                "👑 ПРЕМИУМ", "🤝 ПОДДЕРЖАТЬ"]:
         return await cmd_subscribe(update, ctx)
     
     # Exchange button - QUICK TOGGLE between Bybit and HyperLiquid
@@ -26407,42 +26408,42 @@ async def text_handler(update: Update, ctx: ContextTypes.DEFAULT_TYPE):
 
 
 # =====================================================
-# SUBSCRIPTION & PAYMENT HANDLERS
+# COMMUNITY SUPPORT & MEMBERSHIP HANDLERS
 # =====================================================
 
 def get_subscribe_menu_keyboard(t: dict) -> InlineKeyboardMarkup:
-    """Main subscription menu keyboard - clean and simple."""
+    """Main membership menu keyboard."""
     return InlineKeyboardMarkup([
-        [InlineKeyboardButton(t.get("btn_premium", "💎 Premium"), callback_data="sub:plan:premium")],
-        [InlineKeyboardButton(t.get("btn_basic", "🥈 Basic"), callback_data="sub:plan:basic")],
-        [InlineKeyboardButton(t.get("btn_trial", "🎁 Free Trial"), callback_data="sub:plan:trial")],
+        [InlineKeyboardButton(t.get("btn_premium", "🤝 Patron"), callback_data="sub:plan:premium")],
+        [InlineKeyboardButton(t.get("btn_basic", "🥈 Supporter"), callback_data="sub:plan:basic")],
+        [InlineKeyboardButton(t.get("btn_trial", "🎁 Free Access"), callback_data="sub:plan:trial")],
         [
-            InlineKeyboardButton(t.get("btn_enter_promo", "🎟 Promo"), callback_data="sub:promo"),
-            InlineKeyboardButton(t.get("btn_my_subscription", "📋 My Sub"), callback_data="sub:my"),
+            InlineKeyboardButton(t.get("btn_enter_promo", "🎟 Invite"), callback_data="sub:promo"),
+            InlineKeyboardButton(t.get("btn_my_subscription", "📋 My Status"), callback_data="sub:my"),
         ],
         [InlineKeyboardButton(t.get("btn_back", "« Back"), callback_data="back:main")],
     ])
 
 
 def get_premium_period_keyboard(t: dict) -> InlineKeyboardMarkup:
-    """Premium period selection keyboard with USD prices."""
+    """Patron tier period selection keyboard."""
     from services.oxapay_service import LICENSE_PRICES_USD
     prices = LICENSE_PRICES_USD.get("premium", {})
     return InlineKeyboardMarkup([
         [InlineKeyboardButton(
-            f"💎 1 Month — ${prices.get('1m', 100):.0f}",
+            f"🤝 1 Month — ${prices.get('1m', 100):.0f}",
             callback_data="sub:period:premium:1m"
         )],
         [InlineKeyboardButton(
-            f"💎 3 Months — ${prices.get('3m', 270):.0f} (10% off)",
+            f"🤝 3 Months — ${prices.get('3m', 270):.0f} (10% off)",
             callback_data="sub:period:premium:3m"
         )],
         [InlineKeyboardButton(
-            f"💎 6 Months — ${prices.get('6m', 480):.0f} (20% off)",
+            f"🤝 6 Months — ${prices.get('6m', 480):.0f} (20% off)",
             callback_data="sub:period:premium:6m"
         )],
         [InlineKeyboardButton(
-            f"💎 1 Year — ${prices.get('1y', 840):.0f} (30% off)",
+            f"🤝 1 Year — ${prices.get('1y', 840):.0f} (30% off)",
             callback_data="sub:period:premium:1y"
         )],
         [InlineKeyboardButton(t.get("btn_back", "« Back"), callback_data="sub:menu")],
@@ -26450,7 +26451,7 @@ def get_premium_period_keyboard(t: dict) -> InlineKeyboardMarkup:
 
 
 def get_basic_period_keyboard(t: dict) -> InlineKeyboardMarkup:
-    """Basic period selection keyboard with USD prices."""
+    """Supporter tier period selection keyboard."""
     from services.oxapay_service import LICENSE_PRICES_USD
     prices = LICENSE_PRICES_USD.get("basic", {})
     return InlineKeyboardMarkup([
@@ -26475,21 +26476,20 @@ def get_basic_period_keyboard(t: dict) -> InlineKeyboardMarkup:
 
 
 def get_payment_method_keyboard(t: dict, plan: str, duration: str) -> InlineKeyboardMarkup:
-    """Payment method selection - Crypto (OxaPay) or ELC Token."""
+    """Contribution method selection - Crypto (OxaPay) or ELC Token."""
     from services.oxapay_service import LICENSE_PRICES_USD
     prices = LICENSE_PRICES_USD.get(plan, {})
     usd_price = prices.get(duration, 0)
     
-    # Get user ELC balance for display
     return InlineKeyboardMarkup([
-        # Primary: Pay with Crypto via OxaPay
+        # Primary: Contribute with Crypto via OxaPay
         [InlineKeyboardButton(
-            f"💳 Pay ${usd_price:.0f} with Crypto",
+            f"💚 Contribute ${usd_price:.0f} in Crypto",
             callback_data=f"sub:crypto:{plan}:{duration}"
         )],
-        # Alternative: Pay with ELC tokens
+        # Alternative: Contribute with ELC tokens
         [InlineKeyboardButton(
-            f"🪙 Pay {usd_price:.0f} ELC Tokens",
+            f"🪙 Contribute {usd_price:.0f} ELC",
             callback_data=f"sub:elc:{plan}:{duration}"
         )],
         [InlineKeyboardButton(t.get("btn_back", "« Back"), callback_data=f"sub:plan:{plan}")],
@@ -27093,21 +27093,21 @@ async def on_wallet_cb(update: Update, ctx: ContextTypes.DEFAULT_TYPE):
         
         text = "💎 *Buy ELC Tokens*\n\n"
         text += f"💰 *Current Balance:* {balance:.2f} ELC\n\n"
-        text += "🪙 *ELC Token Benefits:*\n"
+        text += "🪙 *ELC Token:*\n"
         text += "• 1 ELC = $1 USD (stable)\n"
-        text += "• Pay for subscriptions\n"
+        text += "• Use for community contributions\n"
         text += "• 12% APY staking rewards\n"
         text += "• Future governance rights\n\n"
-        text += "*Select amount to purchase:*"
+        text += "*Select amount:*"
         
         keyboard = InlineKeyboardMarkup([
             [
-                InlineKeyboardButton("$50 (50 ELC)", callback_data="wallet:buy:50"),
-                InlineKeyboardButton("$100 (100 ELC)", callback_data="wallet:buy:100")
+                InlineKeyboardButton("50 ELC ($50)", callback_data="wallet:buy:50"),
+                InlineKeyboardButton("100 ELC ($100)", callback_data="wallet:buy:100")
             ],
             [
-                InlineKeyboardButton("$250 (250 ELC)", callback_data="wallet:buy:250"),
-                InlineKeyboardButton("$500 (500 ELC)", callback_data="wallet:buy:500")
+                InlineKeyboardButton("250 ELC ($250)", callback_data="wallet:buy:250"),
+                InlineKeyboardButton("500 ELC ($500)", callback_data="wallet:buy:500")
             ],
             [InlineKeyboardButton("💵 Custom Amount", callback_data="wallet:buy:custom")],
             [InlineKeyboardButton(t.get("btn_back", "« Back"), callback_data="wallet:deposit")],

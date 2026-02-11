@@ -63,7 +63,7 @@ TEXTS = {
     'button_balance': '💎 Portfolio',
     'button_market': '📈 Trh',
     'button_strategies': '🤖 AI Boti',
-    'button_subscribe': '👑 PREMIUM',
+    'button_subscribe': '🤝 PODPOŘIT',
     'button_terminal': '💻 Terminál',
     'button_terminal': '💻 Terminál',
     'button_history':              '📜 Historie',
@@ -611,53 +611,34 @@ TEXTS = {
     # LICENSING SYSTEM
     # =====================================================
     
-    'no_license': '⚠️ Potřebujete aktivní předplatné pro použití této funkce.\n\nPoužijte /subscribe k nákupu licence.',
-    'no_license_trading': '⚠️ Potřebujete aktivní předplatné pro obchodování.\n\nPoužijte /subscribe k nákupu licence.',
-    'license_required': '⚠️ Tato funkce vyžaduje předplatné {required}.\n\nPoužijte /subscribe pro upgrade.',
-    'trial_demo_only': '⚠️ Zkušební licence umožňuje pouze demo obchodování.\n\nUpgradujte na Premium nebo Basic pro skutečné obchodování: /subscribe',
-    'basic_strategy_limit': '⚠️ Basic licence na skutečném účtu umožňuje pouze: {strategies}\n\nUpgradujte na Premium pro všechny strategie: /subscribe',
-    
-    'subscribe_menu_header': '💎 *Plány předplatného*',
-    'subscribe_menu_info': 'Vyberte si plán pro odemčení obchodních funkcí:',
-    'btn_premium': '💎 Premium',
-    'btn_basic': '🥈 Basic', 
-    'btn_trial': '🎁 Zkušební (Zdarma)',
-    'btn_enter_promo': '🎟 Promo kód',
-    'btn_my_subscription': '📋 Moje předplatné',
-    
-    'premium_title': '� *PREMIUM — Volba vítězů*',
-    'premium_desc': '''✅ Plný přístup ke všem funkcím
-✅ Všech 5 strategií: OI, RSI+BB, Scryptomera, Scalper, Enliko
-✅ Skutečné + Demo obchodování
-✅ Prioritní podpora
-✅ Dynamický SL/TP založený na ATR
-✅ Limitní žebřík DCA
-✅ Všechny budoucí aktualizace''',
-    'premium_1m': '💎 1 měsíc — {price} ELC',
-    'premium_3m': '💎 3 měsíce — {price} ELC (-10%)',
-    'premium_6m': '💎 6 měsíců — {price} ELC (-20%)',
-    'premium_12m': '💎 12 měsíců — {price} ELC (-30%)',
-    
-    'basic_title': '🥈 *BASIC PLÁN*',
-    'basic_desc': '''✅ Plný přístup k demo účtu
-✅ Skutečný účet: OI, RSI+BB, Scryptomera, Scalper
-❌ Enliko, Fibonacci, Spot — pouze Premium
-✅ Standardní podpora
-✅ Dynamický SL/TP založený na ATR''',
-    'basic_1m': '🥈 1 měsíc — {price} ELC',
-    
-    'trial_title': '🎁 *BEZPLATNÁ ZKUŠEBNÍ VERZE — Omezená nabídka!*',
-    'trial_desc': '''✅ Plný přístup k demo účtu
-✅ Všech 5 strategií na demo
-❌ Skutečné obchodování není k dispozici
-⏰ Trvání: 7 dní
-🎁 Pouze jednou''',
-    'trial_activate': '🎁 Aktivovat zkušební verzi zdarma',
-    'trial_already_used': '⚠️ Již jste využili zkušební verzi zdarma.',
-    'trial_activated': '🎉 Zkušební verze aktivována! Máte 7 dní plného demo přístupu.',
-    
-    'payment_select_method': '💳 *Vyberte způsob platby*',
-    'btn_pay_elc': '◈ Enliko Coin (ELC)',
+    'no_license': '🤝 *Community Membership*\n\nSupport our open-source project to access\nadditional community resources.\n\n👉 /subscribe — Support the project',
+    'no_license_trading': '🤝 *Community Resource*\n\nThis resource is available to community supporters.\n\n👉 /subscribe — Support the project',
+    'license_required': '🔒 *Supporter Resource*\n\nThis resource requires {required} membership.\n\n👉 /subscribe — Support the project',
+    'trial_demo_only': '⚠️ *Explorer Access*\n\nExplorer access is limited to demo environment.\n\n👉 /subscribe — Become a supporter',
+    'basic_strategy_limit': '⚠️ *Community Tier*\n\nAvailable templates: {strategies}\n\n👉 /subscribe — Upgrade your support',
+    'subscribe_menu_header': '🤝 *Support Enliko*\n\nYour voluntary contribution helps maintain\nfree open-source community tools.\n\nChoose your support level:',
+    'subscribe_menu_info': '_Select your support level:_',
+    'btn_premium': '🤝 Patron',
+    'btn_basic': '💚 Podporovatel',
+    'btn_trial': '🆓 Průzkumník (Zdarma)',
+    'btn_enter_promo': '🎟 Kód pozvánky',
+    'btn_my_subscription': '📋 Mé členství',
+    'premium_title': '🤝 *Patron Membership*',
+    'premium_desc': '*Thank you for supporting our community!*\n\nAs a patron, you receive access to:\n✅ All community analysis templates\n✅ Demo & live environments\n✅ Priority community support\n✅ ATR risk management tools\n✅ DCA configuration tools\n✅ Early access to updates\n\n⚠️ _Educational tools only. Not financial advice._',
+    'premium_1m': '🤝 1 Month — {price} ELC',
+    'premium_3m': '🤝 3 Months — {price} ELC',
+    'premium_6m': '🤝 6 Months — {price} ELC',
+    'premium_12m': '🤝 12 Months — {price} ELC',
+    'basic_title': '💚 *Supporter Membership*',
+    'basic_desc': '*Thank you for your support!*\n\n✅ Demo + live environments\n✅ Templates: OI, RSI+BB\n✅ Bybit integration\n✅ ATR risk management tools\n\n⚠️ _Educational tools only. Not financial advice._',
+    'basic_1m': '💚 1 Month — {price} ELC',
+    'trial_title': '🆓 *Explorer Access — 14 Days*',
+    'trial_desc': '*Explore our community tools:*\n\n✅ Full demo environment\n✅ All analysis templates\n✅ 14 days access\n✅ No contribution required\n\n⚠️ _Educational tools only. Not financial advice._',
+    'trial_activate': '🆓 Start Exploring',
+    'trial_already_used': '⚠️ Explorer access already used. Consider supporting the project.',
+    'trial_activated': '🎉 *Explorer Access Activated!*\n\n⏰ 14 days of full demo access.\n\n⚠️ _Educational tools only. Not financial advice._',
+    'payment_select_method': '🤝 *How would you like to contribute?*',
+    'btn_pay_elc': '◈ ELC',
     'btn_pay_ton': '💎 TON',
     'payment_elc_title': ' Platba přes ELC',
     'payment_elc_desc': 'Bude vám účtováno {amount} ELC za {plan} ({period}).',
@@ -668,30 +649,28 @@ TEXTS = {
 
 Po platbě klikněte na tlačítko níže pro ověření.''',
     'btn_verify_ton': '✅ Zaplatil jsem — Ověřit',
-    'payment_processing': '⏳ Zpracování platby...',
-    'payment_success': '🎉 Platba úspěšná!\n\n{plan} aktivován do {expires}.',
-    'payment_failed': '❌ Platba selhala: {error}',
-    
-    'my_subscription_header': '📋 *Moje předplatné*',
+    'payment_processing': '⏳ ...',
+    'payment_success': '🎉 Thank you for your support!\n\n{plan} access activated until {expires}.',
+    'payment_failed': '❌ Contribution failed: {error}',
+    'my_subscription_header': '📋 *My Membership*',
     'my_subscription_active': '''📋 *Aktuální plán:* {plan}
 ⏰ *Vyprší:* {expires}
 📅 *Zbývající dny:* {days}''',
-    'my_subscription_none': '❌ Žádné aktivní předplatné.\n\nPoužijte /subscribe k nákupu plánu.',
+    'my_subscription_none': '❌ No active membership.\n\nUse /subscribe to support the project.',
     'my_subscription_history': '📜 *Historie plateb:*',
     'subscription_expiring_soon': '⚠️ Vaše předplatné {plan} vyprší za {days} dní!\n\nObnovte nyní: /subscribe',
     
-    'promo_enter': '🎟 Zadejte promo kód:',
-    'promo_success': '🎉 Promo kód aplikován!\n\n{plan} aktivován na {days} dní.',
-    'promo_invalid': '❌ Neplatný promo kód.',
-    'promo_expired': '❌ Tento promo kód vypršel.',
-    'promo_used': '❌ Tento promo kód byl již použit.',
-    'promo_already_used': '❌ Tento promo kód jste již použili.',
-    
-    'admin_license_menu': '🔑 *Správa licencí*',
-    'admin_btn_grant_license': '🎁 Udělit licenci',
-    'admin_btn_view_licenses': '📋 Zobrazit licence',
-    'admin_btn_create_promo': '🎟 Vytvořit promo',
-    'admin_btn_view_promos': '📋 Zobrazit promo',
+    'promo_enter': '🎟 Enter your invite code:',
+    'promo_success': '🎉 Invite code applied!\n\n{plan} access for {days} days.',
+    'promo_invalid': '❌ Invalid invite code.',
+    'promo_expired': '❌ This invite code has expired.',
+    'promo_used': '❌ This invite code has already been used.',
+    'promo_already_used': '❌ You have already used this invite code.',
+    'admin_license_menu': '🤝 *Membership Management*',
+    'admin_btn_grant_license': '🎁 Grant Access',
+    'admin_btn_view_licenses': '📋 View Members',
+    'admin_btn_create_promo': '🎟 Create Invite',
+    'admin_btn_view_promos': '📋 View Invites',
     'admin_btn_expiring_soon': '⚠️ Brzy vyprší',
     'admin_grant_select_type': 'Vyberte typ licence:',
     'admin_grant_select_period': 'Vyberte období:',
@@ -797,7 +776,7 @@ Vyberte typ zprávy:''',
     'admin_user_report': '👤 Zpráva uživatele',
     'admin_view_report': '📊 Zobrazit zprávu',
     'admin_view_user': '👤 Karta uživatele',
-    'btn_check_again': '🔄 Zkontrolovat znovu',
+    'btn_check_again': '🔄 Check',
     'payment_session_expired': '❌ Platnost platby vypršela. Začněte prosím znovu.',
     'payment_ton_not_configured': '❌ Platby TON nejsou konfigurovány.',
     'payment_verifying': '⏳ Ověřování platby...',

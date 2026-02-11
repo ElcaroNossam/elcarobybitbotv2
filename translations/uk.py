@@ -87,7 +87,7 @@ TEXTS = {
     'button_balance': '💎 Портфель',
     'button_market': '📈 Ринок',
     'button_strategies': '🤖 AI Боти',
-    'button_subscribe': '👑 ПРЕМІУМ',
+    'button_subscribe': '🤝 ПІДТРИМАТИ',
     'button_terminal': '💻 Термінал',
     'button_orders': '📋 Ордери',
     'button_ai_bots': '🎯 Стратегії',
@@ -766,115 +766,55 @@ TEXTS = {
     # ПІДПИСКА
     # =====================================================
     
-    'no_license': (
-        '📊 *Преміум функції*\n\n'
-        'Розблокуйте додаткові освітні інструменти:\n'
-        '• Просунуті шаблони стратегій\n'
-        '• Розширена аналітика\n'
-        '• Пріоритетна підтримка\n\n'
-        '👉 /subscribe — Переглянути плани'
-    ),
+    'no_license': '🤝 *Community Membership*\n\nSupport our open-source project to access\nadditional community resources.\n\n👉 /subscribe — Support the project',
     
-    'no_license_trading': (
-        '📊 *Функція потребує Преміум*\n\n'
-        'Цей освітній інструмент потребує підписки.\n\n'
-        '👉 /subscribe — Переглянути плани'
-    ),
+    'no_license_trading': '🤝 *Community Resource*\n\nThis resource is available to community supporters.\n\n👉 /subscribe — Support the project',
     
-    'license_required': (
-        '🔒 *Преміум функція*\n\n'
-        'Потрібна підписка {required}.\n\n'
-        '👉 /subscribe — Оновити'
-    ),
+    'license_required': '🔒 *Supporter Resource*\n\nThis resource requires {required} membership.\n\n👉 /subscribe — Support the project',
     
-    'trial_demo_only': (
-        '⚠️ *Обмеження пробного періоду*\n\n'
-        'Пробний доступ обмежений демо-середовищем.\n\n'
-        '👉 /subscribe — Розблокувати реальні функції'
-    ),
+    'trial_demo_only': '⚠️ *Explorer Access*\n\nExplorer access is limited to demo environment.\n\n👉 /subscribe — Become a supporter',
     
-    'basic_strategy_limit': (
-        '⚠️ *Обмеження плану*\n\n'
-        'Базовий план включає: {strategies}\n\n'
-        '👉 /subscribe — Оновити для всіх стратегій'
-    ),
+    'basic_strategy_limit': '⚠️ *Community Tier*\n\nAvailable templates: {strategies}\n\n👉 /subscribe — Upgrade your support',
     
-    'subscribe_menu_header': (
-        '💎 *Enliko Premium*\n\n'
-        'Виберіть рівень підписки:'
-    ),
+    'subscribe_menu_header': '🤝 *Support Enliko*\n\nYour voluntary contribution helps maintain\nfree open-source community tools.\n\nChoose your support level:',
     
-    'subscribe_menu_info': '_Виберіть план для продовження:_',
+    'subscribe_menu_info': '_Select your support level:_',
+    'btn_premium': '🤝 Патрон',
+    'btn_basic': '💚 Помічник',
+    'btn_trial': '🆓 Дослідник (Безкоштовно)',
+    'btn_enter_promo': '🎟 Код запрошення',
+    'btn_my_subscription': '📋 Моя участь',
+    'premium_title': '🤝 *Patron Membership*',
+    'premium_desc': '*Thank you for supporting our community!*\n\nAs a patron, you receive access to:\n✅ All community analysis templates\n✅ Demo & live environments\n✅ Priority community support\n✅ ATR risk management tools\n✅ DCA configuration tools\n✅ Early access to updates\n\n⚠️ _Educational tools only. Not financial advice._',
     
-    'btn_premium': '💎 Преміум',
-    'btn_basic': '🥈 Базовий',
-    'btn_trial': '🎁 Пробний період',
-    'btn_enter_promo': '🎟 Промокод',
-    'btn_my_subscription': '📋 Моя підписка',
+    'premium_1m': '🤝 1 Month — {price} ELC',
+    'premium_3m': '🤝 3 Months — {price} ELC',
+    'premium_6m': '🤝 6 Months — {price} ELC',
+    'premium_12m': '🤝 12 Months — {price} ELC',
+    'basic_title': '💚 *Supporter Membership*',
+    'basic_desc': '*Thank you for your support!*\n\n✅ Demo + live environments\n✅ Templates: OI, RSI+BB\n✅ Bybit integration\n✅ ATR risk management tools\n\n⚠️ _Educational tools only. Not financial advice._',
     
-    'premium_title': '💎 *Преміум план*',
-    'premium_desc': (
-        '*Включено:*\n\n'
-        '✅ Всі шаблони стратегій\n'
-        '✅ Демо та реальні середовища\n'
-        '✅ Пріоритетна підтримка\n'
-        '✅ ATR-управління ризиками\n'
-        '✅ Конфігурація DCA\n'
-        '✅ Всі оновлення платформи\n\n'
-        '⚠️ _Торгівля ризикована. Не фінансова консультація._'
-    ),
+    'basic_1m': '💚 1 Month — {price} ELC',
+    'trial_title': '🆓 *Explorer Access — 14 Days*',
+    'trial_desc': '*Explore our community tools:*\n\n✅ Full demo environment\n✅ All analysis templates\n✅ 14 days access\n✅ No contribution required\n\n⚠️ _Educational tools only. Not financial advice._',
     
-    'premium_1m': '💎 1 місяць — {price} ELC',
-    'premium_3m': '💎 3 місяці — {price} ELC',
-    'premium_6m': '💎 6 місяців — {price} ELC',
-    'premium_12m': '💎 12 місяців — {price} ELC',
+    'trial_activate': '🆓 Start Exploring',
+    'trial_already_used': '⚠️ Explorer access already used. Consider supporting the project.',
+    'trial_activated': '🎉 *Explorer Access Activated!*\n\n⏰ 14 days of full demo access.\n\n⚠️ _Educational tools only. Not financial advice._',
     
-    'basic_title': '🥈 *Базовий план*',
-    'basic_desc': (
-        '*Включено:*\n\n'
-        '✅ Повний демо-доступ\n'
-        '✅ Реальний: OI, RSI+BB, Scryptomera, Скальпер\n'
-        '⛔ Enliko, Фібоначчі — лише Преміум\n'
-        '✅ Стандартна підтримка\n'
-        '✅ ATR-управління ризиками\n\n'
-        '⚠️ _Торгівля ризикована. Не фінансова консультація._'
-    ),
-    
-    'basic_1m': '🥈 1 місяць — {price} ELC',
-    
-    'trial_title': '🎁 *Пробний період — 14 днів*',
-    'trial_desc': (
-        '*Спробуйте перед підпискою:*\n\n'
-        '✅ Повний демо-доступ\n'
-        '✅ Всі шаблони стратегій в демо\n'
-        '✅ 14 днів\n'
-        '✅ Оплата не потрібна\n'
-        '❌ Реальна торгівля недоступна\n\n'
-        '⚠️ _Лише освітні інструменти. Не фінансова консультація._'
-    ),
-    
-    'trial_activate': '🎁 Активувати пробний',
-    'trial_already_used': '⚠️ Пробний вже використано. Виберіть платний план.',
-    'trial_activated': (
-        '🎉 *Пробний активовано!*\n\n'
-        '⏰ У вас 14 днів доступу.\n\n'
-        'Вивчайте всі освітні функції в демо-режимі.\n\n'
-        '⚠️ _Пам\'ятайте: Торгівля ризикована._'
-    ),
-    
-    'payment_select_method': '💳 *Виберіть спосіб оплати*',
-    'btn_pay_elc': '◈ Оплата ELC',
+    'payment_select_method': '🤝 *How would you like to contribute?*',
+    'btn_pay_elc': '◈ ELC',
     'btn_pay_ton': '💎 TON',
     'payment_elc_title': '◈ Оплата токеном ELC',
     'payment_elc_desc': 'Сума: {amount} ELC за {plan} ({period}).',
     'payment_ton_title': '💎 Оплата через TON',
     'payment_ton_desc': 'Оплата TON тимчасово недоступна.',
     'btn_verify_ton': '✅ Перевірити оплату',
-    'btn_check_again': '🔄 Перевірити знову',
-    'payment_processing': '⏳ Обробка...',
+    'btn_check_again': '🔄 Check',
+    'payment_processing': '⏳ ...',
     'payment_verifying': '⏳ Перевірка...',
-    'payment_success': '🎉 Оплата успішна!\n\n{plan} активовано до {expires}.',
-    'payment_failed': '❌ Помилка оплати: {error}',
+    'payment_success': '🎉 Thank you for your support!\n\n{plan} access activated until {expires}.',
+    'payment_failed': '❌ Contribution failed: {error}',
     'payment_ton_not_configured': '❌ Оплата TON недоступна.',
     'payment_session_expired': '❌ Сесія закінчилася. Спробуйте знову.',
     'payment_elc_insufficient': (
@@ -929,23 +869,22 @@ TEXTS = {
     'wallet_history_empty': 'Поки немає транзакцій.',
     'wallet_history_item': '{type_emoji} {type}: {amount:+.2f} ELC\n   {date}',
     
-    'my_subscription_header': '📋 *Моя підписка*',
+    'my_subscription_header': '📋 *My Membership*',
     'my_subscription_active': (
         '📋 *Поточний план:* {plan}\n'
         '⏰ *Закінчується:* {expires}\n'
         '📅 *Залишилось днів:* {days}'
     ),
-    'my_subscription_none': '❌ Немає активної підписки.\n\n👉 /subscribe',
+    'my_subscription_none': '❌ No active membership.\n\nUse /subscribe to support the project.',
     'my_subscription_history': '📜 *Історія платежів:*',
     'subscription_expiring_soon': '⚠️ Ваш {plan} закінчується через {days} днів.\n\n👉 /subscribe',
     
-    'promo_enter': '🎟 Введіть промокод:',
-    'promo_success': '🎉 Промокод застосовано!\n\n{plan} активовано на {days} днів.',
-    'promo_invalid': '❌ Невірний промокод.',
-    'promo_expired': '❌ Промокод закінчився.',
-    'promo_used': '❌ Промокод вже використано.',
-    'promo_already_used': '❌ Ви вже використовували цей промокод.',
-    
+    'promo_enter': '🎟 Enter your invite code:',
+    'promo_success': '🎉 Invite code applied!\n\n{plan} access for {days} days.',
+    'promo_invalid': '❌ Invalid invite code.',
+    'promo_expired': '❌ This invite code has expired.',
+    'promo_used': '❌ This invite code has already been used.',
+    'promo_already_used': '❌ You have already used this invite code.',
     # =====================================================
     # АДМІН
     # =====================================================
@@ -970,11 +909,11 @@ TEXTS = {
     'admin_closed_total': '✅ Закрито {count} {type}.',
     'admin_canceled_limits_total': '✅ Скасовано {count} лімітних ордерів.',
     
-    'admin_license_menu': '🔑 *Управління ліцензіями*',
-    'admin_btn_grant_license': '🎁 Видати',
-    'admin_btn_view_licenses': '📋 Перегляд',
-    'admin_btn_create_promo': '🎟 Створити промо',
-    'admin_btn_view_promos': '📋 Промокоди',
+    'admin_license_menu': '🤝 *Membership Management*',
+    'admin_btn_grant_license': '🎁 Grant Access',
+    'admin_btn_view_licenses': '📋 View Members',
+    'admin_btn_create_promo': '🎟 Create Invite',
+    'admin_btn_view_promos': '📋 View Invites',
     'admin_btn_expiring_soon': '⚠️ Що закінчуються',
     'admin_grant_select_type': 'Виберіть тип:',
     'admin_grant_select_period': 'Виберіть період:',

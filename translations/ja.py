@@ -61,7 +61,7 @@ TEXTS = {
     'button_balance': '💎 ポートフォリオ',
     'button_market': '📈 マーケット',
     'button_strategies': '🤖 AI ボット',
-    'button_subscribe': '👑 プレミアム',
+    'button_subscribe': '🤝 サポート',
     'button_terminal': '💻 ターミナル',
     'button_terminal': '💻 ターミナル',
     'button_history':              '📜 履歴',
@@ -610,87 +610,34 @@ TEXTS = {
     # =====================================================
     
     # License status messages - BLACK RHETORIC: Loss Aversion + FOMO
-    'no_license': '''🚨 <b>アクセス拒否</b>
-
-迷っている間に、<b>847人のトレーダー</b>がすでに利益を上げています。
-
-💸 Enlikoなしの毎分 = 逃したチャンス
-⏰ 市場は待ってくれません。あなたも待つべきではない。
-
-👉 /subscribe — <i>今すぐ不当な優位性を解除</i>''',
-    'no_license_trading': '''🚨 <b>取引ロック</b>
-
-⚠️ 847人のトレーダーが今まさにEnlikoで稼いでいます。
-
-❌ 手動取引 = 感情的なミス
-✅ Enliko = 冷静なAIの精度
-
-<i>見ているだけをやめて。稼ぎ始めよう。</i>
-
-👉 /subscribe — <b>847+の賢いトレーダーに参加</b>''',
-    'license_required': '''🔒 <b>PREMIUM機能</b>
-
-これには{required}サブスクリプションが必要です — <i>トップ3%のトレーダーが使用</i>。
-
-🎯 成功は手がかりを残す。勝者に従え。
-
-👉 /subscribe — <b>今すぐアップグレード</b>''',
-    'trial_demo_only': '''⚠️ <b>デモモードは学習用で、稼ぎ用ではありません。</b>
-
-本当の利益には本当のアクセスが必要です。
-
-🎁 その力を味わった。今度は<b>自分のもの</b>にしよう。
-
-👉 /subscribe — <b>リアル取引を解除</b>''',
-    'basic_strategy_limit': '''⚠️ <b>Basic = Basicの結果</b>
-
-制限: {strategies}
-
-プロは<b>すべて</b>の戦略を使う。だからプロなのだ。
-
-👉 /subscribe — <b>Premiumへ。プロへ。</b>''',
-    
-    'subscribe_menu_header': '👑 *エリートトレーダーサークルへのVIPアクセス*',
-    'subscribe_menu_info': '取引機能をアンロックするプランを選択:',
-    'btn_premium': '💎 プレミアム',
-    'btn_basic': '🥈 ベーシック', 
-    'btn_trial': '🎁 トライアル（無料）',
-    'btn_enter_promo': '🎟 プロモコード',
-    'btn_my_subscription': '📋 マイサブスクリプション',
-    
-    'premium_title': '� *PREMIUM — 勝者の選択*',
-    'premium_desc': '''✅ 全機能へのフルアクセス
-✅ 5つの戦略すべて: OI, RSI+BB, Scryptomera, Scalper, Enliko
-✅ 実取引 + デモ取引
-✅ 優先サポート
-✅ ATRベースの動的SL/TP
-✅ リミットラダーDCA
-✅ 将来の全アップデート''',
-    'premium_1m': '💎 1ヶ月 — {price} ELC',
-    'premium_3m': '💎 3ヶ月 — {price} ELC (-10%)',
-    'premium_6m': '💎 6ヶ月 — {price} ELC (-20%)',
-    'premium_12m': '💎 12ヶ月 — {price} ELC (-30%)',
-    
-    'basic_title': '🥈 *ベーシックプラン*',
-    'basic_desc': '''✅ デモ口座へのフルアクセス
-✅ 実口座: OI, RSI+BB, Scryptomera, Scalper
-❌ Enliko, Fibonacci, Spot — Premiumのみ
-✅ 標準サポート
-✅ ATRベースの動的SL/TP''',
-    'basic_1m': '🥈 1ヶ月 — {price} ELC',
-    
-    'trial_title': '🎁 *無料トライアル — 期間限定オファー！*',
-    'trial_desc': '''✅ デモ口座へのフルアクセス
-✅ デモで5つの戦略すべて
-❌ 実取引は利用不可
-⏰ 期間: 7日間
-🎁 一度きり''',
-    'trial_activate': '🎁 無料トライアルを有効化',
-    'trial_already_used': '⚠️ 無料トライアルは既に使用済みです。',
-    'trial_activated': '🎉 トライアル有効化！7日間のフルデモアクセスがあります。',
-    
-    'payment_select_method': '💳 *支払い方法を選択*',
-    'btn_pay_elc': '◈ Enliko Coin (ELC)',
+    'no_license': '🤝 *Community Membership*\n\nSupport our open-source project to access\nadditional community resources.\n\n👉 /subscribe — Support the project',
+    'no_license_trading': '🤝 *Community Resource*\n\nThis resource is available to community supporters.\n\n👉 /subscribe — Support the project',
+    'license_required': '🔒 *Supporter Resource*\n\nThis resource requires {required} membership.\n\n👉 /subscribe — Support the project',
+    'trial_demo_only': '⚠️ *Explorer Access*\n\nExplorer access is limited to demo environment.\n\n👉 /subscribe — Become a supporter',
+    'basic_strategy_limit': '⚠️ *Community Tier*\n\nAvailable templates: {strategies}\n\n👉 /subscribe — Upgrade your support',
+    'subscribe_menu_header': '🤝 *Support Enliko*\n\nYour voluntary contribution helps maintain\nfree open-source community tools.\n\nChoose your support level:',
+    'subscribe_menu_info': '_Select your support level:_',
+    'btn_premium': '🤝 パトロン',
+    'btn_basic': '💚 サポーター',
+    'btn_trial': '🆓 お試し (無料)',
+    'btn_enter_promo': '🎟 招待コード',
+    'btn_my_subscription': '📋 メンバーシップ',
+    'premium_title': '🤝 *Patron Membership*',
+    'premium_desc': '*Thank you for supporting our community!*\n\nAs a patron, you receive access to:\n✅ All community analysis templates\n✅ Demo & live environments\n✅ Priority community support\n✅ ATR risk management tools\n✅ DCA configuration tools\n✅ Early access to updates\n\n⚠️ _Educational tools only. Not financial advice._',
+    'premium_1m': '🤝 1 Month — {price} ELC',
+    'premium_3m': '🤝 3 Months — {price} ELC',
+    'premium_6m': '🤝 6 Months — {price} ELC',
+    'premium_12m': '🤝 12 Months — {price} ELC',
+    'basic_title': '💚 *Supporter Membership*',
+    'basic_desc': '*Thank you for your support!*\n\n✅ Demo + live environments\n✅ Templates: OI, RSI+BB\n✅ Bybit integration\n✅ ATR risk management tools\n\n⚠️ _Educational tools only. Not financial advice._',
+    'basic_1m': '💚 1 Month — {price} ELC',
+    'trial_title': '🆓 *Explorer Access — 14 Days*',
+    'trial_desc': '*Explore our community tools:*\n\n✅ Full demo environment\n✅ All analysis templates\n✅ 14 days access\n✅ No contribution required\n\n⚠️ _Educational tools only. Not financial advice._',
+    'trial_activate': '🆓 Start Exploring',
+    'trial_already_used': '⚠️ Explorer access already used. Consider supporting the project.',
+    'trial_activated': '🎉 *Explorer Access Activated!*\n\n⏰ 14 days of full demo access.\n\n⚠️ _Educational tools only. Not financial advice._',
+    'payment_select_method': '🤝 *How would you like to contribute?*',
+    'btn_pay_elc': '◈ ELC',
     'btn_pay_ton': '💎 TON',
     'payment_elc_title': '◈ Enliko Coin (ELC)での支払い',
     'payment_elc_desc': '{plan}（{period}）に{amount} ELCが請求されます。',
@@ -701,30 +648,28 @@ TEXTS = {
 
 支払い後、下のボタンをクリックして確認。''',
     'btn_verify_ton': '✅ 支払い済み — 確認',
-    'payment_processing': '⏳ 支払い処理中...',
-    'payment_success': '🎉 支払い成功！\n\n{plan}が{expires}まで有効化されました。',
-    'payment_failed': '❌ 支払い失敗: {error}',
-    
-    'my_subscription_header': '📋 *マイサブスクリプション*',
+    'payment_processing': '⏳ ...',
+    'payment_success': '🎉 Thank you for your support!\n\n{plan} access activated until {expires}.',
+    'payment_failed': '❌ Contribution failed: {error}',
+    'my_subscription_header': '📋 *My Membership*',
     'my_subscription_active': '''📋 *現在のプラン:* {plan}
 ⏰ *有効期限:* {expires}
 📅 *残り日数:* {days}''',
-    'my_subscription_none': '❌ アクティブなサブスクリプションがありません。\n\n/subscribe でプランを購入してください。',
+    'my_subscription_none': '❌ No active membership.\n\nUse /subscribe to support the project.',
     'my_subscription_history': '📜 *支払い履歴:*',
     'subscription_expiring_soon': '⚠️ {plan}サブスクリプションが{days}日後に期限切れ！\n\n今すぐ更新: /subscribe',
     
-    'promo_enter': '🎟 プロモコードを入力:',
-    'promo_success': '🎉 プロモコード適用！\n\n{plan}が{days}日間有効化されました。',
-    'promo_invalid': '❌ 無効なプロモコード。',
-    'promo_expired': '❌ このプロモコードは期限切れです。',
-    'promo_used': '❌ このプロモコードは既に使用されています。',
-    'promo_already_used': '❌ このプロモコードは既に使用済みです。',
-    
-    'admin_license_menu': '🔑 *ライセンス管理*',
-    'admin_btn_grant_license': '🎁 ライセンス付与',
-    'admin_btn_view_licenses': '📋 ライセンス表示',
-    'admin_btn_create_promo': '🎟 プロモ作成',
-    'admin_btn_view_promos': '📋 プロモ表示',
+    'promo_enter': '🎟 Enter your invite code:',
+    'promo_success': '🎉 Invite code applied!\n\n{plan} access for {days} days.',
+    'promo_invalid': '❌ Invalid invite code.',
+    'promo_expired': '❌ This invite code has expired.',
+    'promo_used': '❌ This invite code has already been used.',
+    'promo_already_used': '❌ You have already used this invite code.',
+    'admin_license_menu': '🤝 *Membership Management*',
+    'admin_btn_grant_license': '🎁 Grant Access',
+    'admin_btn_view_licenses': '📋 View Members',
+    'admin_btn_create_promo': '🎟 Create Invite',
+    'admin_btn_view_promos': '📋 View Invites',
     'admin_btn_expiring_soon': '⚠️ まもなく期限切れ',
     'admin_grant_select_type': 'ライセンスタイプを選択:',
     'admin_grant_select_period': '期間を選択:',
@@ -830,7 +775,7 @@ TEXTS = {
     'admin_user_report': '👤 ユーザーレポート',
     'admin_view_report': '📊 レポートを見る',
     'admin_view_user': '👤 ユーザーカード',
-    'btn_check_again': '🔄 再確認',
+    'btn_check_again': '🔄 Check',
     'payment_session_expired': '❌ 支払いセッションが期限切れです。最初からやり直してください。',
     'payment_ton_not_configured': '❌ TON支払いは設定されていません。',
     'payment_verifying': '⏳ 支払い確認中...',

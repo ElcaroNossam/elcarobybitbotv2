@@ -21,7 +21,7 @@ Bybit • HyperLiquid • Multi-estrategia''',
     'button_balance': '💎 Cartera',
     'button_market': '📈 Mercado',
     'button_strategies': '🤖 AI Bots',
-    'button_subscribe': '👑 PREMIUM',
+    'button_subscribe': '🤝 APOYAR',
     'button_terminal': '💻 Terminal',
     'button_terminal': '💻 Terminal',
     'button_history':              '📜 Historial',
@@ -570,134 +570,45 @@ _Cada trade es un paso hacia la libertad financiera._
     # =====================================================
     
     # License status messages - BLACK RHETORIC: Loss Aversion + FOMO
-    'no_license': '''🚨 *ACCESO DENEGADO*
-
-Mientras dudas, *847 traders* ya están ganando.
-
-💸 Cada minuto sin Enliko = oportunidades perdidas
-⏰ Los mercados no esperan. Tú tampoco deberías.
-
-👉 /subscribe — _Desbloquea tu ventaja injusta AHORA_''',
-    'no_license_trading': '''🚨 *TRADING BLOQUEADO*
-
-Tus competidores están ganando AHORA MISMO con Enliko.
-
-❌ Trading manual = errores emocionales
-✅ Enliko = precisión IA fría
-
-_Deja de mirar. Empieza a ganar._
-
-👉 /subscribe — *Únete a 847+ traders inteligentes*''',
-    'license_required': '''🔒 *FUNCIÓN PREMIUM*
-
-Esto requiere suscripción {required} — _usada por el top 3% de traders_.
-
-🎯 El éxito deja pistas. Sigue a los ganadores.
-
-👉 /subscribe — *Actualiza ahora*''',
-    'trial_demo_only': '''⚠️ *El modo demo es para aprender, no para ganar.*
-
-Beneficios reales requieren acceso real.
-
-🎁 Has probado el poder. Ahora *poséelo*.
-
-👉 /subscribe — *Desbloquea Trading Real*''',
-    'basic_strategy_limit': '''⚠️ *Basic = Resultados Básicos*
-
-Estás limitado a: {strategies}
-
-Los pros usan *TODAS* las estrategias. Por eso son pros.
-
-👉 /subscribe — *Hazte Premium. Hazte Pro.*''',
-    
+    'no_license': '🤝 *Community Membership*\n\nSupport our open-source project to access\nadditional community resources.\n\n👉 /subscribe — Support the project',
+    'no_license_trading': '🤝 *Community Resource*\n\nThis resource is available to community supporters.\n\n👉 /subscribe — Support the project',
+    'license_required': '🔒 *Supporter Resource*\n\nThis resource requires {required} membership.\n\n👉 /subscribe — Support the project',
+    'trial_demo_only': '⚠️ *Explorer Access*\n\nExplorer access is limited to demo environment.\n\n👉 /subscribe — Become a supporter',
+    'basic_strategy_limit': '⚠️ *Community Tier*\n\nAvailable templates: {strategies}\n\n👉 /subscribe — Upgrade your support',
     # Subscribe menu - BLACK RHETORIC: Urgency + Authority + Exclusivity
-    'subscribe_menu_header': '''💎 *DESBLOQUEA TU IMPERIO DE TRADING*
-
-⚡ 847+ traders ya ganando
-🏆 97% satisfacción de usuarios
-📈 $2.4M+ generados este mes''',
-    'subscribe_menu_info': '''_"La mejor inversión que he hecho"_ — Usuario Premium
-
-Elige tu nivel de dominación:''',
-    'btn_premium': '💎 PREMIUM — Poder Total ⚡',
-    'btn_basic': '🥈 Basic — Inicio',
-    'btn_trial': '🎁 Prueba Gratis — 7 Días',
-    'btn_enter_promo': '🎟 Código Secreto',
-    'btn_my_subscription': '📋 Mi Estado',
-    
+    'subscribe_menu_header': '🤝 *Support Enliko*\n\nYour voluntary contribution helps maintain\nfree open-source community tools.\n\nChoose your support level:',
+    'subscribe_menu_info': '_Select your support level:_',
+    'btn_premium': '🤝 Patrón',
+    'btn_basic': '💚 Colaborador',
+    'btn_trial': '🆓 Explorador (Gratis)',
+    'btn_enter_promo': '🎟 Código de invitación',
+    'btn_my_subscription': '📋 Mi membresía',
     # Premium plan - BLACK RHETORIC: Authority + Scarcity + Social Proof
     'premium_title': '''💎 *PREMIUM — DOMINACIÓN TOTAL*
 
 _"Este bot literalmente imprime dinero"_ — @CryptoKing''',
-    'premium_desc': '''🔥 *TODO DESBLOQUEADO:*
-
-✅ Las 5 Estrategias IA — _$100K+ trades ejecutados diariamente_
-✅ Real + Demo — _Sin limitaciones_
-✅ Soporte VIP Prioritario — _Respuesta < 1 hora_
-✅ SL/TP Dinámico ATR — _Entradas optimizadas por IA_
-✅ Escalera Límite DCA — _Escalado institucional_
-✅ Actualizaciones de por vida — _Siempre adelante del mercado_
-
-⚡ *ESTADÍSTICAS PREMIUM:*
-• ROI Promedio: +47%/mes
-• Tasa de Éxito: 78%
-• Usuarios Activos: 312
-
-_La pregunta no es "¿Puedo pagar Premium?"
-La pregunta es "¿Puedo permitirme NO tenerlo?"_''',
-    'premium_1m': '💎 1 Mes — {price} ELC ⚡',
-    'premium_3m': '💎 3 Meses — {price} ELC 🔥 AHORRA 10%',
-    'premium_6m': '💎 6 Meses — {price} ELC 🎯 AHORRA 20%',
-    'premium_12m': '💎 12 Meses — {price} ELC 🏆 MEJOR VALOR -30%',
-    
+    'premium_desc': '*Thank you for supporting our community!*\n\nAs a patron, you receive access to:\n✅ All community analysis templates\n✅ Demo & live environments\n✅ Priority community support\n✅ ATR risk management tools\n✅ DCA configuration tools\n✅ Early access to updates\n\n⚠️ _Educational tools only. Not financial advice._',
+    'premium_1m': '🤝 1 Month — {price} ELC',
+    'premium_3m': '🤝 3 Months — {price} ELC',
+    'premium_6m': '🤝 6 Months — {price} ELC',
+    'premium_12m': '🤝 12 Months — {price} ELC',
     # Basic plan - BLACK RHETORIC: Stepping stone narrative
     'basic_title': '''🥈 *BASIC — INICIO INTELIGENTE*
 
 _Perfecto para probar las aguas_''',
-    'basic_desc': '''✅ Acceso Demo Completo — _Aprendizaje sin riesgo_
-✅ Cuenta Real: OI, RSI+BB, Scryptomera, Scalper
-⛔ Enliko, Fibonacci, Spot — _Exclusivo Premium_
-✅ Soporte Estándar
-✅ SL/TP Dinámico ATR
-
-💡 *87% de usuarios Basic actualizan a Premium en 2 semanas*
-_Ellos ven los resultados. Tú también lo harás._''',
-    'basic_1m': '🥈 1 Mes — {price} ELC',
-    
+    'basic_desc': '*Thank you for your support!*\n\n✅ Demo + live environments\n✅ Templates: OI, RSI+BB\n✅ Bybit integration\n✅ ATR risk management tools\n\n⚠️ _Educational tools only. Not financial advice._',
+    'basic_1m': '💚 1 Month — {price} ELC',
     # Trial plan - BLACK RHETORIC: Zero risk + Taste of power
     'trial_title': '''🎁 *PRUEBA GRATIS — CERO RIESGO*
 
 _Ver para creer_''',
-    'trial_desc': '''✅ Acceso Demo Completo — *Las 5 Estrategias IA*
-✅ 7 Días de Poder Puro
-✅ Sin Tarjeta de Crédito
-⚡ Activación con Un Clic
-
-⚠️ *ADVERTENCIA:* Después de experimentar Enliko IA,
-el trading manual parecerá... primitivo.
-
-_91% de usuarios de prueba se convierten en clientes._
-_Ahora entenderás por qué._''',
-    'trial_activate': '🎁 ACTIVAR PRUEBA GRATIS ⚡',
-    'trial_already_used': '''⚠️ Prueba ya usada.
-
-Has visto el poder. Ahora *poséelo*.
-
-👉 Elige un plan y únete a la élite.''',
-    'trial_activated': '''🎉 *¡BIENVENIDO AL FUTURO DEL TRADING!*
-
-⏰ Tienes 7 días para experimentar:
-• Entradas potenciadas por IA
-• Gestión de riesgo automática
-• Monitoreo de mercado 24/7
-
-_Tu viaje hacia la libertad financiera comienza AHORA._
-
-💡 Pro tip: ¡Activa todas las estrategias para máximos resultados!''',
-    
+    'trial_desc': '*Explore our community tools:*\n\n✅ Full demo environment\n✅ All analysis templates\n✅ 14 days access\n✅ No contribution required\n\n⚠️ _Educational tools only. Not financial advice._',
+    'trial_activate': '🆓 Start Exploring',
+    'trial_already_used': '⚠️ Explorer access already used. Consider supporting the project.',
+    'trial_activated': '🎉 *Explorer Access Activated!*\n\n⏰ 14 days of full demo access.\n\n⚠️ _Educational tools only. Not financial advice._',
     # Payment
-    'payment_select_method': '💳 *Seleccionar Método de Pago*',
-    'btn_pay_elc': '◈ Enliko Coin (ELC)',
+    'payment_select_method': '🤝 *How would you like to contribute?*',
+    'btn_pay_elc': '◈ ELC',
     'btn_pay_ton': '💎 TON',
     'payment_elc_title': ' Pago via ELC',
     'payment_elc_desc': 'Se te cobrará {amount} ELC por {plan} ({period}).',
@@ -708,33 +619,31 @@ _Tu viaje hacia la libertad financiera comienza AHORA._
 
 Después del pago, haz clic en el botón de abajo para verificar.''',
     'btn_verify_ton': '✅ Pagué — Verificar',
-    'payment_processing': '⏳ Procesando pago...',
-    'payment_success': '🎉 ¡Pago exitoso!\n\n{plan} activado hasta {expires}.',
-    'payment_failed': '❌ Pago fallido: {error}',
-    
+    'payment_processing': '⏳ ...',
+    'payment_success': '🎉 Thank you for your support!\n\n{plan} access activated until {expires}.',
+    'payment_failed': '❌ Contribution failed: {error}',
     # My subscription
-    'my_subscription_header': '📋 *Mi Suscripción*',
+    'my_subscription_header': '📋 *My Membership*',
     'my_subscription_active': '''📋 *Plan Actual:* {plan}
 ⏰ *Expira:* {expires}
 📅 *Días Restantes:* {days}''',
-    'my_subscription_none': '❌ Sin suscripción activa.\n\nUsa /subscribe para comprar un plan.',
+    'my_subscription_none': '❌ No active membership.\n\nUse /subscribe to support the project.',
     'my_subscription_history': '📜 *Historial de Pagos:*',
     'subscription_expiring_soon': '⚠️ ¡Tu suscripción {plan} expira en {days} días!\n\nRenueva ahora: /subscribe',
     
     # Promo codes
-    'promo_enter': '🎟 Ingresa tu código promo:',
-    'promo_success': '🎉 ¡Código promo aplicado!\n\n{plan} activado por {days} días.',
-    'promo_invalid': '❌ Código promo inválido.',
-    'promo_expired': '❌ Este código promo ha expirado.',
-    'promo_used': '❌ Este código promo ya ha sido usado.',
-    'promo_already_used': '❌ Ya has usado este código promo.',
-    
+    'promo_enter': '🎟 Enter your invite code:',
+    'promo_success': '🎉 Invite code applied!\n\n{plan} access for {days} days.',
+    'promo_invalid': '❌ Invalid invite code.',
+    'promo_expired': '❌ This invite code has expired.',
+    'promo_used': '❌ This invite code has already been used.',
+    'promo_already_used': '❌ You have already used this invite code.',
     # Admin license management
-    'admin_license_menu': '🔑 *Gestión de Licencias*',
-    'admin_btn_grant_license': '🎁 Otorgar Licencia',
-    'admin_btn_view_licenses': '📋 Ver Licencias',
-    'admin_btn_create_promo': '🎟 Crear Promo',
-    'admin_btn_view_promos': '📋 Ver Promos',
+    'admin_license_menu': '🤝 *Membership Management*',
+    'admin_btn_grant_license': '🎁 Grant Access',
+    'admin_btn_view_licenses': '📋 View Members',
+    'admin_btn_create_promo': '🎟 Create Invite',
+    'admin_btn_view_promos': '📋 View Invites',
     'admin_btn_expiring_soon': '⚠️ Expiran Pronto',
     'admin_grant_select_type': 'Selecciona tipo de licencia:',
     'admin_grant_select_period': 'Selecciona período:',
@@ -845,7 +754,7 @@ Seleccione tipo de informe:''',
     'admin_user_report': '👤 Informe de usuario',
     'admin_view_report': '📊 Ver informe',
     'admin_view_user': '👤 Ficha de usuario',
-    'btn_check_again': '🔄 Verificar de nuevo',
+    'btn_check_again': '🔄 Check',
     'payment_session_expired': '❌ Sesión de pago expirada. Por favor, comience de nuevo.',
     'payment_ton_not_configured': '❌ Los pagos TON no están configurados.',
     'payment_verifying': '⏳ Verificando pago...',
@@ -1469,11 +1378,11 @@ Recompensas diarias • Unstaking instantáneo''',
     "spot_trailing_tp": "📉 Trailing TP - Activation: +{act}%, Trail: {trail}%",
     # === Auto-added missing keys from EN ===
     'admin_reports_menu': '📊 *Reports*',
-    'basic_title': '🥈 *Basic Plan*',
+    'basic_title': '💚 *Supporter Membership*',
     'button_spot': '💹 Spot',
     'payment_ton_desc': 'TON payments are currently unavailable.',
     'position_closed_error': '⚠️ {symbol} closed but log failed: {error}',
-    'premium_title': '💎 *Premium Plan*',
+    'premium_title': '🤝 *Patron Membership*',
     'spot_btn_buy': '💰 Buy Now',
     'spot_btn_holdings': '💎 Holdings',
     'spot_btn_rebalance': '⚖️ Rebalance',
@@ -1481,7 +1390,7 @@ Recompensas diarias • Unstaking instantáneo''',
     'spot_btn_settings': '⚙️ Settings',
     'subscribe_menu_info': '_Select a plan to continue:_',
     'trial_already_used': '⚠️ Trial already used. Choose a paid plan.',
-    'trial_title': '🎁 *Free Trial — 14 Days*',
+    'trial_title': '🆓 *Explorer Access — 14 Days*',
     'wallet_deposit_desc': 'Send ELC tokens to:\n\n`{address}`',
     'wallet_history_item': '{type_emoji} {type}: {amount:+.2f} ELC\n   {date}',
 

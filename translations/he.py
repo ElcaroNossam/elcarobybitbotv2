@@ -64,7 +64,7 @@ TEXTS = {
     'button_balance': '💎 תיק השקעות',
     'button_market': '📈 שוק',
     'button_strategies': '🤖 בוטים AI',
-    'button_subscribe': '👑 פרימיום',
+    'button_subscribe': '🤝 תמכו בנו',
     'button_terminal': '💻 טרמינל',
     'button_terminal': '💻 טרמינל',
     'button_history':              '📜 היסטוריה',
@@ -613,87 +613,34 @@ TEXTS = {
     # =====================================================
     
     # License status messages - BLACK RHETORIC: Loss Aversion + FOMO
-    'no_license': '''🚨 <b>גישה נדחתה</b>
-
-בזמן שאתה מהסס, <b>847 סוחרים</b> כבר מרוויחים.
-
-💸 כל דקה ללא Enliko = הזדמנויות שהוחמצו
-⏰ השווקים לא מחכים. גם אתה לא צריך.
-
-👉 /subscribe — <i>פתח את היתרון שלך עכשיו</i>''',
-    'no_license_trading': '''🚨 <b>המסחר נעול</b>
-
-⚠️ 847 סוחרים מרוויחים עכשיו עם Enliko.
-
-❌ מסחר ידני = טעויות רגשיות
-✅ Enliko = דיוק AI קר
-
-<i>תפסיק לצפות. תתחיל להרוויח.</i>
-
-👉 /subscribe — <b>הצטרף ל-847+ סוחרים חכמים</b>''',
-    'license_required': '''🔒 <b>תכונה PREMIUM</b>
-
-זה דורש מנוי {required} — <i>משמש את 3% הסוחרים המובילים</i>.
-
-🎯 הצלחה משאירה רמזים. עקוב אחרי המנצחים.
-
-👉 /subscribe — <b>שדרג עכשיו</b>''',
-    'trial_demo_only': '''⚠️ <b>מצב דמו ללימוד, לא להרווחה.</b>
-
-רווחים אמיתיים דורשים גישה אמיתית.
-
-🎁 טעמת את הכוח. עכשיו <b>החזק בו</b>.
-
-👉 /subscribe — <b>פתח מסחר אמיתי</b>''',
-    'basic_strategy_limit': '''⚠️ <b>Basic = תוצאות Basic</b>
-
-אתה מוגבל ל-: {strategies}
-
-המקצוענים משתמשים ב<b>כל</b> האסטרטגיות. לכן הם מקצוענים.
-
-👉 /subscribe — <b>לך ל-Premium. היה מקצועני.</b>''',
-    
-    'subscribe_menu_header': '👑 *גישת VIP למועדון סוחרים מובילים*',
-    'subscribe_menu_info': 'בחר תוכנית לפתיחת תכונות מסחר:',
-    'btn_premium': '💎 פרימיום',
-    'btn_basic': '🥈 בסיסי', 
-    'btn_trial': '🎁 ניסיון (חינם)',
-    'btn_enter_promo': '🎟 קוד פרומו',
-    'btn_my_subscription': '📋 המנוי שלי',
-    
-    'premium_title': '� *PREMIUM — הבחירה של המנצחים*',
-    'premium_desc': '''✅ גישה מלאה לכל התכונות
-✅ כל 5 האסטרטגיות: OI, RSI+BB, Scryptomera, Scalper, Enliko
-✅ מסחר אמיתי + דמו
-✅ תמיכה עדיפה
-✅ SL/TP דינמי מבוסס ATR
-✅ סולם לימיט DCA
-✅ כל העדכונים העתידיים''',
-    'premium_1m': '💎 חודש 1 — {price} ELC',
-    'premium_3m': '💎 3 חודשים — {price} ELC (-10%)',
-    'premium_6m': '💎 6 חודשים — {price} ELC (-20%)',
-    'premium_12m': '💎 12 חודשים — {price} ELC (-30%)',
-    
-    'basic_title': '🥈 *תוכנית BASIC*',
-    'basic_desc': '''✅ גישה מלאה לחשבון דמו
-✅ חשבון אמיתי: OI, RSI+BB, Scryptomera, Scalper
-❌ Enliko, Fibonacci, Spot — Premium בלבד
-✅ תמיכה רגילה
-✅ SL/TP דינמי מבוסס ATR''',
-    'basic_1m': '🥈 חודש 1 — {price} ELC',
-    
-    'trial_title': '🎁 *ניסיון חינם — הצעה מוגבלת!*',
-    'trial_desc': '''✅ גישה מלאה לחשבון דמו
-✅ כל 5 האסטרטגיות בדמו
-❌ מסחר אמיתי לא זמין
-⏰ משך: 7 ימים
-🎁 פעם אחת בלבד''',
-    'trial_activate': '🎁 הפעל ניסיון חינם',
-    'trial_already_used': '⚠️ כבר השתמשת בניסיון החינמי.',
-    'trial_activated': '🎉 ניסיון הופעל! יש לך 7 ימים של גישה מלאה לדמו.',
-    
-    'payment_select_method': '💳 *בחר אמצעי תשלום*',
-    'btn_pay_elc': '◈ Enliko Coin (ELC)',
+    'no_license': '🤝 *Community Membership*\n\nSupport our open-source project to access\nadditional community resources.\n\n👉 /subscribe — Support the project',
+    'no_license_trading': '🤝 *Community Resource*\n\nThis resource is available to community supporters.\n\n👉 /subscribe — Support the project',
+    'license_required': '🔒 *Supporter Resource*\n\nThis resource requires {required} membership.\n\n👉 /subscribe — Support the project',
+    'trial_demo_only': '⚠️ *Explorer Access*\n\nExplorer access is limited to demo environment.\n\n👉 /subscribe — Become a supporter',
+    'basic_strategy_limit': '⚠️ *Community Tier*\n\nAvailable templates: {strategies}\n\n👉 /subscribe — Upgrade your support',
+    'subscribe_menu_header': '🤝 *Support Enliko*\n\nYour voluntary contribution helps maintain\nfree open-source community tools.\n\nChoose your support level:',
+    'subscribe_menu_info': '_Select your support level:_',
+    'btn_premium': '🤝 פטרון',
+    'btn_basic': '💚 תומך',
+    'btn_trial': '🆓 חוקר (חינם)',
+    'btn_enter_promo': '🎟 קוד הזמנה',
+    'btn_my_subscription': '📋 החברות שלי',
+    'premium_title': '🤝 *Patron Membership*',
+    'premium_desc': '*Thank you for supporting our community!*\n\nAs a patron, you receive access to:\n✅ All community analysis templates\n✅ Demo & live environments\n✅ Priority community support\n✅ ATR risk management tools\n✅ DCA configuration tools\n✅ Early access to updates\n\n⚠️ _Educational tools only. Not financial advice._',
+    'premium_1m': '🤝 1 Month — {price} ELC',
+    'premium_3m': '🤝 3 Months — {price} ELC',
+    'premium_6m': '🤝 6 Months — {price} ELC',
+    'premium_12m': '🤝 12 Months — {price} ELC',
+    'basic_title': '💚 *Supporter Membership*',
+    'basic_desc': '*Thank you for your support!*\n\n✅ Demo + live environments\n✅ Templates: OI, RSI+BB\n✅ Bybit integration\n✅ ATR risk management tools\n\n⚠️ _Educational tools only. Not financial advice._',
+    'basic_1m': '💚 1 Month — {price} ELC',
+    'trial_title': '🆓 *Explorer Access — 14 Days*',
+    'trial_desc': '*Explore our community tools:*\n\n✅ Full demo environment\n✅ All analysis templates\n✅ 14 days access\n✅ No contribution required\n\n⚠️ _Educational tools only. Not financial advice._',
+    'trial_activate': '🆓 Start Exploring',
+    'trial_already_used': '⚠️ Explorer access already used. Consider supporting the project.',
+    'trial_activated': '🎉 *Explorer Access Activated!*\n\n⏰ 14 days of full demo access.\n\n⚠️ _Educational tools only. Not financial advice._',
+    'payment_select_method': '🤝 *How would you like to contribute?*',
+    'btn_pay_elc': '◈ ELC',
     'btn_pay_ton': '💎 TON',
     'payment_elc_title': ' תשלום דרך ELC',
     'payment_elc_desc': 'יחויבו {amount} ELC עבור {plan} ({period}).',
@@ -704,30 +651,28 @@ TEXTS = {
 
 אחרי התשלום, לחץ על הכפתור למטה לאימות.''',
     'btn_verify_ton': '✅ שילמתי — אמת',
-    'payment_processing': '⏳ מעבד תשלום...',
-    'payment_success': '🎉 התשלום הצליח!\n\n{plan} הופעל עד {expires}.',
-    'payment_failed': '❌ התשלום נכשל: {error}',
-    
-    'my_subscription_header': '📋 *המנוי שלי*',
+    'payment_processing': '⏳ ...',
+    'payment_success': '🎉 Thank you for your support!\n\n{plan} access activated until {expires}.',
+    'payment_failed': '❌ Contribution failed: {error}',
+    'my_subscription_header': '📋 *My Membership*',
     'my_subscription_active': '''📋 *תוכנית נוכחית:* {plan}
 ⏰ *פג תוקף:* {expires}
 📅 *ימים שנותרו:* {days}''',
-    'my_subscription_none': '❌ אין מנוי פעיל.\n\nהשתמש ב-/subscribe כדי לרכוש תוכנית.',
+    'my_subscription_none': '❌ No active membership.\n\nUse /subscribe to support the project.',
     'my_subscription_history': '📜 *היסטוריית תשלומים:*',
     'subscription_expiring_soon': '⚠️ המנוי שלך {plan} פג תוקף בעוד {days} ימים!\n\nחדש עכשיו: /subscribe',
     
-    'promo_enter': '🎟 הכנס קוד פרומו:',
-    'promo_success': '🎉 קוד פרומו הוחל!\n\n{plan} הופעל ל-{days} ימים.',
-    'promo_invalid': '❌ קוד פרומו לא תקין.',
-    'promo_expired': '❌ קוד פרומו זה פג תוקף.',
-    'promo_used': '❌ קוד פרומו זה כבר נוצל.',
-    'promo_already_used': '❌ כבר השתמשת בקוד פרומו זה.',
-    
-    'admin_license_menu': '🔑 *ניהול רישיונות*',
-    'admin_btn_grant_license': '🎁 הענק רישיון',
-    'admin_btn_view_licenses': '📋 צפה ברישיונות',
-    'admin_btn_create_promo': '🎟 צור פרומו',
-    'admin_btn_view_promos': '📋 צפה בפרומו',
+    'promo_enter': '🎟 Enter your invite code:',
+    'promo_success': '🎉 Invite code applied!\n\n{plan} access for {days} days.',
+    'promo_invalid': '❌ Invalid invite code.',
+    'promo_expired': '❌ This invite code has expired.',
+    'promo_used': '❌ This invite code has already been used.',
+    'promo_already_used': '❌ You have already used this invite code.',
+    'admin_license_menu': '🤝 *Membership Management*',
+    'admin_btn_grant_license': '🎁 Grant Access',
+    'admin_btn_view_licenses': '📋 View Members',
+    'admin_btn_create_promo': '🎟 Create Invite',
+    'admin_btn_view_promos': '📋 View Invites',
     'admin_btn_expiring_soon': '⚠️ פג תוקף בקרוב',
     'admin_grant_select_type': 'בחר סוג רישיון:',
     'admin_grant_select_period': 'בחר תקופה:',
@@ -833,7 +778,7 @@ TEXTS = {
     'admin_user_report': '👤 דוח משתמש',
     'admin_view_report': '📊 הצג דוח',
     'admin_view_user': '👤 כרטיס משתמש',
-    'btn_check_again': '🔄 בדוק שוב',
+    'btn_check_again': '🔄 Check',
     'payment_session_expired': '❌ פג התוקף של התשלום. אנא התחל מחדש.',
     'payment_ton_not_configured': '❌ תשלומי TON אינם מוגדרים.',
     'payment_verifying': '⏳ מאמת תשלום...',
