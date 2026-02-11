@@ -7067,9 +7067,28 @@ async def _remove_take_profit_bybit(
     effective_side: str,
     account_type: str | None = None,
 ) -> bool:
-    """Remove Take Profit on Bybit."""
+    """Remove Take Profit on Bybit.
+    
+    CRITICAL FIX (Feb 11, 2026): With tpslMode="Full", Bybit may silently ignore
+    requests that only include takeProfit without stopLoss. The API returns success
+    but doesn't actually clear the TP. Fix: also include the current SL value to
+    preserve it while clearing TP, ensuring Bybit processes the full request.
+    """
     mode = await get_position_mode(uid, symbol)
     position_idx = position_idx_for(effective_side, mode)
+
+    # Fetch current SL to preserve it while clearing TP
+    # With tpslMode="Full", Bybit needs both fields to process correctly
+    current_sl = None
+    try:
+        positions = await fetch_open_positions(uid, account_type=account_type, exchange="bybit")
+        pos = next((p for p in positions if p.get("symbol") == symbol), None)
+        if pos:
+            raw_sl = pos.get("stopLoss")
+            if raw_sl not in (None, "", 0, "0", 0.0):
+                current_sl = float(raw_sl)
+    except Exception as e:
+        logger.debug(f"{symbol}: Could not fetch current SL for TP removal: {e}")
 
     body = {
         "category": "linear",
@@ -7078,8 +7097,13 @@ async def _remove_take_profit_bybit(
         "tpslMode": "Full",
         "takeProfit": "0",  # Setting to 0 removes the TP
     }
+    
+    # Include current SL to preserve it while Bybit processes TP removal
+    if current_sl is not None:
+        body["stopLoss"] = str(current_sl)
+        body["slTriggerBy"] = "MarkPrice"
 
-    logger.debug(f"{symbol}: remove_take_profit_bybit side={effective_side} mode={mode} idx={position_idx} account_type={account_type}")
+    logger.info(f"[{uid}] {symbol}: remove_take_profit_bybit side={effective_side} current_sl={current_sl} mode={mode} idx={position_idx}")
 
     try:
         await _bybit_request(uid, "POST", "/v5/position/trading-stop", body=body, account_type=account_type)
