@@ -7106,8 +7106,8 @@ async def _remove_take_profit_bybit(
     logger.info(f"[{uid}] {symbol}: remove_take_profit_bybit side={effective_side} current_sl={current_sl} mode={mode} idx={position_idx}")
 
     try:
-        await _bybit_request(uid, "POST", "/v5/position/trading-stop", body=body, account_type=account_type)
-        logger.info(f"[{uid}] {symbol}: TP removed (ATR mode activated)")
+        result = await _bybit_request(uid, "POST", "/v5/position/trading-stop", body=body, account_type=account_type)
+        logger.info(f"[{uid}] {symbol}: TP removed (ATR mode activated), api_result={result}")
         return True
     except RuntimeError as e:
         err_str = str(e).lower()
