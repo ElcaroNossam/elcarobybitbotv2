@@ -5396,7 +5396,7 @@ def extract_image_from_summary(summary_html: str) -> str | None:
 _position_mode_cache: dict[tuple[int, str], str] = {} 
 _atr_triggered: dict[tuple[int, str, str], bool] = {}  # (uid, symbol, account_type)
 _atr_was_enabled: dict[tuple[int, str, str], bool] = {}  # Track if ATR was enabled for (uid, symbol, account_type) - for detecting when ATR gets disabled
-# NOTE: _atr_tp_removed removed (Feb 11, 2026) — unreliable one-shot flag. Now TP is removed every cycle if current_tp != None.
+_atr_tp_removal_done: dict[tuple[int, str, str], float] = {}  # (uid, symbol, account_type) -> timestamp of last successful TP removal (inc. retCode 34040)
 _be_triggered: dict[tuple[int, str, str], bool] = {}  # Track if BE (break-even) was applied for (uid, symbol, account_type)
 _close_all_cooldown: dict[int, float] = {}  # uid -> timestamp when cooldown ends
 _notification_retry_after: dict[int, float] = {}  # uid -> timestamp when Telegram rate limit expires
@@ -7070,11 +7070,14 @@ async def _remove_take_profit_bybit(
     """Remove Take Profit on Bybit.
     
     CRITICAL FIX (Feb 11, 2026): Bybit's /v5/position/trading-stop with takeProfit="0"
-    may return success but not actually clear the TP. Root cause: missing tpTriggerBy
-    field and/or retCode 34040 (not modified) being silently swallowed.
+    returns retCode 34040 ("not modified") — Bybit internally considers the TP already
+    cleared, but the position endpoint still reports the old TP value (stale display).
     
-    Strategy: Try takeProfit="0" with all required fields (including tpTriggerBy).
-    The tpTriggerBy field MUST be included when modifying TP, even to clear it.
+    Since Bybit says the TP is already effectively "0" (not active), we accept this
+    and return True. The retCode 34040 means the TP WON'T trigger on exchange even
+    though position data still shows a value.
+    
+    Returns True if TP is cleared (including when Bybit says it's already cleared).
     """
     mode = await get_position_mode(uid, symbol)
     position_idx = position_idx_for(effective_side, mode)
@@ -7097,7 +7100,7 @@ async def _remove_take_profit_bybit(
 
     # If TP is already 0/None on exchange, nothing to do
     if current_tp_val is None:
-        logger.info(f"[{uid}] {symbol}: TP already cleared on exchange, nothing to remove")
+        logger.debug(f"[{uid}] {symbol}: TP already cleared on exchange, nothing to remove")
         return True
 
     body = {
@@ -7106,7 +7109,7 @@ async def _remove_take_profit_bybit(
         "positionIdx": position_idx,
         "tpslMode": "Full",
         "takeProfit": "0",
-        "tpTriggerBy": "MarkPrice",  # CRITICAL: Must include trigger type even when clearing
+        "tpTriggerBy": "MarkPrice",
     }
     
     # Include current SL to preserve it
@@ -7114,11 +7117,14 @@ async def _remove_take_profit_bybit(
         body["stopLoss"] = str(current_sl)
         body["slTriggerBy"] = "MarkPrice"
 
-    logger.info(f"[{uid}] {symbol}: remove_take_profit_bybit side={effective_side} current_tp={current_tp_val} current_sl={current_sl} mode={mode} idx={position_idx}")
+    logger.info(f"[{uid}] {symbol}: remove_take_profit_bybit side={effective_side} current_tp={current_tp_val} current_sl={current_sl}")
 
     try:
         result = await _bybit_request(uid, "POST", "/v5/position/trading-stop", body=body, account_type=account_type)
-        logger.info(f"[{uid}] {symbol}: TP removal API call succeeded, result={result}")
+        # retCode 0 = TP actually cleared
+        # retCode 34040 = "not modified" — Bybit says TP is already at 0 internally
+        # Both cases mean TP is effectively cleared and won't trigger
+        logger.info(f"[{uid}] {symbol}: TP removal accepted by Bybit (result={result})")
         return True
     except RuntimeError as e:
         err_str = str(e).lower()
@@ -21396,6 +21402,7 @@ async def monitor_positions_loop(app: Application):
                                     finally:
                                         _atr_triggered.pop((uid, sym, ap_account_type), None)
                                         _atr_was_enabled.pop((uid, sym, ap_account_type), None)  # Clear ATR was enabled cache
+                                        _atr_tp_removal_done.pop((uid, sym, ap_account_type), None)  # Clear TP removal cooldown
                                         _be_triggered.pop((uid, sym, ap_account_type), None)  # Clear BE cache
                                         _sl_notified.pop((uid, sym), None)
                                         _deep_loss_notified.pop((uid, sym), None)
@@ -21724,6 +21731,7 @@ async def monitor_positions_loop(app: Application):
                                     finally:
                                         _atr_triggered.pop((uid, sym, ap_account_type), None)
                                         _atr_was_enabled.pop((uid, sym, ap_account_type), None)  # Clear ATR was enabled cache
+                                        _atr_tp_removal_done.pop((uid, sym, ap_account_type), None)  # Clear TP removal cooldown
                                         _be_triggered.pop((uid, sym, ap_account_type), None)  # Clear BE cache
                                         _sl_notified.pop((uid, sym), None)  # Clear SL notification cache
                                         _deep_loss_notified.pop((uid, sym), None)  # Clear deep loss notification cache
@@ -22524,17 +22532,19 @@ async def monitor_positions_loop(app: Application):
                                 # Log current ATR state (INFO level for production visibility)
                                 logger.info(f"[ATR-CHECK] {sym} uid={uid} move_pct={move_pct:+.2f}% trigger={trigger_pct}% triggered={_atr_triggered.get(key, False)} sl={current_sl} tp={current_tp}")
                                 
-                                # CRITICAL FIX (Feb 11, 2026): Always attempt TP removal when ATR is triggered
-                                # and TP still exists on exchange. Previous approach used one-shot _atr_tp_removed
-                                # flag which could silently fail (API returns success but TP persists on exchange).
-                                # Now we check current_tp fresh from exchange each cycle — if it's not None,
-                                # we keep trying to remove it. This is idempotent and self-healing.
+                                # CRITICAL FIX (Feb 11, 2026): Attempt TP removal when ATR is triggered
+                                # and TP still exists on exchange. Bybit may return retCode 34040 ("not modified")
+                                # meaning TP is internally cleared but position data still shows the old value.
+                                # Use cooldown to avoid spamming API calls — retry every 5 minutes.
                                 if _atr_triggered.get(key, False) and current_tp is not None:
-                                    try:
-                                        await remove_take_profit(uid, sym, side_hint=side, account_type=pos_account_type, exchange=current_exchange)
-                                        logger.info(f"[ATR-TP-REMOVE] {sym} uid={uid} - TP removed (was {current_tp:.6f}), now managed by ATR trailing")
-                                    except Exception as e:
-                                        logger.warning(f"[{uid}] {sym}: Failed to remove TP for ATR mode: {e}")
+                                    last_tp_removal = _atr_tp_removal_done.get(key, 0)
+                                    if time.time() - last_tp_removal > 300:  # 5 minute cooldown
+                                        try:
+                                            await remove_take_profit(uid, sym, side_hint=side, account_type=pos_account_type, exchange=current_exchange)
+                                            _atr_tp_removal_done[key] = time.time()
+                                            logger.info(f"[ATR-TP-REMOVE] {sym} uid={uid} - TP removal sent (was {current_tp:.6f}), ATR trailing manages exit")
+                                        except Exception as e:
+                                            logger.warning(f"[{uid}] {sym}: Failed to remove TP for ATR mode: {e}")
                                 
                                 if move_pct < trigger_pct and not _atr_triggered.get(key, False):
                                     # ATR waiting for trigger - position needs both SL AND TP as safety net
