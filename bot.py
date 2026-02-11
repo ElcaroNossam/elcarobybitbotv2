@@ -1294,6 +1294,9 @@ def log_calls(func):
             elif "order_too_small" in err_str:
                 # Expected error for small orders - already logged as warning
                 pass
+            elif "notional" in err_str and "minimum" in err_str:
+                # Expected error for positions too small (low equity) - already logged as warning
+                pass
             elif "leverage invalid" in err_str:
                 # Expected error when leverage already set or position open
                 pass
@@ -18733,8 +18736,19 @@ async def handle_trade_error(
             pass
         return True
     
-    # Unknown error - log only, no spam to user
-    logger.warning(f"[{user_id}] Unhandled trade error: {error_msg}")
+    # Notional too low (equity too small for any trade) - daily notification
+    if "notional" in error_msg.lower() and "minimum" in error_msg.lower():
+        await notify_user_daily_error(
+            bot, user_id, 
+            DailyErrorType.ZERO_BALANCE, 
+            account_type, t,
+            {"symbol": symbol or "—", "strategy": (strategy or "—").upper()}
+        )
+        return True
+    
+    # Unknown error - log only, no spam to user (once per user per 5 min)
+    if once_per((user_id, "unhandled_trade_error", error_msg[:80]), 300):
+        logger.warning(f"[{user_id}] Unhandled trade error: {error_msg}")
     return False
 
 
