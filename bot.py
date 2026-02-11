@@ -6344,7 +6344,7 @@ async def _bybit_request(user_id: int, method: str, path: str,
                     data = await resp.json(content_type=None)
 
             if path == "/v5/position/trading-stop" and data.get("retCode") == 34040:
-                logger.debug(f"{path}: not modified (retCode=34040) — ok")
+                logger.info(f"{path}: not modified (retCode=34040) for user {user_id} — body was: {body_json}")
                 return data.get("result", {})
 
             # Handle "leverage not modified" - not an error, just already set
@@ -7069,17 +7069,19 @@ async def _remove_take_profit_bybit(
 ) -> bool:
     """Remove Take Profit on Bybit.
     
-    CRITICAL FIX (Feb 11, 2026): With tpslMode="Full", Bybit may silently ignore
-    requests that only include takeProfit without stopLoss. The API returns success
-    but doesn't actually clear the TP. Fix: also include the current SL value to
-    preserve it while clearing TP, ensuring Bybit processes the full request.
+    CRITICAL FIX (Feb 11, 2026): Bybit's /v5/position/trading-stop with takeProfit="0"
+    may return success but not actually clear the TP. Root cause: missing tpTriggerBy
+    field and/or retCode 34040 (not modified) being silently swallowed.
+    
+    Strategy: Try takeProfit="0" with all required fields (including tpTriggerBy).
+    The tpTriggerBy field MUST be included when modifying TP, even to clear it.
     """
     mode = await get_position_mode(uid, symbol)
     position_idx = position_idx_for(effective_side, mode)
 
-    # Fetch current SL to preserve it while clearing TP
-    # With tpslMode="Full", Bybit needs both fields to process correctly
+    # Fetch current position data (SL + TP) to include in request
     current_sl = None
+    current_tp_val = None
     try:
         positions = await fetch_open_positions(uid, account_type=account_type, exchange="bybit")
         pos = next((p for p in positions if p.get("symbol") == symbol), None)
@@ -7087,27 +7089,36 @@ async def _remove_take_profit_bybit(
             raw_sl = pos.get("stopLoss")
             if raw_sl not in (None, "", 0, "0", 0.0):
                 current_sl = float(raw_sl)
+            raw_tp = pos.get("takeProfit")
+            if raw_tp not in (None, "", 0, "0", 0.0):
+                current_tp_val = float(raw_tp)
     except Exception as e:
-        logger.debug(f"{symbol}: Could not fetch current SL for TP removal: {e}")
+        logger.debug(f"{symbol}: Could not fetch position data for TP removal: {e}")
+
+    # If TP is already 0/None on exchange, nothing to do
+    if current_tp_val is None:
+        logger.info(f"[{uid}] {symbol}: TP already cleared on exchange, nothing to remove")
+        return True
 
     body = {
         "category": "linear",
         "symbol": symbol,
         "positionIdx": position_idx,
         "tpslMode": "Full",
-        "takeProfit": "0",  # Setting to 0 removes the TP
+        "takeProfit": "0",
+        "tpTriggerBy": "MarkPrice",  # CRITICAL: Must include trigger type even when clearing
     }
     
-    # Include current SL to preserve it while Bybit processes TP removal
+    # Include current SL to preserve it
     if current_sl is not None:
         body["stopLoss"] = str(current_sl)
         body["slTriggerBy"] = "MarkPrice"
 
-    logger.info(f"[{uid}] {symbol}: remove_take_profit_bybit side={effective_side} current_sl={current_sl} mode={mode} idx={position_idx}")
+    logger.info(f"[{uid}] {symbol}: remove_take_profit_bybit side={effective_side} current_tp={current_tp_val} current_sl={current_sl} mode={mode} idx={position_idx}")
 
     try:
         result = await _bybit_request(uid, "POST", "/v5/position/trading-stop", body=body, account_type=account_type)
-        logger.info(f"[{uid}] {symbol}: TP removed (ATR mode activated), api_result={result}")
+        logger.info(f"[{uid}] {symbol}: TP removal API call succeeded, result={result}")
         return True
     except RuntimeError as e:
         err_str = str(e).lower()
