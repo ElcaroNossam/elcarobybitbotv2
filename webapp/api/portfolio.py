@@ -559,6 +559,84 @@ def build_candle_clusters(trades: List[Dict], period: str) -> List[CandleCluster
     return candles
 
 
+async def _get_hl_portfolio(user_id: int, account_type: str) -> tuple:
+    """Get HyperLiquid portfolio (spot + futures) using HLAdapter with auto-discovery."""
+    try:
+        creds = db.get_all_user_credentials(user_id)
+        if not creds:
+            return (
+                SpotPortfolio(total_usd=0, pnl=0, pnl_pct=0, assets=[]),
+                FuturesPortfolio(total_equity=0, available=0, position_margin=0, unrealized_pnl=0, realized_pnl=0, position_count=0)
+            )
+        
+        # Get HL credentials based on account_type
+        is_testnet = account_type in ("testnet", "demo")
+        private_key = creds.get("hl_testnet_private_key" if is_testnet else "hl_mainnet_private_key")
+        if not private_key:
+            private_key = creds.get("hl_private_key")
+            is_testnet = creds.get("hl_testnet", False)
+        
+        if not private_key:
+            return (
+                SpotPortfolio(total_usd=0, pnl=0, pnl_pct=0, assets=[]),
+                FuturesPortfolio(total_equity=0, available=0, position_margin=0, unrealized_pnl=0, realized_pnl=0, position_count=0)
+            )
+        
+        from hl_adapter import HLAdapter
+        adapter = HLAdapter(private_key=private_key, testnet=is_testnet)
+        await adapter.initialize()
+        
+        # Get balance
+        balance_data = await adapter.get_balance()
+        equity = balance_data.get("equity", 0)
+        available = balance_data.get("available", 0)
+        unrealized_pnl = balance_data.get("unrealized_pnl", 0)
+        
+        # Get spot balances
+        spot_assets = []
+        try:
+            spot_result = await adapter.get_spot_balances()
+            if spot_result.get("success"):
+                for coin, bal_info in spot_result.get("balances", {}).items():
+                    total = float(bal_info.get("total", 0))
+                    if total > 0.01:
+                        spot_assets.append(AssetBalance(
+                            asset=coin,
+                            free=float(bal_info.get("available", 0)),
+                            locked=float(bal_info.get("hold", 0)),
+                            total=total,
+                            usd_value=total if coin in ("USDC", "USDT") else 0,
+                            pnl_24h=0,
+                            pnl_24h_pct=0
+                        ))
+        except Exception as e:
+            logger.debug(f"HL spot balances: {e}")
+        
+        spot_total = sum(a.usd_value for a in spot_assets)
+        
+        # Get position count from DB
+        positions = db.get_active_positions(user_id, exchange="hyperliquid")
+        position_count = len(positions) if positions else 0
+        
+        spot = SpotPortfolio(total_usd=spot_total, pnl=0, pnl_pct=0, assets=spot_assets)
+        futures = FuturesPortfolio(
+            total_equity=equity,
+            available=available,
+            position_margin=equity - available,
+            unrealized_pnl=unrealized_pnl,
+            realized_pnl=0,
+            position_count=position_count
+        )
+        
+        return (spot, futures)
+    except Exception as e:
+        logger.error(f"Error getting HL portfolio: {e}")
+        return (
+            SpotPortfolio(total_usd=0, pnl=0, pnl_pct=0, assets=[]),
+            FuturesPortfolio(total_equity=0, available=0, position_margin=0, unrealized_pnl=0, realized_pnl=0, position_count=0)
+        )
+
+
 # ═══════════════════════════════════════════════════════════════════════
 # ENDPOINTS
 # ═══════════════════════════════════════════════════════════════════════
@@ -585,17 +663,31 @@ async def get_portfolio_summary(
     # Get date range
     start_date, end_date = get_period_dates(period, custom_start, custom_end)
     
-    # Fetch balances
-    spot = await get_spot_balance(user_id, account_type)
-    futures = await get_futures_balance(user_id, account_type)
+    # Fetch balances based on exchange
+    if exchange == "hyperliquid":
+        spot, futures = await _get_hl_portfolio(user_id, account_type)
+    else:
+        spot = await get_spot_balance(user_id, account_type)
+        futures = await get_futures_balance(user_id, account_type)
     
     # Get trades for period
     trades = get_trades_for_period(user_id, start_date, end_date, account_type, exchange)
     
-    # Calculate period PnL
+    # Calculate period PnL from DB trades
     period_pnl = sum(float(t.get("pnl") or 0) for t in trades)
     total_equity = futures.total_equity if futures else 0
     period_pnl_pct = (period_pnl / total_equity * 100) if total_equity > 0 else 0
+    
+    # Also compute realized PnL from DB for the futures object
+    if futures and period_pnl != 0:
+        futures = FuturesPortfolio(
+            total_equity=futures.total_equity,
+            available=futures.available,
+            position_margin=futures.position_margin,
+            unrealized_pnl=futures.unrealized_pnl,
+            realized_pnl=period_pnl,
+            position_count=futures.position_count
+        )
     
     # Build chart data
     chart_data = build_chart_data(trades, period)

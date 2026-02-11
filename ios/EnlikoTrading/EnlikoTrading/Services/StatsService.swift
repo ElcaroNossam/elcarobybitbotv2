@@ -30,6 +30,13 @@ struct DashboardSummary: Codable {
     let wins: Int?
     let losses: Int?
     let maxDrawdownAbs: Double?
+    // Period PnL fields - computed on backend from trade_logs
+    let todayPnl: Double?
+    let weekPnl: Double?
+    let monthPnl: Double?
+    // Best/Worst trade values
+    let bestTrade: Double?
+    let worstTrade: Double?
 }
 
 // Wrapper for the full dashboard response "data" object
@@ -62,15 +69,15 @@ struct DashboardStats {
     init(from summary: DashboardSummary?) {
         let s = summary
         self.totalPnl = s?.totalPnL ?? 0
-        self.todayPnl = 0  // Not in this endpoint, calculated separately
-        self.weekPnl = 0
-        self.monthPnl = 0
+        self.todayPnl = s?.todayPnl ?? 0
+        self.weekPnl = s?.weekPnl ?? 0
+        self.monthPnl = s?.monthPnl ?? 0
         self.totalTrades = s?.totalTrades ?? 0
         self.winRate = s?.winRate ?? 0
         self.avgProfit = s?.avgWin ?? 0
         self.avgLoss = s?.avgLoss ?? 0
-        self.bestTrade = 0
-        self.worstTrade = 0
+        self.bestTrade = s?.bestTrade ?? 0
+        self.worstTrade = s?.worstTrade ?? 0
         self.profitFactor = s?.profitFactor ?? 0
         self.returnPct = s?.returnPct ?? 0
         self.maxDrawdown = s?.maxDrawdown ?? 0

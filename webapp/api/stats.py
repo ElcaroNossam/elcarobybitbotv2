@@ -62,22 +62,42 @@ async def get_dashboard_stats(
         uid = user["user_id"]
         logger.debug(f"Dashboard stats: user_id={uid}, exchange={exchange}, strategy={strategy}, period={period}")
         
-        # Parse period
-        days = {"7d": 7, "30d": 30, "90d": 90, "all": 365}.get(period, 30)
+        # Parse period - support all iOS formats
+        days = {"1d": 1, "7d": 7, "30d": 30, "90d": 90, "365d": 365, "all": 3650}.get(period, 30)
         start_date = datetime.now() - timedelta(days=days)
         
-        # Get trades from trade_logs table - pass filters to SQL for efficiency
-        trades = db.get_trade_logs_list(
+        # Get ALL trades for computing period PnLs (today/week/month)
+        all_trades = db.get_trade_logs_list(
             uid, 
-            limit=1000, 
+            limit=5000, 
             strategy=strategy if strategy != "all" else None,
             exchange=exchange if exchange != "all" else None
         ) or []
-        logger.debug(f"Trades returned: {len(trades)}")
+        logger.debug(f"All trades returned: {len(all_trades)}")
         
-        # Filter by period
+        # Pre-compute period-specific PnL from ALL trades (not just filtered)
+        now = datetime.now()
+        today_start = now - timedelta(hours=24)
+        week_start = now - timedelta(days=7)
+        month_start = now - timedelta(days=30)
+        
+        today_pnl = 0.0
+        week_pnl = 0.0
+        month_pnl = 0.0
+        
+        for t in all_trades:
+            trade_time = _get_datetime(t.get("time"))
+            pnl = float(t.get("pnl", 0))
+            if trade_time >= today_start:
+                today_pnl += pnl
+            if trade_time >= week_start:
+                week_pnl += pnl
+            if trade_time >= month_start:
+                month_pnl += pnl
+        
+        # Filter by selected period for main stats
         filtered_trades = []
-        for t in trades:
+        for t in all_trades:
             trade_time = _get_datetime(t.get("time"))
             if trade_time >= start_date:
                 filtered_trades.append(t)
@@ -94,7 +114,11 @@ async def get_dashboard_stats(
                         "winRate": 0, "profitFactor": 0, "maxDrawdown": 0,
                         "avgWin": 0, "avgLoss": 0, "bestStreak": 0, "worstStreak": 0,
                         "avgDuration": "0h", "tradesPerDay": 0, "pnlChange": 0,
-                        "wins": 0, "losses": 0, "maxDrawdownAbs": 0
+                        "wins": 0, "losses": 0, "maxDrawdownAbs": 0,
+                        "todayPnl": round(today_pnl, 2),
+                        "weekPnl": round(week_pnl, 2),
+                        "monthPnl": round(month_pnl, 2),
+                        "bestTrade": 0, "worstTrade": 0
                     },
                     "pnlHistory": [],
                     "byStrategy": {},
@@ -189,6 +213,10 @@ async def get_dashboard_stats(
             "best": [_serialize_trade(t) for t in sorted_by_pnl[:5]],
             "worst": [_serialize_trade(t) for t in sorted_by_pnl[-5:][::-1]]
         }
+        
+        # Extract best/worst single trade PnL values
+        best_trade_pnl = float(sorted_by_pnl[0].get("pnl", 0)) if sorted_by_pnl else 0.0
+        worst_trade_pnl = float(sorted_by_pnl[-1].get("pnl", 0)) if sorted_by_pnl else 0.0
         
         # Calculate maxDrawdown and streaks properly
         max_drawdown = 0.0
@@ -291,7 +319,12 @@ async def get_dashboard_stats(
                     "pnlChange": round(pnl_change, 2),
                     "wins": len(wins),
                     "losses": len(losses),
-                    "maxDrawdownAbs": round(max_drawdown_abs, 2)
+                    "maxDrawdownAbs": round(max_drawdown_abs, 2),
+                    "todayPnl": round(today_pnl, 2),
+                    "weekPnl": round(week_pnl, 2),
+                    "monthPnl": round(month_pnl, 2),
+                    "bestTrade": round(best_trade_pnl, 2),
+                    "worstTrade": round(worst_trade_pnl, 2)
                 },
                 "pnlHistory": pnl_history,
                 "byStrategy": by_strategy,
@@ -318,7 +351,7 @@ async def get_pnl_history(
         logger.info(f"[PnL-API] Request from user {uid}, exchange={exchange}, period={period}")
         
         # Parse period
-        days_map = {"24h": 1, "7d": 7, "30d": 30, "90d": 90, "all": 365}
+        days_map = {"1d": 1, "24h": 1, "7d": 7, "30d": 30, "90d": 90, "365d": 365, "all": 3650}
         days = days_map.get(period, 7)
         
         start_date = datetime.now() - timedelta(days=days)
@@ -398,7 +431,7 @@ async def get_strategy_report(
         uid = user["user_id"]
         
         # Parse period
-        days = {"7d": 7, "30d": 30, "90d": 90, "all": 365}.get(period, 30)
+        days = {"1d": 1, "7d": 7, "30d": 30, "90d": 90, "365d": 365, "all": 3650}.get(period, 30)
         start_date = datetime.now() - timedelta(days=days)
         
         # Get trades
