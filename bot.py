@@ -2345,6 +2345,7 @@ async def on_api_settings_cb(update: Update, ctx: ContextTypes.DEFAULT_TYPE):
         
         # Test Testnet
         if testnet_key:
+            adapter = None
             try:
                 adapter = HLAdapter(private_key=testnet_key, testnet=True)
                 await adapter.initialize()
@@ -2353,11 +2354,15 @@ async def on_api_settings_cb(update: Update, ctx: ContextTypes.DEFAULT_TYPE):
                 results.append(f"🧪 <b>Testnet:</b> ✅ ${equity:.2f}")
             except Exception as e:
                 results.append(f"🧪 <b>Testnet:</b> ❌ {str(e)[:50]}")
+            finally:
+                if adapter:
+                    await adapter.close()
         else:
             results.append("🧪 <b>Testnet:</b> ⚪ Not configured")
         
         # Test Mainnet
         if mainnet_key:
+            adapter = None
             try:
                 adapter = HLAdapter(private_key=mainnet_key, testnet=False)
                 await adapter.initialize()
@@ -2366,6 +2371,9 @@ async def on_api_settings_cb(update: Update, ctx: ContextTypes.DEFAULT_TYPE):
                 results.append(f"🌐 <b>Mainnet:</b> ✅ ${equity:.2f}")
             except Exception as e:
                 results.append(f"🌐 <b>Mainnet:</b> ❌ {str(e)[:50]}")
+            finally:
+                if adapter:
+                    await adapter.close()
         else:
             results.append("🌐 <b>Mainnet:</b> ⚪ Not configured")
         
@@ -12357,22 +12365,25 @@ async def fetch_spot_balance(user_id: int, account_type: str = None, exchange: s
                 return {}
             
             adapter = HLAdapter(private_key=private_key, testnet=is_testnet)
-            await adapter.initialize()
-            
-            result = await adapter.get_spot_balance()
-            if not result.get("success"):
-                logger.error(f"HL spot balance error: {result.get('error')}")
-                return {}
-            
-            # Convert HL format to Bybit-like format: {coin: balance}
-            balances = {}
-            for token in result.get("data", {}).get("tokens", []):
-                coin = token.get("token", "")
-                total = token.get("total", 0)
-                if total > 0:
-                    balances[coin] = total
-            
-            return balances
+            try:
+                await adapter.initialize()
+                
+                result = await adapter.get_spot_balance()
+                if not result.get("success"):
+                    logger.error(f"HL spot balance error: {result.get('error')}")
+                    return {}
+                
+                # Convert HL format to Bybit-like format: {coin: balance}
+                balances = {}
+                for token in result.get("data", {}).get("tokens", []):
+                    coin = token.get("token", "")
+                    total = token.get("total", 0)
+                    if total > 0:
+                        balances[coin] = total
+                
+                return balances
+            finally:
+                await adapter.close()
         except Exception as e:
             logger.error(f"fetch_spot_balance HL error: {e}")
             return {}
@@ -12435,28 +12446,31 @@ async def get_spot_ticker(user_id: int, symbol: str, account_type: str = None, e
                 return {}
             
             adapter = HLAdapter(private_key=private_key, testnet=is_testnet)
-            await adapter.initialize()
-            
-            result = await adapter.get_spot_ticker(token)
-            if not result.get("success"):
-                return {}
-            
-            # Convert HLAdapter format to Bybit-like format
-            # HLAdapter returns: {"success": True, "mid_price": X, "mark_price": Y, "prev_day_price": Z}
-            mid_price = result.get("mid_price") or result.get("mark_price") or 0
-            prev_day_price = result.get("prev_day_price") or mid_price
-            
-            # Calculate 24h price change percentage
-            price_change_pct = 0
-            if prev_day_price and prev_day_price > 0 and mid_price:
-                price_change_pct = (mid_price - prev_day_price) / prev_day_price
-            
-            return {
-                "lastPrice": str(mid_price),
-                "prevPrice24h": str(prev_day_price),
-                "price24hPcnt": str(price_change_pct),
-                "volume24h": str(result.get("day_volume", 0)),
-            }
+            try:
+                await adapter.initialize()
+                
+                result = await adapter.get_spot_ticker(token)
+                if not result.get("success"):
+                    return {}
+                
+                # Convert HLAdapter format to Bybit-like format
+                # HLAdapter returns: {"success": True, "mid_price": X, "mark_price": Y, "prev_day_price": Z}
+                mid_price = result.get("mid_price") or result.get("mark_price") or 0
+                prev_day_price = result.get("prev_day_price") or mid_price
+                
+                # Calculate 24h price change percentage
+                price_change_pct = 0
+                if prev_day_price and prev_day_price > 0 and mid_price:
+                    price_change_pct = (mid_price - prev_day_price) / prev_day_price
+                
+                return {
+                    "lastPrice": str(mid_price),
+                    "prevPrice24h": str(prev_day_price),
+                    "price24hPcnt": str(price_change_pct),
+                    "volume24h": str(result.get("day_volume", 0)),
+                }
+            finally:
+                await adapter.close()
         except Exception as e:
             logger.error(f"get_spot_ticker HL error for {symbol}: {e}")
             return {}
@@ -12871,20 +12885,23 @@ async def place_spot_order(
             token = symbol.upper().replace("USDT", "").replace("USDC", "")
             
             adapter = HLAdapter(private_key=private_key, testnet=is_testnet)
-            await adapter.initialize()
-            
-            if side.lower() == "buy":
-                # For HL market buy, qty is USDC amount
-                result = await adapter.spot_market_buy(token=token, usdc_amount=qty)
-            else:
-                # For HL sell, qty is token amount
-                result = await adapter.spot_market_sell(token=token, qty=qty)
-            
-            if result.get("success"):
-                logger.info(f"HL Spot order placed [{account_type or 'testnet'}]: {token} {side} qty={qty}")
-                return {"retCode": 0, "retMsg": "OK", "result": {"orderId": result.get("order_id", "")}}
-            else:
-                raise ValueError(result.get("error", "HL spot order failed"))
+            try:
+                await adapter.initialize()
+                
+                if side.lower() == "buy":
+                    # For HL market buy, qty is USDC amount
+                    result = await adapter.spot_market_buy(token=token, usdc_amount=qty)
+                else:
+                    # For HL sell, qty is token amount
+                    result = await adapter.spot_market_sell(token=token, qty=qty)
+                
+                if result.get("success"):
+                    logger.info(f"HL Spot order placed [{account_type or 'testnet'}]: {token} {side} qty={qty}")
+                    return {"retCode": 0, "retMsg": "OK", "result": {"orderId": result.get("order_id", "")}}
+                else:
+                    raise ValueError(result.get("error", "HL spot order failed"))
+            finally:
+                await adapter.close()
         
         except ValueError as e:
             err_str = str(e)
@@ -13672,24 +13689,27 @@ async def get_spot_open_orders(user_id: int, account_type: str = None, exchange:
                 return []
             
             adapter = HLAdapter(private_key=private_key, testnet=is_testnet)
-            await adapter.initialize()
-            
-            # HL API for spot open orders
-            user_state = await adapter._client._post_info({"type": "spotClearinghouseState", "user": adapter.main_wallet_address})
-            orders = user_state.get("openOrders", [])
-            
-            # Format to match Bybit structure
-            formatted_orders = []
-            for order in orders:
-                formatted_orders.append({
-                    "orderId": str(order.get("oid", "")),
-                    "symbol": order.get("coin", ""),
-                    "side": "Buy" if order.get("side") == "A" else "Sell",  # A=Bid/Buy, B=Ask/Sell
-                    "price": str(order.get("limitPx", 0)),
-                    "qty": str(order.get("sz", 0)),
-                    "orderStatus": "New",
-                })
-            return formatted_orders
+            try:
+                await adapter.initialize()
+                
+                # HL API for spot open orders
+                user_state = await adapter._client._post_info({"type": "spotClearinghouseState", "user": adapter.main_wallet_address})
+                orders = user_state.get("openOrders", [])
+                
+                # Format to match Bybit structure
+                formatted_orders = []
+                for order in orders:
+                    formatted_orders.append({
+                        "orderId": str(order.get("oid", "")),
+                        "symbol": order.get("coin", ""),
+                        "side": "Buy" if order.get("side") == "A" else "Sell",  # A=Bid/Buy, B=Ask/Sell
+                        "price": str(order.get("limitPx", 0)),
+                        "qty": str(order.get("sz", 0)),
+                        "orderStatus": "New",
+                    })
+                return formatted_orders
+            finally:
+                await adapter.close()
         except Exception as e:
             logger.error(f"[HL] get_spot_open_orders error: {e}")
             return []
@@ -13732,16 +13752,19 @@ async def cancel_spot_order(user_id: int, symbol: str, order_id: str, account_ty
                 return {"success": False, "error": "No HyperLiquid private key"}
             
             adapter = HLAdapter(private_key=private_key, testnet=is_testnet)
-            await adapter.initialize()
-            
-            # Cancel spot order using @0 prefix
-            result = await adapter._client.cancel("@0", int(order_id))
-            
-            if result.get("status") == "ok":
-                logger.info(f"[HL] Spot order cancelled: {order_id}")
-                return {"success": True, "result": result}
-            else:
-                return {"success": False, "error": result.get("response", "Cancel failed")}
+            try:
+                await adapter.initialize()
+                
+                # Cancel spot order using @0 prefix
+                result = await adapter._client.cancel("@0", int(order_id))
+                
+                if result.get("status") == "ok":
+                    logger.info(f"[HL] Spot order cancelled: {order_id}")
+                    return {"success": True, "result": result}
+                else:
+                    return {"success": False, "error": result.get("response", "Cancel failed")}
+            finally:
+                await adapter.close()
         except Exception as e:
             logger.error(f"[HL] cancel_spot_order error: {e}")
             return {"success": False, "error": str(e)}
@@ -22023,8 +22046,8 @@ async def monitor_positions_loop(app: Application):
                                 be_enabled = bool(side_be_enabled) if side_be_enabled is not None else (
                                     bool(strat_settings.get("be_enabled")) if strat_settings.get("be_enabled") is not None else bool(cfg.get("be_enabled", 0))
                                 )
-                                be_trigger_pct = float(side_be_trigger) if side_be_trigger is not None and side_be_trigger > 0 else (
-                                    float(strat_settings.get("be_trigger_pct")) if strat_settings.get("be_trigger_pct") and strat_settings.get("be_trigger_pct") > 0 else float(cfg.get("be_trigger_pct", 1.0))
+                                be_trigger_pct = float(side_be_trigger) if side_be_trigger is not None and float(side_be_trigger) > 0 else (
+                                    float(strat_settings.get("be_trigger_pct")) if strat_settings.get("be_trigger_pct") and float(strat_settings.get("be_trigger_pct")) > 0 else float(cfg.get("be_trigger_pct", 1.0))
                                 )
                                 
                                 logger.debug(f"[{uid}] {sym}: BE params - be_enabled={be_enabled}, be_trigger_pct={be_trigger_pct}")
@@ -30478,12 +30501,12 @@ async def on_hl_api_callback(update: Update, ctx: ContextTypes.DEFAULT_TYPE):
             hl_creds.get("hl_private_key") if hl_creds.get("hl_testnet") else None
         )
         if testnet_key:
+            adapter = None
             try:
                 from hl_adapter import HLAdapter
                 adapter = HLAdapter(private_key=testnet_key, testnet=True)
                 await adapter.initialize()
                 balance_data = await adapter.get_balance()
-                await adapter.close()
                 
                 balance = balance_data.get("data", {}).get("equity", 0) if isinstance(balance_data, dict) else 0
                 api_wallet = adapter._client._api_wallet_address or "?"
@@ -30492,18 +30515,21 @@ async def on_hl_api_callback(update: Update, ctx: ContextTypes.DEFAULT_TYPE):
                 results.append(f"🧪 <b>Testnet:</b> ✅\n   API: <code>{api_wallet[:8]}...{api_wallet[-4:]}</code>\n   Main: <code>{main_wallet[:8]}...{main_wallet[-4:]}</code>\n   Balance: ${balance:.2f}")
             except Exception as e:
                 results.append(f"🧪 <b>Testnet:</b> ❌ {str(e)[:50]}")
+            finally:
+                if adapter:
+                    await adapter.close()
         
         # Test Mainnet
         mainnet_key = hl_creds.get("hl_mainnet_private_key") or (
             hl_creds.get("hl_private_key") if not hl_creds.get("hl_testnet") else None
         )
         if mainnet_key:
+            adapter = None
             try:
                 from hl_adapter import HLAdapter
                 adapter = HLAdapter(private_key=mainnet_key, testnet=False)
                 await adapter.initialize()
                 balance_data = await adapter.get_balance()
-                await adapter.close()
                 
                 balance = balance_data.get("data", {}).get("equity", 0) if isinstance(balance_data, dict) else 0
                 api_wallet = adapter._client._api_wallet_address or "?"
@@ -30512,6 +30538,9 @@ async def on_hl_api_callback(update: Update, ctx: ContextTypes.DEFAULT_TYPE):
                 results.append(f"🌐 <b>Mainnet:</b> ✅\n   API: <code>{api_wallet[:8]}...{api_wallet[-4:]}</code>\n   Main: <code>{main_wallet[:8]}...{main_wallet[-4:]}</code>\n   Balance: ${balance:.2f}")
             except Exception as e:
                 results.append(f"🌐 <b>Mainnet:</b> ❌ {str(e)[:50]}")
+            finally:
+                if adapter:
+                    await adapter.close()
         
         if not results:
             await q.edit_message_text(

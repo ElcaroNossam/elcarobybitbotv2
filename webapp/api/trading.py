@@ -1237,6 +1237,7 @@ async def get_execution_history(
         if not private_key:
             return {"executions": [], "error": f"HL {account_type} not configured"}
         
+        adapter = None
         try:
             adapter = HLAdapter(
                 private_key=private_key,
@@ -1246,7 +1247,6 @@ async def get_execution_history(
             
             # Fetch trade history using main_wallet_address for Unified Account support
             result = await adapter.fetch_trade_history(limit=limit)
-            await adapter.close()
             
             if result.get("success"):
                 trades = result.get("data", [])
@@ -1280,6 +1280,9 @@ async def get_execution_history(
                 return {"executions": [], "error": result.get("error", "Unknown error")}
         except Exception as e:
             return {"executions": [], "error": str(e)}
+        finally:
+            if adapter:
+                await adapter.close()
     
     else:
         # Bybit execution history (closed PnL)
@@ -2312,8 +2315,10 @@ async def _set_leverage_for_symbol(user_id: int, symbol: str, leverage: int, exc
         
         if private_key:
             adapter = HLAdapter(private_key=private_key, testnet=is_testnet)
-            await adapter.set_leverage(symbol.replace("USDT", "").replace("USDC", ""), leverage)
-            await adapter.close()
+            try:
+                await adapter.set_leverage(symbol.replace("USDT", "").replace("USDC", ""), leverage)
+            finally:
+                await adapter.close()
     else:
         await bybit_request(
             user_id, "POST", "/v5/position/set-leverage",
@@ -2362,10 +2367,11 @@ async def _place_single_order_hl(user_id: int, symbol: str, side: str, order_typ
     
     side_formatted = "Buy" if side.lower() in ["buy", "long"] else "Sell"
     adapter = HLAdapter(private_key=private_key, testnet=is_testnet)
-    result = await adapter.place_order(symbol=symbol, side=side_formatted, qty=size, order_type=order_type, price=price)
-    await adapter.close()
-    
-    return {"success": result.get("retCode") == 0, "order_id": result.get("result", {}).get("orderId")}
+    try:
+        result = await adapter.place_order(symbol=symbol, side=side_formatted, qty=size, order_type=order_type, price=price)
+        return {"success": result.get("retCode") == 0, "order_id": result.get("result", {}).get("orderId")}
+    finally:
+        await adapter.close()
 
 
 @router.post("/calculate-position")
