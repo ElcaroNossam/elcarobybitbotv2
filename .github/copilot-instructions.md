@@ -1,11 +1,13 @@
 0x211a5a4bfb4d86b3ceeb9081410513cf9502058c7503e8ea7b7126b604714f9e# Enliko Trading Platform - AI Coding Guidelines
 # =============================================
-# Версия: 3.61.0 | Обновлено: 8 февраля 2026
+# Версия: 3.62.0 | Обновлено: 11 февраля 2026
 # BlackRock-Level Deep Audit: PASSED ✅ (Feb 7, 2026) - FULL RE-AUDIT
+# Deep Audit #1 (Phase 7): ~30 bugs fixed incl. CRITICAL DCA nonlocal ✅ (Feb 10, 2026)
+# Deep Audit #2 (Phase 8): 11 HLAdapter resource leak fixes ✅ (Feb 11, 2026)
+# Server Optimization (Phase 9): CPU 10%→97% idle, Memory -165MB ✅ (Feb 11, 2026)
 # HyperLiquid Auto-Discovery: FULL SUPPORT ✅ (Feb 7, 2026)
 # HyperLiquid SPOT TRADING: FULL INTEGRATION ✅ (Feb 10, 2026) - ALL bot.py functions
 # API Settings BLOCK UI: COMPLETE ✅ (Feb 8, 2026)
-# Default Settings Update: Entry max 3%, SL 30%, TP 10%, ATR 3% trigger ✅ (Feb 8, 2026)
 # =============================================
 #
 # ╔═══════════════════════════════════════════════════════════════════════════════╗
@@ -58,6 +60,9 @@
 # - Routing Policy Fix: NULL uses trading_mode, all_enabled bypasses it (Feb 8, 2026) ✅
 # - Default Settings Update: Entry max 3%, SL 30%, TP 10%, ATR enabled 3% (Feb 8, 2026) ✅
 # - iOS Build 89: TestFlight upload + Android APK build (Feb 8, 2026) ✅
+# - Deep Audit #1 (Phase 7): ~30 bugs fixed, CRITICAL DCA nonlocal bug (Feb 10, 2026) ✅
+# - Deep Audit #2 (Phase 8): 11 HLAdapter resource leaks + BE type coercion (Feb 11, 2026) ✅
+# - Server Optimization (Phase 9): CPU idle 10%→97%, Memory -165MB (Feb 11, 2026) ✅
 
 ---
 
@@ -78,7 +83,7 @@
 | Метрика | Значение |
 |---------|----------|
 | **Python файлов** | 325+ |
-| **Строк кода bot.py** | 29,098 |
+| **Строк кода bot.py** | 32,368 |
 | **Стратегий** | 7 (6 авто + 1 manual) |
 | **Языков локализации** | 15 |
 | **Ключей перевода** | 1,540+ |
@@ -318,7 +323,7 @@ elif param in ("long_partial_tp_2_close_pct", "short_partial_tp_2_close_pct"):
 
 # 📊 АРХИТЕКТУРА ПРОЕКТА
 
-## Статистика проекта (актуально на 05.02.2026)
+## Статистика проекта (актуально на 11.02.2026)
 
 | Метрика | Значение |
 |---------|----------|
@@ -334,7 +339,8 @@ elif param in ("long_partial_tp_2_close_pct", "short_partial_tp_2_close_pct"):
 | База данных | PostgreSQL 14 (ONLY) |
 | API endpoints | 127+ |
 | Migration files | 24 |
-| **Строк bot.py** | **29,098** |
+| **Строк bot.py** | **32,368** |
+| **Строк hl_adapter.py** | **1,461** |
 | iOS Bundle ID | io.enliko.EnlikoTrading |
 | **Android Package** | io.enliko.trading |
 | Xcode | 26.2 (17C52) |
@@ -347,13 +353,13 @@ elif param in ("long_partial_tp_2_close_pct", "short_partial_tp_2_close_pct"):
 
 ```
 Enliko Trading Platform
-├── bot.py                 # 🔥 Главный бот (29098 строк, 280+ функций)
+├── bot.py                 # 🔥 Главный бот (32368 строк, 280+ функций)
 ├── db.py                  # 💾 Database layer (PostgreSQL-ONLY, 7K строк)
 ├── db_elcaro.py           # 💎 ELC Token functions (705 строк)
 ├── keyboard_helpers.py    # ⌨️ Centralized button factory (370 строк)
 ├── bot_unified.py         # 🔗 Unified API Bybit/HyperLiquid (530 строк)
 ├── exchange_router.py     # 🔀 Роутинг между биржами (1190 строк)
-├── hl_adapter.py          # 🌐 HyperLiquid адаптер (716 строк)
+├── hl_adapter.py          # 🌐 HyperLiquid адаптер (1461 строк)
 ├── coin_params.py         # ⚙️ Параметры, ADMIN_ID, лимиты (309 строк)
 │
 ├── webapp/                # 🌐 FastAPI веб-приложение
@@ -1333,6 +1339,92 @@ except Exception as e:
 ---
 
 # 🔧 RECENT FIXES (Январь-Февраль 2026)
+
+### ✅ PERF: Server Optimization - CPU 10%→97% idle (Feb 11, 2026) — Phase 9
+- **Проблема:** Production сервер (t3.micro, 2GB RAM) использовал 90%+ CPU при 0 подключённых WebSocket клиентах
+- **Причина:** 2 uvicorn workers × (Bybit 200 symbols + HL all symbols + 2 broadcasters @5/sec) = дублированные потоки
+- **Диагностика:** 
+  - `top -bn1`: PID 2525625 = 100% CPU, PID 2525626 = 68.8% CPU
+  - CPU steal: 59.5% (t3.micro throttling из-за перегрузки)
+  - Worker имел 1.2MB в send buffer (ss output: `ESTAB 1243330 0`)
+- **Оптимизации (commit `aec52c2`):**
+  | Изменение | Файл | Деталь |
+  |-----------|------|--------|
+  | Workers 2→1 | `start_bot.sh` | Для серверов ≤2GB RAM |
+  | Lazy parsing | `webapp/realtime/__init__.py` | Skip если 0 клиентов |
+  | Symbols 200→50 | `webapp/realtime/__init__.py` | Bybit top symbols |
+  | Interval 0.2→1.0s | `webapp/realtime/__init__.py` | Snapshot broadcaster |
+- **Результат:**
+  | Метрика | До | После |
+  |---------|-----|-------|
+  | CPU idle | 10.8% | **97%** |
+  | CPU steal | 59.5% | **0%** |
+  | Memory | 625MB | **460MB** (-165MB) |
+  | Workers | 2×147MB | **1×128MB** |
+  | Tasks | 16 | **8** |
+
+### ✅ CRITICAL: Deep Audit #2 - HLAdapter Resource Leaks (Feb 11, 2026) — Phase 8
+- **Проблема:** HLAdapter создавался через `HLAdapter(private_key=..., testnet=...)` + `.initialize()`, но `.close()` не вызывался
+- **Влияние:** Каждый вызов = утечка aiohttp ClientSession → файловые дескрипторы → eventual `OSError: Too many open files`
+- **Паттерн ошибки:**
+  ```python
+  # ❌ БЫЛО - утечка!
+  adapter = HLAdapter(private_key=key, testnet=is_testnet)
+  await adapter.initialize()
+  result = await adapter.some_method()
+  # adapter.close() НИКОГДА не вызывается → утечка!
+  
+  # ✅ СТАЛО - правильно!
+  adapter = HLAdapter(private_key=key, testnet=is_testnet)
+  try:
+      await adapter.initialize()
+      result = await adapter.some_method()
+  finally:
+      await adapter.close()
+  ```
+- **Исправленные места (11 locations):**
+  | Файл | Функция | Критичность |
+  |------|---------|-------------|
+  | `bot.py` | `test_hl` handler | Medium |
+  | `bot.py` | `hl_api:test` handler | Medium |
+  | `bot.py` | `fetch_spot_balance()` | High |
+  | `bot.py` | `get_spot_ticker()` | High |
+  | `bot.py` | `place_spot_order()` | **CRITICAL** — каждый spot trade |
+  | `bot.py` | `get_spot_open_orders()` | Medium |
+  | `bot.py` | `cancel_spot_order()` | Medium |
+  | `bot.py` | BE type coercion fix | Medium |
+  | `webapp/api/trading.py` | `/execution-history` | High |
+  | `webapp/api/trading.py` | `_set_leverage_for_symbol()` | High |
+  | `webapp/api/trading.py` | `_place_single_order_hl()` | **CRITICAL** |
+- **Дополнительно:** Исправлен BE (Break-Even) type coercion баг — `float()` для `be_trigger_pct` при сравнении с `move_pct`
+- **Commit:** `468ecfd`
+
+### ✅ CRITICAL: Deep Audit #1 - ~30 Bugs Fixed incl. DCA nonlocal (Feb 10, 2026) — Phase 7
+- **Самый критический баг:** DCA legs 2 и 3 НИКОГДА не исполнялись!
+  ```python
+  # ❌ БЫЛО — отсутствие nonlocal!
+  async def _do_dca_add(...):
+      entry = original_entry
+      size = original_size
+      # ... вычисляем new_entry, new_size
+      entry = new_entry   # ← Записывает в ЛОКАЛЬНУЮ переменную!
+      size = new_size     # ← Записывает в ЛОКАЛЬНУЮ переменную!
+  
+  # ✅ СТАЛО — nonlocal исправляет!
+  async def _do_dca_add(...):
+      nonlocal entry, size  # ← КРИТИЧНО!
+      # Теперь entry/size обновляются для следующих legs
+  ```
+- **Количество исправлений:** ~30 багов в 8 файлах
+- **Ключевые категории:**
+  | Категория | Кол-во | Пример |
+  |-----------|--------|--------|
+  | DCA nonlocal | 1 | **CRITICAL** — DCA leg 2+3 broken |
+  | Missing exchange param | 5+ | `add_active_position(exchange=...)` |
+  | Error handling | 5+ | try/except в критических путях |
+  | Type safety | 5+ | float/int coercion |
+  | Logic fixes | 10+ | Condition ordering, fallbacks |
+- **Commit:** `6464114`
 
 ### ✅ FEAT: API Settings BLOCK UI Refactor (Feb 8, 2026)
 - **Изменение:** Полная реструктуризация меню API Settings с блочной структурой
@@ -2721,12 +2813,44 @@ except Exception as e:
 ### Uvicorn Workers Configuration
 
 ```bash
-# Авто-определение по CPU (config/settings.py, start_bot.sh)
-WORKERS = min(2 * CPU_CORES + 1, 8)
+# Авто-определение по RAM в start_bot.sh (Feb 11, 2026 optimization):
+# ≤2GB RAM (t3.micro): WORKERS=1 — prevents duplicate real-time WebSocket workers
+# >2GB RAM: WORKERS = min(CPU_CORES + 1, 4)
 
 # Явная настройка через environment:
-WEBAPP_WORKERS=8 ./start.sh
+WEBAPP_WORKERS=4 ./start.sh
 ```
+
+> **⚠️ КРИТИЧНО (Feb 11, 2026):** Каждый uvicorn worker запускает дублирующие
+> real-time WebSocket workers (Bybit + HyperLiquid streams + broadcasters).
+> На t3.micro (2GB RAM) использовать **ТОЛЬКО 1 worker**!
+> При 2 workers CPU был 90%+ из-за дублирования потоков.
+
+### Real-Time WebSocket Optimization (Feb 11, 2026)
+
+```python
+# webapp/realtime/__init__.py ключевые оптимизации:
+
+# 1. Lazy message parsing — не парсить данные если нет подключённых клиентов
+if not _active_connections['bybit']:
+    return  # Skip parsing, save CPU
+
+# 2. Reduced symbol count — 50 вместо 200 top symbols
+MAX_SYMBOLS = 50  # Was 200
+
+# 3. Increased snapshot interval — 1.0s вместо 0.2s
+_min_snapshot_interval = 1.0  # Was 0.2 (5/sec → 1/sec)
+```
+
+**Результат оптимизации (t3.micro):**
+
+| Метрика | До | После | Улучшение |
+|---------|-----|-------|-----------|
+| CPU idle | 10.8% | 97% | **+86%** |
+| CPU steal | 59.5% | 0% | **Устранено** |
+| Memory used | 625MB | 460MB | **-165MB** |
+| uvicorn workers | 2×147MB | 1×128MB | **-166MB** |
+| Tasks | 16 | 8 | **-50%** |
 
 ### Redis для Verification Codes
 
@@ -2761,18 +2885,19 @@ uvicorn webapp.app:app --host 0.0.0.0 --port 8765 \
   --workers 8 --limit-concurrency 500 --timeout-keep-alive 60
 ```
 
-### WebSocket Connections (multi-worker issue)
+### WebSocket Connections (multi-worker SOLVED)
 
-⚠️ **Важно:** При multiple workers каждый worker имеет свой набор WebSocket соединений.
-
-**Решение для production:**
-1. Использовать Redis Pub/Sub для синхронизации между workers
-2. Или использовать отдельный сервис для WebSocket (например, socket.io)
+> **РЕШЕНО (Feb 11, 2026):** При multiple workers каждый worker дублировал ВСЕ real-time
+> WebSocket потоки (Bybit 200+ symbols + HL all symbols). На t3.micro это приводило к 90%+ CPU.
+> **Решение:** 1 worker для серверов ≤2GB RAM + lazy parsing + reduced symbols.
 
 ```python
-# webapp/realtime/__init__.py уже использует:
-# - _active_connections в памяти каждого worker
-# - Для full production нужен Redis broadcaster (TODO)
+# webapp/realtime/__init__.py
+# - _active_connections отслеживает подключённых клиентов
+# - Lazy parsing пропускает обработку при 0 клиентах
+# - BybitWorker: 50 top symbols (было 200)
+# - HyperLiquidWorker: все символы (минимальный набор)
+# - snapshot_broadcaster: 1.0s interval (было 0.2s)
 ```
 
 ### Мониторинг производительности
@@ -4050,8 +4175,8 @@ xcodebuild -project EnlikoTrading.xcodeproj \
 
 ---
 
-*Last updated: 10 февраля 2026*
-*Version: 3.60.0*
+*Last updated: 11 февраля 2026*
+*Version: 3.62.0*
 *Database: PostgreSQL 14 (SQLite removed)*
 *WebApp API: All files migrated to PostgreSQL (marketplace, admin, backtest)*
 *Multitenancy: 4D isolation (user_id, strategy, side, exchange)*
@@ -4079,4 +4204,8 @@ xcodebuild -project EnlikoTrading.xcodeproj \
 *API Settings BLOCK UI: Bybit (Demo/Real) + HyperLiquid (Testnet/Mainnet) blocks (Feb 8, 2026) ✅*
 *Routing Policy: NULL=uses trading_mode, all_enabled=bypasses it (Feb 8, 2026) ✅*
 *HyperLiquid Spot Trading: FULL INTEGRATION - All bot.py spot functions (Feb 10, 2026) ✅*
+*Deep Audit #1 (Phase 7): ~30 bugs fixed, CRITICAL DCA nonlocal (Feb 10, 2026) ✅*
+*Deep Audit #2 (Phase 8): 11 HLAdapter resource leak fixes (Feb 11, 2026) ✅*
+*Server Optimization (Phase 9): CPU 10%→97% idle, Memory -165MB (Feb 11, 2026) ✅*
+*HLAdapter Pattern: ALWAYS use try/finally with adapter.close() — prevents aiohttp session leaks*
 
