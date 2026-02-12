@@ -1,10 +1,11 @@
 0x211a5a4bfb4d86b3ceeb9081410513cf9502058c7503e8ea7b7126b604714f9e# Enliko Trading Platform - AI Coding Guidelines
 # =============================================
-# Версия: 3.62.0 | Обновлено: 11 февраля 2026
+# Версия: 3.63.0 | Обновлено: 12 февраля 2026
 # BlackRock-Level Deep Audit: PASSED ✅ (Feb 7, 2026) - FULL RE-AUDIT
 # Deep Audit #1 (Phase 7): ~30 bugs fixed incl. CRITICAL DCA nonlocal ✅ (Feb 10, 2026)
 # Deep Audit #2 (Phase 8): 11 HLAdapter resource leak fixes ✅ (Feb 11, 2026)
 # Server Optimization (Phase 9): CPU 10%→97% idle, Memory -165MB ✅ (Feb 11, 2026)
+# Deep Audit #3 (Phase 10): 8 bugs fixed — reduce_only, SL mutation, 4D PKs ✅ (Feb 12, 2026)
 # HyperLiquid Auto-Discovery: FULL SUPPORT ✅ (Feb 7, 2026)
 # HyperLiquid SPOT TRADING: FULL INTEGRATION ✅ (Feb 10, 2026) - ALL bot.py functions
 # API Settings BLOCK UI: COMPLETE ✅ (Feb 8, 2026)
@@ -63,6 +64,7 @@
 # - Deep Audit #1 (Phase 7): ~30 bugs fixed, CRITICAL DCA nonlocal bug (Feb 10, 2026) ✅
 # - Deep Audit #2 (Phase 8): 11 HLAdapter resource leaks + BE type coercion (Feb 11, 2026) ✅
 # - Server Optimization (Phase 9): CPU idle 10%→97%, Memory -165MB (Feb 11, 2026) ✅
+# - Deep Audit #3 (Phase 10): 8 bugs fixed — reduce_only, SL mutation, side guard, 4D PKs (Feb 12, 2026) ✅
 
 ---
 
@@ -1362,6 +1364,26 @@ except Exception as e:
   | Memory | 625MB | **460MB** (-165MB) |
   | Workers | 2×147MB | **1×128MB** |
   | Tasks | 16 | **8** |
+
+### ✅ HIGH: Deep Audit #3 - 8 Bugs Fixed (Feb 12, 2026) — Phase 10
+- **Аудит:** Глубокий аудит bot.py, exchange_router.py, core/db_postgres.py, bot_unified.py
+- **Найдено:** 11 багов (3 HIGH, 5 MEDIUM, 3 LOW), исправлено 8, отложено 3
+- **Исправленные баги:**
+  | # | Severity | Файл | Баг | Fix |
+  |---|----------|------|-----|-----|
+  | 1 | **HIGH** | bot.py | `place_order()` не передавал `reduceOnly` для Bybit — PTP close мог открыть counter-position в hedge mode | Добавлен `reduce_only: bool = False` через `place_order()` → `_place_order_impl()` → API body |
+  | 2 | **HIGH** | exchange_router.py | `_execute_on_target()` мутировал shared `intent.sl_percent` — SL compounding across targets | Локальная переменная `adjusted_sl` вместо мутации intent |
+  | 3 | **HIGH** | exchange_router.py | `close_position(side=None)` отправлял Buy ордер (открывал long вместо закрытия) | Guard с DB fallback + ValueError |
+  | 4 | MEDIUM | core/db_postgres.py | `active_positions` PRIMARY KEY 3D вместо 4D (без `exchange`) | PK: `(user_id, symbol, account_type, exchange)` |
+  | 5 | MEDIUM | core/db_postgres.py | `user_strategy_settings` PRIMARY KEY 3D вместо 4D | PK: `(user_id, strategy, side, exchange)` |
+  | 7 | MEDIUM | exchange_router.py | `get_balance()` не передавал target в `_get_hl_balance()` → всегда paper env | Передан `target=target` |
+  | 8 | MEDIUM | exchange_router.py | `get_positions()` не передавал target в `_get_hl_positions()` → всегда paper env | Передан `target=target` |
+  | 9 | LOW | bot_unified.py | `_safe_float('0')` возвращал default вместо 0.0 | Убрана проверка `value == '0'` |
+- **Отложенные (low impact):**
+  - Bug #6: In-memory state dicts (`_be_triggered`, `_atr_triggered`) теряются при рестарте — DB dedup provides safety net
+  - Bug #10: `SQLiteCompatCursor.execute()` rollback при RETURNING — blast radius limited
+  - Bug #11: `_get_price()` / `_get_symbol_info()` stubs в ExchangeRouter — primary path bypasses
+- **Commit:** `34265e4`
 
 ### ✅ CRITICAL: Deep Audit #2 - HLAdapter Resource Leaks (Feb 11, 2026) — Phase 8
 - **Проблема:** HLAdapter создавался через `HLAdapter(private_key=..., testnet=...)` + `.initialize()`, но `.close()` не вызывался
@@ -4175,8 +4197,8 @@ xcodebuild -project EnlikoTrading.xcodeproj \
 
 ---
 
-*Last updated: 11 февраля 2026*
-*Version: 3.62.0*
+*Last updated: 12 февраля 2026*
+*Version: 3.63.0*
 *Database: PostgreSQL 14 (SQLite removed)*
 *WebApp API: All files migrated to PostgreSQL (marketplace, admin, backtest)*
 *Multitenancy: 4D isolation (user_id, strategy, side, exchange)*
@@ -4207,5 +4229,7 @@ xcodebuild -project EnlikoTrading.xcodeproj \
 *Deep Audit #1 (Phase 7): ~30 bugs fixed, CRITICAL DCA nonlocal (Feb 10, 2026) ✅*
 *Deep Audit #2 (Phase 8): 11 HLAdapter resource leak fixes (Feb 11, 2026) ✅*
 *Server Optimization (Phase 9): CPU 10%→97% idle, Memory -165MB (Feb 11, 2026) ✅*
+*Deep Audit #3 (Phase 10): 8 bugs fixed — reduce_only Bybit, SL mutation, side guard, 4D PKs (Feb 12, 2026) ✅*
 *HLAdapter Pattern: ALWAYS use try/finally with adapter.close() — prevents aiohttp session leaks*
+*Bybit PTP Pattern: ALWAYS pass reduce_only=True when closing partial positions to prevent counter-position in hedge mode*
 
