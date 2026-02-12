@@ -28,7 +28,7 @@ from services.oxapay_service import (
     PLAN_FEATURES,
     PaymentStatus,
 )
-from webapp.api.auth import get_current_user
+from webapp.api.auth import get_current_user, require_admin
 from core.db_postgres import get_conn, execute, execute_one
 
 logger = logging.getLogger(__name__)
@@ -646,14 +646,10 @@ class CreatePromoRequest(BaseModel):
 @router.post("/admin/promo", include_in_schema=False)
 async def create_promo_code(
     request: CreatePromoRequest,
-    user: dict = Depends(get_current_user)
+    user: dict = Depends(require_admin)
 ):
     """Create a new promo code (admin only)."""
-    from coin_params import ADMIN_ID
-    
     user_id = user.get("user_id")
-    if user_id != ADMIN_ID:
-        raise HTTPException(status_code=403, detail="Admin access required")
     
     try:
         valid_until = None

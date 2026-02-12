@@ -4923,21 +4923,26 @@ def get_users_paginated(page: int = 0, per_page: int = 10, filter_type: str = "a
     with get_conn() as conn:
         # Build WHERE clause based on filter
         where = "1=1"
+        params = []
         if filter_type == "active":
             where = "is_allowed = 1 AND is_banned = 0"
         elif filter_type == "banned":
             where = "is_banned = 1"
         elif filter_type == "premium":
-            where = f"current_license = 'premium' AND license_expires > {now}"
+            where = "current_license = %s AND license_expires > %s"
+            params = ['premium', now]
         elif filter_type == "basic":
-            where = f"current_license = 'basic' AND license_expires > {now}"
+            where = "current_license = %s AND license_expires > %s"
+            params = ['basic', now]
         elif filter_type == "trial":
-            where = f"current_license = 'trial' AND license_expires > {now}"
+            where = "current_license = %s AND license_expires > %s"
+            params = ['trial', now]
         elif filter_type == "no_license":
-            where = f"(current_license = 'none' OR current_license IS NULL OR license_expires <= {now})"
+            where = "(current_license = 'none' OR current_license IS NULL OR license_expires <= %s)"
+            params = [now]
         
         # Get total count
-        total_row = conn.execute(f"SELECT COUNT(*) FROM users WHERE {where}").fetchone()
+        total_row = conn.execute(f"SELECT COUNT(*) FROM users WHERE {where}", params).fetchone()
         total = total_row[0] if total_row else 0
         
         # Get page data
@@ -4948,7 +4953,7 @@ def get_users_paginated(page: int = 0, per_page: int = 10, filter_type: str = "a
             WHERE {where}
             ORDER BY last_seen_ts DESC NULLS LAST
             LIMIT ? OFFSET ?
-        """, (per_page, offset)).fetchall()
+        """, params + [per_page, offset]).fetchall()
         
         users = []
         for r in rows:

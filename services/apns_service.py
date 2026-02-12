@@ -198,7 +198,7 @@ class APNsService:
                             error_data = json.loads(error)
                             if error_data.get("reason") == "BadDeviceToken":
                                 await self._deactivate_device(device_token)
-                        except:
+                        except (json.JSONDecodeError, TypeError):
                             pass
                     return False
                     

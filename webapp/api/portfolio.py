@@ -100,7 +100,7 @@ class PortfolioSummary(BaseModel):
 # HELPER FUNCTIONS
 # ═══════════════════════════════════════════════════════════════════════
 
-def get_period_dates(period: str, custom_start: str = None, custom_end: str = None) -> tuple:
+def get_period_dates(period: str, custom_start: str | None = None, custom_end: str | None = None) -> tuple:
     """Get start/end dates for period"""
     now = datetime.utcnow()
     
@@ -118,7 +118,7 @@ def get_period_dates(period: str, custom_start: str = None, custom_end: str = No
         try:
             start = datetime.fromisoformat(custom_start.replace('Z', '+00:00'))
             now = datetime.fromisoformat(custom_end.replace('Z', '+00:00')) if custom_end else now
-        except:
+        except (ValueError, TypeError):
             start = now - timedelta(days=7)
     else:
         start = now - timedelta(days=7)
@@ -775,7 +775,7 @@ async def get_candle_details(
     
     try:
         candle_dt = datetime.fromisoformat(timestamp.replace('Z', '+00:00'))
-    except:
+    except (ValueError, TypeError):
         raise HTTPException(status_code=400, detail="Invalid timestamp format")
     
     # Get trades around this candle (6 hour window)

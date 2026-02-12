@@ -1217,7 +1217,8 @@ async def get_balance_universal(user_id: int, bybit_get_balance_func=None) -> di
         if target.exchange == Exchange.BYBIT.value and bybit_get_balance_func:
             try:
                 return await bybit_get_balance_func(user_id)
-            except Exception:
+            except Exception as e:
+                logger.warning(f"Bybit balance error for user {user_id}: {e}")
                 continue
         
         elif target.exchange == Exchange.HYPERLIQUID.value:

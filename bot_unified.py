@@ -517,7 +517,7 @@ async def close_position_unified(
         db.remove_active_position(user_id, symbol, account_type=account_type, exchange=exchange_for_db)
         
         # Log trade
-        pnl = position.unrealized_pnl * (close_qty / position.size)
+        pnl = position.unrealized_pnl * (close_qty / position.size) if position.size > 0 else 0
         
         db.add_trade_log(
             user_id=user_id,

@@ -953,8 +953,8 @@ def clear_expired_api_cache(user_id: int, account_type: str = None):
     try:
         from core import clear_auth_error_cache
         clear_auth_error_cache(user_id, exchange_type="bybit", account_type=account_type)
-    except Exception:
-        pass
+    except Exception as e:
+        logger.debug(f"clear_auth_error_cache import failed: {e}")
 
 
 # ═══════════════════════════════════════════════════════════════════════════════
@@ -1470,8 +1470,8 @@ def require_access(func):
         if _is_banned(uid):
             try:
                 await ctx.bot.send_message(uid, t.get("banned", "You are blocked."))
-            except Exception:
-                pass
+            except Exception as e:
+                logger.warning(f"Failed to send banned message to {uid}: {e}")
             return
 
         if not _is_allowed_user(uid):
@@ -1480,8 +1480,8 @@ def require_access(func):
                 return await func(update, ctx, *args, **kw)
             try:
                 await ctx.bot.send_message(uid, t.get("invite_only", "Access by invitation. Wait for the admin's decision."))
-            except Exception:
-                pass
+            except Exception as e:
+                logger.warning(f"Failed to send invite_only message to {uid}: {e}")
             return
 
         cfg = get_user_config(uid) or {}
@@ -1501,8 +1501,8 @@ def require_access(func):
                         t.get("need_terms", "First, accept the rules: /terms"),
                         reply_markup=terms_keyboard(ctx.t),
                     )
-                except Exception:
-                    pass
+                except Exception as e:
+                    logger.warning(f"Failed to send need_terms message to {uid}: {e}")
                 return
 
         return await func(update, ctx, *args, **kw)
@@ -7281,10 +7281,7 @@ async def on_error(update, context):
 @log_calls
 async def on_order_type_cb(update: Update, ctx: ContextTypes.DEFAULT_TYPE):
     q = update.callback_query
-    try:
-        asyncio.create_task(q.answer(cache_time=1))   
-    except TgTimedOut:
-        logger.warning("q.answer() timeout — we ignore")
+    asyncio.create_task(q.answer(cache_time=1))
 
     _, order_type = q.data.split(":", 1)
     ctx.user_data['manual_order_type'] = order_type
@@ -7348,15 +7345,15 @@ async def split_market_plus_one_limit(
             last = (data.get("list") or [{}])[0].get("lastPrice")
             if last not in (None, "", "0"):
                 return float(last)
-        except Exception:
-            pass
+        except Exception as e:
+            logger.debug(f"get_mark() ticker fetch failed for {symbol}: {e}")
         try:
             positions = await fetch_open_positions(uid)
             p = next((p for p in positions if p.get("symbol")==symbol), None)
             if p:
                 return float(p.get("markPrice"))
-        except Exception:
-            pass
+        except Exception as e:
+            logger.debug(f"get_mark() position fetch failed for {symbol}: {e}")
         return None
 
     async def strict_set_sl_tp(_side: str, _entry: float, hint_tp_pct: float, hint_sl_pct: float):
@@ -7400,8 +7397,8 @@ async def split_market_plus_one_limit(
             pos = next((p for p in positions if p.get("symbol")==symbol), None)
             if pos:
                 break
-        except Exception:
-            pass
+        except Exception as e:
+            logger.warning(f"[{uid}] DCA position confirm error: {e}")
         await asyncio.sleep(0.25)
 
     cfg = get_user_config(uid) or {}
@@ -7420,8 +7417,9 @@ async def split_market_plus_one_limit(
                 uid,
                 t.get('pos_fetch_fail', "Failed to confirm open position {symbol}.").format(symbol=symbol)
             )
-        finally:
-            return
+        except Exception as e:
+            logger.warning(f"[{uid}] Failed to send pos_fetch_fail message: {e}")
+        return
 
     entry  = float(pos.get("avgPrice") or spot_price)
     size   = float(pos.get("size") or leg1)
@@ -7460,9 +7458,10 @@ async def split_market_plus_one_limit(
             t.get('dca_leg1_done', "DCA: Leg #1 MARKET {symbol} qty={q}, entry≈{p}")
              .format(symbol=symbol, q=leg1, p=entry)
         )
-    except Exception:
-        pass
+    except Exception as e:
+        logger.warning(f"[{uid}] Failed to send DCA leg1 notification: {e}")
     async def _dca_task():
+        nonlocal entry, size
         try:
             try:
                 atr_val = await calc_atr(symbol, interval=ATR_INTERVAL, periods=periods)
@@ -7500,8 +7499,8 @@ async def split_market_plus_one_limit(
                                 t.get('dca_leg2_done', "DCA: Leg #2 MARKET {symbol} qty={q}, new_avg≈{p}")
                                  .format(symbol=symbol, q=leg2, p=entry2)
                             )
-                        except Exception:
-                            pass
+                        except Exception as e:
+                            logger.warning(f"[{uid}] Failed to send DCA leg2 notification: {e}")
                         entry = entry2
                         size  = size2
 
@@ -7543,9 +7542,10 @@ async def split_market_plus_one_limit(
                             t.get('dca_leg3_limit', "DCA: Leg #3 LIMIT {symbol} @ {p} qty={q} (pending)")
                              .format(symbol=symbol, p=round(lim_price,6), q=leg3)
                         )
-                    except Exception:
-                        pass
-                except Exception:
+                    except Exception as e:
+                        logger.warning(f"[{uid}] Failed to send DCA leg3 limit notification: {e}")
+                except Exception as e:
+                    logger.warning(f"[{uid}] Leg3 limit order failed, falling back to market: {e}")
                     await place_order(uid, symbol, side_s, orderType="Market", qty=leg3)
                     for _ in range(12):
                         positions = await fetch_open_positions(uid)
@@ -7562,16 +7562,16 @@ async def split_market_plus_one_limit(
                                 t.get('dca_leg3_market', "DCA: Leg #3 MARKET {symbol} qty={q}, new_avg≈{p}")
                                  .format(symbol=symbol, q=leg3, p=entry3)
                             )
-                        except Exception:
-                            pass
+                        except Exception as e:
+                            logger.warning(f"[{uid}] Failed to send DCA leg3 market notification: {e}")
 
         except Exception as e:
             logger.error(f"DCA task error for {uid}:{symbol}: {e}", exc_info=True)
 
     try:
         asyncio.create_task(_dca_task(), name=f"dca_{uid}_{symbol}")
-    except Exception:
-        pass
+    except Exception as e:
+        logger.error(f"Failed to create DCA task for {uid}:{symbol}: {e}")
 
 @with_texts
 @log_calls
@@ -11898,8 +11898,8 @@ async def fetch_realized_pnl(uid: int, days: int = 1, account_type: str | None =
                         for fill in fills:
                             try:
                                 total_pnl += float(fill.get("closedPnl") or fill.get("pnl") or 0.0)
-                            except Exception:
-                                pass
+                            except (ValueError, TypeError) as e:
+                                logger.warning(f"[{uid}] HL fill PnL parse error: {e}, fill={fill}")
                     finally:
                         await adapter.close()
         except Exception as e:
@@ -16893,7 +16893,7 @@ async def on_positions_cb(update: Update, ctx: ContextTypes.DEFAULT_TYPE):
                         if notification_service:
                             pnl_pct = 0.0
                             try:
-                                if entry_price:
+                                if entry_price and entry_price > 0:
                                     pnl_pct = (mark_price / entry_price - 1.0) * (100 if pos["side"] == "Buy" else -100)
                             except Exception:
                                 pnl_pct = 0.0
@@ -21686,8 +21686,8 @@ async def monitor_positions_loop(app: Application):
                                             roe_pct = float(rate_from_exch) * 100.0
                                             # Price change = ROE / leverage
                                             pct_value = roe_pct / leverage if leverage > 0 else roe_pct
-                                        except Exception:
-                                            pass
+                                        except (ValueError, TypeError, ZeroDivisionError) as e:
+                                            logger.warning(f"[{uid}] {sym}: closedPnlRate parse error: rate={rate_from_exch}, leverage={leverage}, err={e}")
                                 
                                     # Fallback: use calculated price change directly (no leverage multiplication)
                                     if pct_value is None:
@@ -22284,8 +22284,8 @@ async def monitor_positions_loop(app: Application):
                                                         raise ValueError("PTP_SKIP_SMALL")
                                                 except ValueError:
                                                     raise
-                                                except Exception:
-                                                    pass  # Continue with order if price check fails
+                                                except Exception as e:
+                                                    logger.warning(f"[PTP-STEP1] {sym} uid={uid} - notional pre-check failed: {e}")
                                                 
                                                 # Place market order to close partial position
                                                 await _place_exchange_order(
@@ -22376,8 +22376,8 @@ async def monitor_positions_loop(app: Application):
                                                             raise ValueError("PTP_SKIP_SMALL")
                                                     except ValueError:
                                                         raise
-                                                    except Exception:
-                                                        pass  # Continue with order if price check fails
+                                                    except Exception as e:
+                                                        logger.warning(f"[PTP-STEP2] {sym} uid={uid} - notional pre-check failed: {e}")
                                                     
                                                     await _place_exchange_order(
                                                         user_id=uid,

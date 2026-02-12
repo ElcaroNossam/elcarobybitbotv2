@@ -439,7 +439,7 @@ async def get_spot_settings(
         if isinstance(spot_settings, str):
             try:
                 spot_settings = json.loads(spot_settings)
-            except:
+            except (json.JSONDecodeError, TypeError):
                 spot_settings = {}
         
         return {
@@ -613,7 +613,7 @@ async def get_spot_performance(
         if isinstance(spot_settings, str):
             try:
                 spot_settings = json.loads(spot_settings)
-            except:
+            except (json.JSONDecodeError, TypeError):
                 spot_settings = {}
         
         purchase_history = spot_settings.get("purchase_history", {})
