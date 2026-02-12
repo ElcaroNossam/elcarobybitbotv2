@@ -15168,11 +15168,17 @@ async def show_all_positions(update: Update, ctx: ContextTypes.DEFAULT_TYPE):
             lev = p.get("leverage", "-")
             pnl_i = float(p.get("unrealisedPnl") or 0)
             im = float(p.get("positionIM") or 0)
+            entry_p = float(p.get("avgPrice") or 0)
+            mark_p = float(p.get("markPrice") or 0)
             
             db_pos = db_by_symbol.get(sym, {})
             strategy = db_pos.get("strategy") or "unknown"
             
-            pct = (pnl_i / im * 100) if im else 0.0
+            # Price change % (not ROE) for consistency with trade logs
+            if entry_p > 0:
+                pct = ((mark_p - entry_p) / entry_p * 100) if side == "Buy" else ((entry_p - mark_p) / entry_p * 100)
+            else:
+                pct = 0.0
             total_pnl += pnl_i
             total_im += im
             
@@ -15198,11 +15204,17 @@ async def show_all_positions(update: Update, ctx: ContextTypes.DEFAULT_TYPE):
             lev = p.get("leverage", "-")
             pnl_i = float(p.get("unrealisedPnl") or 0)
             im = float(p.get("positionIM") or 0)
+            entry_p = float(p.get("avgPrice") or 0)
+            mark_p = float(p.get("markPrice") or 0)
             
             db_pos = db_by_symbol.get(sym, {})
             strategy = db_pos.get("strategy") or "unknown"
             
-            pct = (pnl_i / im * 100) if im else 0.0
+            # Price change % (not ROE) for consistency with trade logs
+            if entry_p > 0:
+                pct = ((mark_p - entry_p) / entry_p * 100) if side == "Buy" else ((entry_p - mark_p) / entry_p * 100)
+            else:
+                pct = 0.0
             total_pnl += pnl_i
             total_im += im
             
@@ -15469,8 +15481,11 @@ def format_single_position(pos: dict, idx: int, total: int, t: dict) -> str:
     sl = to_float("stopLoss")
     liq = to_float("liqPrice")
     
-    # Calculate PnL percentage
-    pnl_pct = (pnl / im * 100) if im else 0.0
+    # Price change % (not ROE) for consistency with trade logs
+    if entry > 0:
+        pnl_pct = ((mark - entry) / entry * 100) if side == "Buy" else ((entry - mark) / entry * 100)
+    else:
+        pnl_pct = 0.0
     
     emoji = "🟢" if side == "Buy" else "🔴"
     side_text = "LONG" if side == "Buy" else "SHORT"
@@ -15558,9 +15573,13 @@ def format_position_summary(positions: list, t: dict) -> str:
         mark = float(p.get("markPrice") or 0)
         pnl = float(p.get("unrealisedPnl") or 0)
         im = float(p.get("positionIM") or 0)
+        side = p.get("side", "-")
         
-        # Calculate PnL percentage
-        pct = (pnl / im * 100) if im else 0.0
+        # Price change % (not ROE) for consistency with trade logs
+        if entry > 0:
+            pct = ((mark - entry) / entry * 100) if side == "Buy" else ((entry - mark) / entry * 100)
+        else:
+            pct = 0.0
         
         total_pnl += pnl
         
@@ -15609,8 +15628,11 @@ def format_position_detail(p: dict, t: dict) -> str:
     sl = to_float("stopLoss")
     liq = to_float("liqPrice")
     
-    # Calculate percentages
-    pnl_pct = (pnl / im * 100) if im else 0.0
+    # Price change % (not ROE) for consistency with trade logs
+    if entry > 0:
+        pnl_pct = ((mark - entry) / entry * 100) if side == "Buy" else ((entry - mark) / entry * 100)
+    else:
+        pnl_pct = 0.0
     tp_pct = ((tp - entry) / entry * 100) if tp and entry else None
     sl_pct = ((entry - sl) / entry * 100) if sl and entry and side == "Buy" else None
     if sl and entry and side == "Sell":
@@ -16670,7 +16692,11 @@ async def on_positions_cb(update: Update, ctx: ContextTypes.DEFAULT_TYPE):
             mark_price = float(pos.get("markPrice") or 0)
             unrealized_pnl = float(pos.get("unrealisedPnl") or 0)
             im = float(pos.get("positionIM") or 0)
-            pnl_pct = (unrealized_pnl / im * 100) if im else 0.0
+            # Price change % (not ROE) for consistency with trade logs
+            if entry_price > 0:
+                pnl_pct = ((mark_price - entry_price) / entry_price * 100) if pos["side"] == "Buy" else ((entry_price - mark_price) / entry_price * 100)
+            else:
+                pnl_pct = 0.0
             side_text = "LONG" if pos["side"] == "Buy" else "SHORT"
             
             # --- Close position: exchange-aware ---
