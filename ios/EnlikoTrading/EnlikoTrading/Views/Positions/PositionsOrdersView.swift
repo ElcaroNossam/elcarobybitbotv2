@@ -418,7 +418,7 @@ class PositionsOrdersViewModel: ObservableObject {
     @MainActor
     func closePosition(position: Position, accountType: String, exchange: String) async {
         do {
-            let request = ClosePositionRequest(symbol: position.symbol, side: position.side, qty: nil)
+            let request = ClosePositionRequest(symbol: position.symbol, side: position.side, qty: nil, exchange: exchange, accountType: accountType)
             let _: EmptyResponse = try await network.post("/trading/close", body: request)
             await fetchPositions(accountType: accountType, exchange: exchange)
         } catch {
