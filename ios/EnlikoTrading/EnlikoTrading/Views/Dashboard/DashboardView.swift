@@ -598,8 +598,8 @@ struct StrategyClusterRow: View {
                 Text(item.strategy.uppercased())
                     .font(.subheadline.bold())
                     .foregroundColor(.white)
-                let tradesText = "\(item.trades) " + "trades".localized
-                let winRateText = String(format: "%.0f%%", item.winRate) + " WR"
+                let tradesText = "\(item.tradesCount) " + "trades".localized
+                let winRateText = String(format: "%.0f%%", item.winRateValue) + " WR"
                 Text(tradesText + " • " + winRateText)
                     .font(.caption)
                     .foregroundColor(.secondary)
@@ -609,18 +609,18 @@ struct StrategyClusterRow: View {
             
             // PnL with progress bar
             VStack(alignment: .trailing, spacing: 4) {
-                Text(item.pnl.formattedSignedAmount)
+                Text(item.pnlValue.formattedSignedAmount)
                     .font(.subheadline.bold())
-                    .foregroundColor(item.pnl >= 0 ? .enlikoGreen : .enlikoRed)
+                    .foregroundColor(item.pnlValue >= 0 ? .enlikoGreen : .enlikoRed)
                 
                 // Progress bar showing relative PnL
                 GeometryReader { geo in
-                    ZStack(alignment: item.pnl >= 0 ? .leading : .trailing) {
+                    ZStack(alignment: item.pnlValue >= 0 ? .leading : .trailing) {
                         Rectangle()
                             .fill(Color.enlikoBorder)
                         Rectangle()
-                            .fill(item.pnl >= 0 ? Color.enlikoGreen : Color.enlikoRed)
-                            .frame(width: min(geo.size.width, geo.size.width * min(abs(item.pnl) / 500, 1)))
+                            .fill(item.pnlValue >= 0 ? Color.enlikoGreen : Color.enlikoRed)
+                            .frame(width: min(geo.size.width, geo.size.width * min(abs(item.pnlValue) / 500, 1)))
                     }
                 }
                 .frame(width: 60, height: 4)
@@ -746,18 +746,18 @@ struct DashboardRecentTradeRow: View {
         HStack {
             VStack(alignment: .leading, spacing: 2) {
                 HStack(spacing: 6) {
-                    Text(trade.symbol)
+                    Text(trade.symbolValue)
                         .font(.subheadline.bold())
                         .foregroundColor(.white)
-                    Text(trade.side)
+                    Text(trade.sideValue)
                         .font(.caption.bold())
-                        .foregroundColor(trade.side == "Long" ? .enlikoGreen : .enlikoRed)
+                        .foregroundColor(trade.sideValue == "Long" ? .enlikoGreen : .enlikoRed)
                         .padding(.horizontal, 6)
                         .padding(.vertical, 2)
-                        .background((trade.side == "Long" ? Color.enlikoGreen : Color.enlikoRed).opacity(0.2))
+                        .background((trade.sideValue == "Long" ? Color.enlikoGreen : Color.enlikoRed).opacity(0.2))
                         .cornerRadius(4)
                 }
-                Text(trade.strategy.uppercased())
+                Text(trade.strategyValue.uppercased())
                     .font(.caption)
                     .foregroundColor(.secondary)
             }
@@ -765,10 +765,10 @@ struct DashboardRecentTradeRow: View {
             Spacer()
             
             VStack(alignment: .trailing, spacing: 2) {
-                Text(trade.pnl.formattedSignedAmount)
+                Text(trade.pnlValue.formattedSignedAmount)
                     .font(.subheadline.bold())
-                    .foregroundColor(trade.pnl >= 0 ? .enlikoGreen : .enlikoRed)
-                Text(trade.closedAt)
+                    .foregroundColor(trade.pnlValue >= 0 ? .enlikoGreen : .enlikoRed)
+                Text(trade.closedAtValue)
                     .font(.caption)
                     .foregroundColor(.secondary)
             }
@@ -798,12 +798,18 @@ enum DashboardPeriod: String, CaseIterable {
 
 // MARK: - Dashboard Recent Trade (Simple model for API response)
 struct DashboardRecentTrade: Codable, Identifiable {
-    var id: String { "\(symbol)-\(closedAt)-\(pnl)" }
-    let symbol: String
-    let side: String
-    let pnl: Double
-    let strategy: String
-    let closedAt: String
+    var id: String { "\(symbol ?? "")-\(closedAt ?? "")-\(pnl ?? 0)" }
+    let symbol: String?
+    let side: String?
+    let pnl: Double?
+    let strategy: String?
+    let closedAt: String?
+    
+    var symbolValue: String { symbol ?? "" }
+    var sideValue: String { side ?? "" }
+    var pnlValue: Double { pnl ?? 0 }
+    var strategyValue: String { strategy ?? "" }
+    var closedAtValue: String { closedAt ?? "" }
     
     enum CodingKeys: String, CodingKey {
         case symbol, side, pnl, strategy
@@ -906,12 +912,12 @@ class DashboardViewModel: ObservableObject {
                 params: ["period": selectedPeriod.apiValue, "account_type": accountType, "exchange": exchange, "strategy": "all"]
             )
             if let summary = response.summary {
-                totalTrades = summary.totalTrades
-                winRate = summary.winRate
-                profitFactor = summary.profitFactor
-                totalPnl = summary.totalPnl
-                avgWin = summary.avgWin
-                avgLoss = summary.avgLoss
+                totalTrades = summary.totalTrades ?? 0
+                winRate = summary.winRate ?? 0
+                profitFactor = summary.profitFactor ?? 0
+                totalPnl = summary.totalPnl ?? 0
+                avgWin = summary.avgWin ?? 0
+                avgLoss = summary.avgLoss ?? 0
             }
             strategyBreakdown = response.breakdown ?? []
             recentTrades = response.recentTrades ?? []
@@ -931,10 +937,17 @@ class DashboardViewModel: ObservableObject {
     
     private func fetchOrdersCount(accountType: String, exchange: String) async {
         do {
-            let response: OrdersResponse = try await network.get("/trading/orders", params: ["account_type": accountType, "exchange": exchange])
-            pendingOrdersCount = response.ordersData.count
+            // Try raw array first (server returns [...] directly)
+            let orders: [Order] = try await network.get("/trading/orders", params: ["account_type": accountType, "exchange": exchange])
+            pendingOrdersCount = orders.count
         } catch {
-            print("Dashboard: Failed to fetch orders: \(error)")
+            // Fallback to wrapped OrdersResponse
+            do {
+                let response: OrdersResponse = try await network.get("/trading/orders", params: ["account_type": accountType, "exchange": exchange])
+                pendingOrdersCount = response.ordersData.count
+            } catch {
+                print("Dashboard: Failed to fetch orders: \(error)")
+            }
         }
     }
 }
@@ -952,13 +965,14 @@ struct DashboardStatsResponse: Codable {
 }
 
 struct DashboardStatsSummary: Codable {
-    let totalTrades: Int
-    let winRate: Double
-    let profitFactor: Double
-    let avgWin: Double
-    let avgLoss: Double
-    let bestTrade: Double
-    let totalPnl: Double
+    let totalTrades: Int?
+    let winRate: Double?
+    let profitFactor: Double?
+    let avgWin: Double?
+    let avgLoss: Double?
+    let bestTrade: Double?
+    let worstTrade: Double?
+    let totalPnl: Double?
     
     enum CodingKeys: String, CodingKey {
         case totalTrades = "total_trades"
@@ -967,6 +981,7 @@ struct DashboardStatsSummary: Codable {
         case avgWin = "avg_win"
         case avgLoss = "avg_loss"
         case bestTrade = "best_trade"
+        case worstTrade = "worst_trade"
         case totalPnl = "total_pnl"
     }
 }

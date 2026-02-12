@@ -408,10 +408,17 @@ class PositionsOrdersViewModel: ObservableObject {
     @MainActor
     private func fetchOrders(accountType: String, exchange: String) async {
         do {
-            let response: OrdersResponse = try await network.get("/trading/orders", params: ["account_type": accountType, "exchange": exchange])
-            orders = response.ordersData
+            // Try raw array first (server returns [...] directly)
+            let rawOrders: [Order] = try await network.get("/trading/orders", params: ["account_type": accountType, "exchange": exchange])
+            orders = rawOrders
         } catch {
-            print("Failed to fetch orders: \(error)")
+            // Fallback to wrapped OrdersResponse
+            do {
+                let response: OrdersResponse = try await network.get("/trading/orders", params: ["account_type": accountType, "exchange": exchange])
+                orders = response.ordersData
+            } catch {
+                print("Failed to fetch orders: \(error)")
+            }
         }
     }
     

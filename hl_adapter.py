@@ -667,13 +667,32 @@ class HLAdapter:
             result_list = []
             for order in orders:
                 coin = order.get("coin", "")
+                oid = str(order.get("oid", ""))
+                sz = _safe_float(order.get("sz"))
+                px = _safe_float(order.get("limitPx"))
+                ts = order.get("timestamp", 0)
+                created_at = ""
+                if ts:
+                    try:
+                        from datetime import datetime
+                        created_at = datetime.fromtimestamp(ts / 1000).strftime("%Y-%m-%d %H:%M")
+                    except Exception:
+                        pass
                 result_list.append({
+                    "id": oid,
+                    "order_id": oid,
                     "symbol": f"{coin}USDC",
                     "side": "Buy" if order.get("side") == "B" else "Sell",
-                    "size": _safe_float(order.get("sz")),
-                    "price": _safe_float(order.get("limitPx")),
+                    "size": sz,
+                    "qty": sz,
+                    "price": px,
+                    "trigger_price": _safe_float(order.get("triggerPx")),
+                    "type": "Limit",
                     "order_type": "Limit",
-                    "order_id": str(order.get("oid", "")),
+                    "status": "New",
+                    "time": ts,
+                    "created_at": created_at,
+                    "exchange": "hyperliquid",
                 })
             return {"success": True, "data": result_list}
         except Exception as e:

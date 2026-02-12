@@ -694,24 +694,38 @@ async def get_orders(
             )
             
             orders = data.get("result", {}).get("list", [])
-            return [
-                {
+            result = []
+            for o in orders:
+                if o.get("orderStatus") not in ["New", "PartiallyFilled", "Untriggered"]:
+                    continue
+                created_time = int(o.get("createdTime", 0))
+                created_at_str = ""
+                if created_time > 0:
+                    from datetime import datetime
+                    try:
+                        created_at_str = datetime.fromtimestamp(created_time / 1000).strftime("%Y-%m-%d %H:%M")
+                    except Exception:
+                        created_at_str = ""
+                result.append({
                     "id": o.get("orderId"),
                     "symbol": o.get("symbol"),
-                    "side": (o.get("side") or "Buy").lower(),  # Safe: default to "Buy" if None
+                    "side": (o.get("side") or "Buy").lower(),
                     "type": o.get("orderType", "Limit"),
+                    "order_type": o.get("orderType", "Limit"),
                     "price": float(o.get("price", 0)),
+                    "trigger_price": float(o.get("triggerPrice", 0)),
+                    "qty": float(o.get("qty", 0)),
                     "size": float(o.get("qty", 0)),
                     "filled": float(o.get("cumExecQty", 0)),
                     "remaining": float(o.get("leavesQty", 0)),
                     "status": o.get("orderStatus"),
-                    "time": int(o.get("createdTime", 0)),
+                    "time": created_time,
+                    "created_at": created_at_str,
                     "reduceOnly": o.get("reduceOnly", False),
                     "exchange": "bybit",
                     "account_type": account_type
-                }
-                for o in orders if o.get("orderStatus") in ["New", "PartiallyFilled", "Untriggered"]
-            ]
+                })
+            return result
         except Exception as e:
             logger.error(f"Bybit orders error: {e}")
             return []
@@ -1575,10 +1589,14 @@ async def get_stats_by_strategy(
                 )
                 strat_total = strat_stats.get("total", 0)
                 if strat_total > 0:
+                    strat_wins = strat_stats.get("tp_count", 0) or strat_stats.get("wins", 0) or 0
+                    strat_losses = strat_stats.get("sl_count", 0) or strat_stats.get("losses", 0) or 0
                     breakdown.append({
                         "strategy": strat,
                         "pnl": round(strat_stats.get("total_pnl", 0.0), 2),
                         "trades": strat_total,
+                        "wins": strat_wins,
+                        "losses": strat_losses,
                         "win_rate": round(strat_stats.get("winrate", 0.0), 1)
                     })
             
@@ -1601,7 +1619,12 @@ async def get_stats_by_strategy(
                     "symbol": trade.get("symbol", ""),
                     "side": "Long" if trade.get("side", "").lower() in ["buy", "long"] else "Short",
                     "pnl": round(trade.get("pnl", 0.0), 2),
+                    "pnl_percent": round(trade.get("pnl_pct", 0.0) or 0.0, 2),
+                    "entry_price": round(float(trade.get("entry_price", 0) or 0), 6),
+                    "exit_price": round(float(trade.get("exit_price", 0) or 0), 6),
+                    "size": float(trade.get("qty", 0) or trade.get("size", 0) or 0),
                     "strategy": trade.get("strategy", "manual"),
+                    "exit_reason": trade.get("exit_reason", ""),
                     "closed_at": str(trade.get("ts", ""))[:16].replace("T", " ") if trade.get("ts") else ""
                 })
         except Exception as e:

@@ -150,9 +150,9 @@ struct StrategyStatsView: View {
                     .font(.caption)
                     .foregroundColor(.secondary)
                 
-                Text(formatCurrency(stats.totalPnl))
+                Text(formatCurrency(stats.totalPnlValue))
                     .font(.system(size: 36, weight: .bold, design: .rounded))
-                    .foregroundColor(stats.totalPnl >= 0 ? .enlikoGreen : .enlikoRed)
+                    .foregroundColor(stats.totalPnlValue >= 0 ? .enlikoGreen : .enlikoRed)
             }
             
             Divider()
@@ -166,40 +166,40 @@ struct StrategyStatsView: View {
             ], spacing: 16) {
                 StrategyStatItem(
                     title: "trades".localized,
-                    value: "\(stats.totalTrades)",
+                    value: "\(stats.totalTradesValue)",
                     icon: "number"
                 )
                 
                 StrategyStatItem(
                     title: "win_rate".localized,
-                    value: String(format: "%.1f%%", stats.winRate),
+                    value: String(format: "%.1f%%", stats.winRateValue),
                     icon: "percent",
-                    color: stats.winRate >= 50 ? .enlikoGreen : .enlikoRed
+                    color: stats.winRateValue >= 50 ? .enlikoGreen : .enlikoRed
                 )
                 
                 StrategyStatItem(
                     title: "profit_factor".localized,
-                    value: String(format: "%.2f", stats.profitFactor),
+                    value: String(format: "%.2f", stats.profitFactorValue),
                     icon: "chart.line.uptrend.xyaxis"
                 )
                 
                 StrategyStatItem(
                     title: "avg_win".localized,
-                    value: formatCurrency(stats.avgWin),
+                    value: formatCurrency(stats.avgWinValue),
                     icon: "arrow.up.right",
                     color: .enlikoGreen
                 )
                 
                 StrategyStatItem(
                     title: "avg_loss".localized,
-                    value: formatCurrency(abs(stats.avgLoss)),
+                    value: formatCurrency(abs(stats.avgLossValue)),
                     icon: "arrow.down.right",
                     color: .enlikoRed
                 )
                 
                 StrategyStatItem(
                     title: "best_trade".localized,
-                    value: formatCurrency(stats.bestTrade),
+                    value: formatCurrency(stats.bestTradeValue),
                     icon: "trophy.fill",
                     color: .yellow
                 )
@@ -384,11 +384,11 @@ struct StrategyBreakdownRow: View {
             
             // Stats
             VStack(alignment: .trailing, spacing: 2) {
-                Text(formatCurrency(item.pnl))
+                Text(formatCurrency(item.pnlValue))
                     .font(.subheadline.bold())
-                    .foregroundColor(item.pnl >= 0 ? .enlikoGreen : .enlikoRed)
+                    .foregroundColor(item.pnlValue >= 0 ? .enlikoGreen : .enlikoRed)
                 
-                Text("\(item.trades) trades • \(String(format: "%.0f%%", item.winRate)) WR")
+                Text("\(item.tradesCount) trades • \(String(format: "%.0f%%", item.winRateValue)) WR")
                     .font(.caption2)
                     .foregroundColor(.secondary)
             }
@@ -409,16 +409,16 @@ struct StrategyTradeRow: View {
         HStack {
             // Symbol + Side
             VStack(alignment: .leading, spacing: 2) {
-                Text(trade.symbol)
+                Text(trade.symbolValue)
                     .font(.subheadline.bold())
                 
                 HStack(spacing: 4) {
-                    Text(trade.side)
+                    Text(trade.sideValue)
                         .font(.caption2)
                         .padding(.horizontal, 6)
                         .padding(.vertical, 2)
-                        .background(trade.side == "Long" ? Color.enlikoGreen.opacity(0.2) : Color.enlikoRed.opacity(0.2))
-                        .foregroundColor(trade.side == "Long" ? .enlikoGreen : .enlikoRed)
+                        .background(trade.sideValue == "Long" ? Color.enlikoGreen.opacity(0.2) : Color.enlikoRed.opacity(0.2))
+                        .foregroundColor(trade.sideValue == "Long" ? .enlikoGreen : .enlikoRed)
                         .cornerRadius(4)
                     
                     if let strategy = trade.strategy {
@@ -433,11 +433,11 @@ struct StrategyTradeRow: View {
             
             // PnL + Time
             VStack(alignment: .trailing, spacing: 2) {
-                Text(formatCurrency(trade.pnl))
+                Text(formatCurrency(trade.pnlValue))
                     .font(.subheadline.bold())
-                    .foregroundColor(trade.pnl >= 0 ? .enlikoGreen : .enlikoRed)
+                    .foregroundColor(trade.pnlValue >= 0 ? .enlikoGreen : .enlikoRed)
                 
-                Text(trade.closedAtString)
+                Text(trade.closedAtValue)
                     .font(.caption2)
                     .foregroundColor(.secondary)
             }
@@ -502,9 +502,9 @@ class StrategyStatsViewModel: ObservableObject {
                 ]
             )
             
-            currentStats = stats.summary
-            strategyBreakdown = stats.breakdown
-            recentTrades = stats.recentTrades
+            currentStats = stats.summaryValue
+            strategyBreakdown = stats.breakdownList
+            recentTrades = stats.recentTradesList
         } catch {
             print("Failed to fetch strategy stats: \(error)")
         }
@@ -579,14 +579,23 @@ enum TradingStrategy: String, CaseIterable {
 }
 
 struct StrategyStats: Codable {
-    let totalPnl: Double
-    let totalTrades: Int
-    let winRate: Double
-    let profitFactor: Double
-    let avgWin: Double
-    let avgLoss: Double
-    let bestTrade: Double
-    let worstTrade: Double
+    let totalPnl: Double?
+    let totalTrades: Int?
+    let winRate: Double?
+    let profitFactor: Double?
+    let avgWin: Double?
+    let avgLoss: Double?
+    let bestTrade: Double?
+    let worstTrade: Double?
+    
+    var totalPnlValue: Double { totalPnl ?? 0 }
+    var totalTradesValue: Int { totalTrades ?? 0 }
+    var winRateValue: Double { winRate ?? 0 }
+    var profitFactorValue: Double { profitFactor ?? 0 }
+    var avgWinValue: Double { avgWin ?? 0 }
+    var avgLossValue: Double { avgLoss ?? 0 }
+    var bestTradeValue: Double { bestTrade ?? 0 }
+    var worstTradeValue: Double { worstTrade ?? 0 }
     
     enum CodingKeys: String, CodingKey {
         case totalPnl = "total_pnl"
@@ -603,9 +612,13 @@ struct StrategyStats: Codable {
 // Use StrategyBreakdownItem and RecentTrade from Models.swift
 
 struct StrategyStatsResponse: Codable {
-    let summary: StrategyStats
-    let breakdown: [StrategyBreakdownItem]
-    let recentTrades: [RecentTrade]
+    let summary: StrategyStats?
+    let breakdown: [StrategyBreakdownItem]?
+    let recentTrades: [RecentTrade]?
+    
+    var summaryValue: StrategyStats { summary ?? StrategyStats(totalPnl: nil, totalTrades: nil, winRate: nil, profitFactor: nil, avgWin: nil, avgLoss: nil, bestTrade: nil, worstTrade: nil) }
+    var breakdownList: [StrategyBreakdownItem] { breakdown ?? [] }
+    var recentTradesList: [RecentTrade] { recentTrades ?? [] }
     
     enum CodingKeys: String, CodingKey {
         case summary, breakdown

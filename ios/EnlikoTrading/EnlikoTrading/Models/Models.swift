@@ -1581,11 +1581,17 @@ extension Trade {
 struct StrategyBreakdownItem: Codable, Identifiable {
     var id: String { strategy }
     let strategy: String
-    let trades: Int
-    let wins: Int
-    let losses: Int
-    let pnl: Double
-    let winRate: Double
+    let trades: Int?
+    let wins: Int?
+    let losses: Int?
+    let pnl: Double?
+    let winRate: Double?
+    
+    var tradesCount: Int { trades ?? 0 }
+    var winsCount: Int { wins ?? 0 }
+    var lossesCount: Int { losses ?? 0 }
+    var pnlValue: Double { pnl ?? 0 }
+    var winRateValue: Double { winRate ?? 0 }
     
     var color: Color {
         switch strategy.lowercased() {
@@ -1607,22 +1613,31 @@ struct StrategyBreakdownItem: Codable, Identifiable {
 }
 
 struct RecentTrade: Codable, Identifiable {
-    var id: String { "\(symbol)-\(closedAtString)-\(pnl)" }
-    let symbol: String
-    let side: String
-    let entryPrice: Double
-    let exitPrice: Double
-    let size: Double
-    let pnl: Double
-    let pnlPercent: Double
-    let closedAtString: String
+    var id: String { "\(symbol ?? "")-\(closedAtString ?? "")-\(pnl ?? 0)" }
+    let symbol: String?
+    let side: String?
+    let entryPrice: Double?
+    let exitPrice: Double?
+    let size: Double?
+    let pnl: Double?
+    let pnlPercent: Double?
+    let closedAtString: String?
     let strategy: String?
     let exitReason: String?
+    
+    var symbolValue: String { symbol ?? "" }
+    var sideValue: String { side ?? "" }
+    var entryPriceValue: Double { entryPrice ?? 0 }
+    var exitPriceValue: Double { exitPrice ?? 0 }
+    var sizeValue: Double { size ?? 0 }
+    var pnlValue: Double { pnl ?? 0 }
+    var pnlPercentValue: Double { pnlPercent ?? 0 }
+    var closedAtValue: String { closedAtString ?? "" }
     
     var closedAt: Date {
         let formatter = ISO8601DateFormatter()
         formatter.formatOptions = [.withInternetDateTime, .withFractionalSeconds]
-        return formatter.date(from: closedAtString) ?? Date()
+        return formatter.date(from: closedAtString ?? "") ?? Date()
     }
     
     enum CodingKeys: String, CodingKey {
