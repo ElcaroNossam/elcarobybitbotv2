@@ -36,7 +36,7 @@ def safe_float(value, default: float = 0.0) -> float:
 _bybit_data: Dict[str, Dict] = {}
 _hyperliquid_data: Dict[str, Dict] = {}
 _last_snapshot_time = {'bybit': 0.0, 'hyperliquid': 0.0}
-_min_snapshot_interval = 0.2  # 5 updates/second
+_min_snapshot_interval = 1.0  # 1 update/second (was 0.2 = 5/sec, wasted CPU)
 
 # Active WebSocket connections (clients)
 _active_connections: Dict[str, set] = {
@@ -140,9 +140,9 @@ class BybitWorker:
                     data = await resp.json()
                     tickers = data.get('result', {}).get('list', [])
                     
-                    # Sort by 24h turnover and take top 200
+                    # Sort by 24h turnover and take top 50 (was 200 — too much CPU for t3.micro)
                     tickers.sort(key=lambda x: safe_float(x.get('turnover24h')), reverse=True)
-                    self.symbols = [t['symbol'] for t in tickers[:200] if 'USDT' in t['symbol']]
+                    self.symbols = [t['symbol'] for t in tickers[:50] if 'USDT' in t['symbol']]
                     
                     logger.info(f"✅ Fetched top {len(self.symbols)} Bybit symbols by volume")
         except Exception as e:
@@ -152,6 +152,10 @@ class BybitWorker:
     
     async def _handle_message(self, data: dict):
         """Process incoming WebSocket message."""
+        # Skip heavy parsing if no clients are connected (saves CPU)
+        if not _active_connections['bybit']:
+            return
+        
         topic = data.get('topic', '')
         
         # Ticker data
@@ -332,6 +336,10 @@ class HyperLiquidWorker:
     
     async def _handle_message(self, data: dict):
         """Process incoming WebSocket message."""
+        # Skip heavy parsing if no clients are connected (saves CPU)
+        if not _active_connections['hyperliquid']:
+            return
+        
         channel = data.get('channel', '')
         
         # All mids (prices) data

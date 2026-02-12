@@ -37,10 +37,10 @@ sleep 1
 CPU_CORES=$(nproc 2>/dev/null || echo 2)
 RAM_MB=$(free -m | awk '/^Mem:/{print $2}' 2>/dev/null || echo 2048)
 
-# For low-memory servers (<=2GB), limit workers to 2
-# Each worker uses ~150-200MB RAM
+# For low-memory servers (<=2GB), limit workers to 1
+# Each worker uses ~150MB RAM + duplicates real-time WebSocket workers
 if [ "$RAM_MB" -le 2048 ]; then
-    WORKERS=2
+    WORKERS=1
 else
     WORKERS=$((CPU_CORES + 1))
     [ $WORKERS -gt 4 ] && WORKERS=4
