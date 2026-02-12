@@ -968,6 +968,7 @@ class DailyErrorType:
     API_KEYS_INVALID = "api_keys_invalid"
     CONNECTION_ERROR = "connection_error"
     MARGIN_EXHAUSTED = "margin_exhausted"
+    NOTIONAL_TOO_LOW = "notional_too_low"
 
 # Cache: (user_id, error_type, account_type) -> {"last_sent": timestamp, "missed_count": int}
 if _USE_TTLCACHE:
@@ -1084,6 +1085,11 @@ async def notify_user_daily_error(
             extra.setdefault("open_count", "?")
             msg = t.get('daily_margin_exhausted',
                 "📊 Insufficient Margin\n\n🚫 Not enough free margin on {account_type}.\n📌 Signal skipped: {symbol} ({strategy})\n💰 Equity: {equity}\n📂 Open positions: {open_count}"
+            ).format(**extra)
+        
+        elif error_type == DailyErrorType.NOTIONAL_TOO_LOW:
+            msg = t.get('daily_notional_too_low',
+                "📊 Trade Too Small\n\n⚠️ {account_type}: position size too small for {symbol}.\n📌 Signal skipped: {symbol} ({strategy})\n💡 Increase Entry% or deposit more funds."
             ).format(**extra)
         
         else:
@@ -15598,8 +15604,7 @@ def format_position_detail(p: dict, t: dict) -> str:
     
     # Format exchange and account
     exchange_emoji = "🟡" if exchange == "bybit" else "🟣"  # Yellow for Bybit, Purple for HL
-    account_emoji = "🎮" if account_type == "demo" else "💎"
-    account_label = "Demo" if account_type == "demo" else "Real"
+    account_emoji, account_label = _get_account_label(account_type, exchange)
     
     lines = [
         f"{emoji} *{sym}* {lev}x {side_text}",
@@ -15943,8 +15948,8 @@ async def show_balance_for_account(update: Update, ctx: ContextTypes.DEFAULT_TYP
         # Fetch spot unrealized PnL (needs coins list)
         spot_unrealized_data = await fetch_spot_unrealized_pnl(uid, coins, account_type=account_type)
         
-        mode_emoji = "🎮" if account_type == "demo" else "💎"
-        mode_label = "Demo" if account_type == "demo" else "Real"
+        user_exchange = db.get_exchange_type(uid) or "bybit"
+        mode_emoji, mode_label = _get_account_label(account_type, user_exchange)
         
         # Format assets list (only coins with balance > 0)
         assets_text = ""
@@ -16041,8 +16046,8 @@ async def show_positions_direct(update: Update, ctx: ContextTypes.DEFAULT_TYPE, 
     
     pos_list = await fetch_open_positions(uid, account_type=account_type)
     
-    mode_emoji = "🎮" if account_type == "demo" else "💎"
-    mode_label = "Demo" if account_type == "demo" else "Real"
+    user_exchange = db.get_exchange_type(uid) or "bybit"
+    mode_emoji, mode_label = _get_account_label(account_type, user_exchange)
     
     if not pos_list:
         text = f"{mode_emoji} *{mode_label} Positions*\n\n" + t.get('no_positions', '🚫 No open positions')
@@ -16081,8 +16086,8 @@ async def show_orders_direct(update: Update, ctx: ContextTypes.DEFAULT_TYPE, acc
     try:
         ords = await fetch_open_orders(uid, account_type=account_type)
         
-        mode_emoji = "🎮" if account_type == "demo" else "💎"
-        mode_label = "Demo" if account_type == "demo" else "Real"
+        user_exchange = db.get_exchange_type(uid) or "bybit"
+        mode_emoji, mode_label = _get_account_label(account_type, user_exchange)
         header = f"{mode_emoji} *{mode_label} Open Orders*\n\n"
         
         if not ords:
@@ -16221,8 +16226,8 @@ async def handle_balance_callback(update: Update, ctx: ContextTypes.DEFAULT_TYPE
             
             show_switcher = db.should_show_account_switcher(uid)
             
-            mode_emoji = "🎮" if mode == "demo" else "💎"
-            mode_label = "Demo" if mode == "demo" else "Real"
+            user_exchange = db.get_exchange_type(uid) or "bybit"
+            mode_emoji, mode_label = _get_account_label(mode, user_exchange)
             
             # Format assets list
             assets_text = ""
@@ -18765,7 +18770,7 @@ async def handle_trade_error(
     if "notional" in error_msg.lower() and "minimum" in error_msg.lower():
         await notify_user_daily_error(
             bot, user_id, 
-            DailyErrorType.ZERO_BALANCE, 
+            DailyErrorType.NOTIONAL_TOO_LOW, 
             account_type, t,
             {"symbol": symbol or "—", "strategy": (strategy or "—").upper()}
         )
