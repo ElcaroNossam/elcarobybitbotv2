@@ -398,7 +398,7 @@ class WebSocketService: NSObject, ObservableObject {
         
         // Try to decode as sync message first (settings sync) - for backwards compatibility
         if let sync = try? JSONDecoder().decode(WSSyncMessage.self, from: data),
-           ["settings_changed", "exchange_switched", "account_switched", "sync_request"].contains(sync.type) {
+           ["settings_changed", "exchange_switched", "account_switched", "sync_request", "setting_updated", "credentials_updated"].contains(sync.type) {
             logger.info("Sync message received: \(sync.type) from \(sync.source)", category: .sync)
             syncSubject.send(sync)
             handleSyncMessage(sync)
@@ -452,6 +452,11 @@ class WebSocketService: NSObject, ObservableObject {
                 // Server requests sync - reload all data
                 self.logger.info("Sync request from server", category: .sync)
                 NotificationCenter.default.post(name: .syncRequested, object: nil)
+                
+            case "setting_updated", "credentials_updated":
+                // Legacy/additional sync types - treat as settings_changed
+                self.logger.info("\(sync.type) from \(sync.source)", category: .sync)
+                NotificationCenter.default.post(name: .settingsChanged, object: nil, userInfo: ["sync": sync])
                 
             default:
                 self.logger.debug("Unknown sync type: \(sync.type)", category: .sync)

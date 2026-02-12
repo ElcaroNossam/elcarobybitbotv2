@@ -301,15 +301,16 @@ class TradingService: ObservableObject {
             takeProfit: takeProfit,
             stopLoss: stopLoss,
             leverage: leverage,
-            reduceOnly: false
+            reduceOnly: false,
+            exchange: appState.currentExchange.rawValue,
+            accountType: appState.currentAccountType.rawValue
         )
         
         logger.logOrderPlaced(symbol: symbol, side: side.rawValue, type: orderType.rawValue, qty: quantity, price: price)
         
         do {
-            let params = exchangeParams
             let response: PlaceOrderResponse = try await network.post(
-                Config.Endpoints.placeOrder + "?\(params.map { "\($0.key)=\($0.value)" }.joined(separator: "&"))",
+                Config.Endpoints.placeOrder,
                 body: request
             )
             
@@ -334,14 +335,19 @@ class TradingService: ObservableObject {
     // MARK: - Close Position
     @MainActor
     func closePosition(symbol: String, side: String? = nil) async {
-        let request = ClosePositionRequest(symbol: symbol, side: side, qty: nil)
+        let request = ClosePositionRequest(
+            symbol: symbol,
+            side: side,
+            qty: nil,
+            exchange: appState.currentExchange.rawValue,
+            accountType: appState.currentAccountType.rawValue
+        )
         
         logger.info("Closing position: \(symbol) \(side ?? "all")", category: .trading)
         
         do {
-            let params = exchangeParams
             let response: SimpleResponse = try await network.post(
-                Config.Endpoints.closePosition + "?\(params.map { "\($0.key)=\($0.value)" }.joined(separator: "&"))",
+                Config.Endpoints.closePosition,
                 body: request
             )
             
@@ -362,8 +368,13 @@ class TradingService: ObservableObject {
         logger.info("Closing all positions", category: .trading)
         
         do {
+            let body: [String: String] = [
+                "exchange": appState.currentExchange.rawValue,
+                "account_type": appState.currentAccountType.rawValue
+            ]
             let response: SimpleResponse = try await network.post(
-                Config.Endpoints.closeAll + "?\(exchangeParams.map { "\($0.key)=\($0.value)" }.joined(separator: "&"))"
+                Config.Endpoints.closeAll,
+                body: body
             )
             
             if response.success == true {
@@ -389,14 +400,16 @@ class TradingService: ObservableObject {
             symbol: symbol,
             side: side,
             takeProfit: takeProfit,
-            stopLoss: stopLoss
+            stopLoss: stopLoss,
+            exchange: appState.currentExchange.rawValue,
+            accountType: appState.currentAccountType.rawValue
         )
         
         logger.info("Modifying TP/SL for \(symbol): TP=\(takeProfit ?? 0), SL=\(stopLoss ?? 0)", category: .trading)
         
         do {
             let response: SimpleResponse = try await network.post(
-                Config.Endpoints.modifyTPSL + "?\(exchangeParams.map { "\($0.key)=\($0.value)" }.joined(separator: "&"))",
+                Config.Endpoints.modifyTPSL,
                 body: request
             )
             
@@ -461,8 +474,13 @@ class TradingService: ObservableObject {
         logger.info("Cancelling all orders", category: .trading)
         
         do {
+            let body: [String: String] = [
+                "exchange": appState.currentExchange.rawValue,
+                "account_type": appState.currentAccountType.rawValue
+            ]
             let response: SimpleResponse = try await network.post(
-                Config.Endpoints.cancelAllOrders + "?\(exchangeParams.map { "\($0.key)=\($0.value)" }.joined(separator: "&"))"
+                Config.Endpoints.cancelAllOrders,
+                body: body
             )
             
             if response.success == true {

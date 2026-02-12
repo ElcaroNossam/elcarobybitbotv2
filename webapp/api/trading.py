@@ -720,10 +720,17 @@ async def get_orders(
 @router.post("/close")
 async def close_position(
     req: ClosePositionRequest,
-    user: dict = Depends(require_trading_license)
+    user: dict = Depends(require_trading_license),
+    exchange: Optional[str] = Query(None),
+    account_type: Optional[str] = Query(None),
 ):
     """Close a specific position. Requires trading license."""
     user_id = user["user_id"]
+    # iOS sends exchange/account_type as query params - merge into request
+    if exchange and req.exchange == "bybit":
+        req.exchange = exchange
+    if account_type and req.account_type == "demo":
+        req.account_type = account_type
     
     # NEW: Use services integration if available
     if SERVICES_AVAILABLE:
@@ -953,12 +960,26 @@ async def close_position(
 
 @router.post("/close-all")
 async def close_all_positions(
-    req: CloseAllRequest,
-    user: dict = Depends(require_trading_license)
+    req: Optional[CloseAllRequest] = None,
+    user: dict = Depends(require_trading_license),
+    exchange: Optional[str] = Query(None),
+    account_type: Optional[str] = Query(None),
 ):
     """Close all positions. Requires trading license."""
     user_id = user["user_id"]
     import time
+    # iOS may send no body - construct from query params
+    if req is None:
+        req = CloseAllRequest(
+            exchange=exchange or "bybit",
+            account_type=account_type or "demo"
+        )
+    else:
+        # iOS sends exchange/account_type as query params - merge into request
+        if exchange and req.exchange == "bybit":
+            req.exchange = exchange
+        if account_type and req.account_type == "demo":
+            req.account_type = account_type
     
     if req.exchange == "hyperliquid":
         hl_creds = db.get_hl_credentials(user_id)
@@ -1616,10 +1637,17 @@ async def get_stats_by_strategy(
 @router.post("/order")
 async def place_order(
     req: PlaceOrderRequest,
-    user: dict = Depends(require_trading_license)
+    user: dict = Depends(require_trading_license),
+    exchange: Optional[str] = Query(None),
+    account_type: Optional[str] = Query(None),
 ):
     """Place a new order on Bybit or HyperLiquid. Requires trading license."""
     user_id = user["user_id"]
+    # iOS sends exchange/account_type as query params - merge into request
+    if exchange and req.exchange == "bybit":
+        req.exchange = exchange
+    if account_type and req.account_type == "demo":
+        req.account_type = account_type
     
     # Normalize side
     side = "Buy" if req.side.lower() in ["buy", "long"] else "Sell"
@@ -1960,10 +1988,17 @@ class ModifyTPSLRequest(BaseModel):
 @router.post("/modify-tpsl")
 async def modify_position_tpsl(
     req: ModifyTPSLRequest,
-    user: dict = Depends(require_trading_license)
+    user: dict = Depends(require_trading_license),
+    exchange: Optional[str] = Query(None),
+    account_type: Optional[str] = Query(None),
 ):
     """Modify Take Profit / Stop Loss for an existing position. Requires trading license."""
     user_id = user["user_id"]
+    # iOS sends exchange/account_type as query params - merge into request
+    if exchange and req.exchange == "bybit":
+        req.exchange = exchange
+    if account_type and req.account_type == "demo":
+        req.account_type = account_type
     
     if req.exchange == "hyperliquid":
         hl_creds = db.get_hl_credentials(user_id)

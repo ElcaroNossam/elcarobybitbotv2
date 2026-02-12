@@ -148,7 +148,7 @@ class AppState: ObservableObject {
         do {
             let _: EmptyResponse = try await NetworkService.shared.post(
                 Config.Endpoints.switchExchange,
-                body: ["exchange_type": exchange.rawValue]
+                body: ["exchange": exchange.rawValue]
             )
             print("✅ Exchange synced with server: \(exchange.rawValue)")
         } catch {

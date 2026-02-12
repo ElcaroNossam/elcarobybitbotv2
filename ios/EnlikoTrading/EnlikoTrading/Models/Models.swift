@@ -853,6 +853,8 @@ struct PlaceOrderRequest: Codable {
     let stopLoss: Double?
     let leverage: Int?
     let reduceOnly: Bool?
+    let exchange: String?
+    let accountType: String?
     
     enum CodingKeys: String, CodingKey {
         case symbol
@@ -864,6 +866,8 @@ struct PlaceOrderRequest: Codable {
         case stopLoss = "stop_loss"
         case leverage
         case reduceOnly = "reduce_only"
+        case exchange
+        case accountType = "account_type"
     }
 }
 
@@ -896,11 +900,15 @@ struct ClosePositionRequest: Codable {
     let symbol: String
     let side: String?
     let qty: Double?
+    let exchange: String?
+    let accountType: String?
     
     enum CodingKeys: String, CodingKey {
         case symbol
         case side
         case qty
+        case exchange
+        case accountType = "account_type"
     }
 }
 
@@ -909,12 +917,16 @@ struct ModifyTPSLRequest: Codable {
     let side: String
     let takeProfit: Double?
     let stopLoss: Double?
+    let exchange: String?
+    let accountType: String?
     
     enum CodingKeys: String, CodingKey {
         case symbol
         case side
         case takeProfit = "take_profit"
         case stopLoss = "stop_loss"
+        case exchange
+        case accountType = "account_type"
     }
 }
 
@@ -1018,6 +1030,15 @@ struct StrategySettings: Codable, Identifiable {
     let direction: String
     let orderType: String
     let enabled: Bool
+    // Break-Even fields
+    let beEnabled: Bool
+    let beTriggerPct: Double?
+    // Partial Take Profit fields
+    let partialTpEnabled: Bool
+    let partialTp1TriggerPct: Double?
+    let partialTp1ClosePct: Double?
+    let partialTp2TriggerPct: Double?
+    let partialTp2ClosePct: Double?
     
     enum CodingKeys: String, CodingKey {
         case strategy
@@ -1039,6 +1060,13 @@ struct StrategySettings: Codable, Identifiable {
         case direction
         case orderType = "order_type"
         case enabled
+        case beEnabled = "be_enabled"
+        case beTriggerPct = "be_trigger_pct"
+        case partialTpEnabled = "partial_tp_enabled"
+        case partialTp1TriggerPct = "partial_tp_1_trigger_pct"
+        case partialTp1ClosePct = "partial_tp_1_close_pct"
+        case partialTp2TriggerPct = "partial_tp_2_trigger_pct"
+        case partialTp2ClosePct = "partial_tp_2_close_pct"
     }
     
     // Default values for optional fields
@@ -1063,6 +1091,13 @@ struct StrategySettings: Codable, Identifiable {
         direction = try container.decodeIfPresent(String.self, forKey: .direction) ?? "all"
         orderType = try container.decodeIfPresent(String.self, forKey: .orderType) ?? "market"
         enabled = try container.decodeIfPresent(Bool.self, forKey: .enabled) ?? true
+        beEnabled = try container.decodeIfPresent(Bool.self, forKey: .beEnabled) ?? false
+        beTriggerPct = try container.decodeIfPresent(Double.self, forKey: .beTriggerPct)
+        partialTpEnabled = try container.decodeIfPresent(Bool.self, forKey: .partialTpEnabled) ?? false
+        partialTp1TriggerPct = try container.decodeIfPresent(Double.self, forKey: .partialTp1TriggerPct)
+        partialTp1ClosePct = try container.decodeIfPresent(Double.self, forKey: .partialTp1ClosePct)
+        partialTp2TriggerPct = try container.decodeIfPresent(Double.self, forKey: .partialTp2TriggerPct)
+        partialTp2ClosePct = try container.decodeIfPresent(Double.self, forKey: .partialTp2ClosePct)
     }
 }
 

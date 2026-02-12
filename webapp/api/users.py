@@ -665,6 +665,7 @@ async def get_global_settings(user: dict = Depends(get_current_user)):
     return {
         # Order settings
         "global_order_type": cfg.get("global_order_type", "market"),
+        "order_type": cfg.get("global_order_type", "market"),  # iOS compat alias
         "limit_offset_pct": cfg.get("limit_offset_pct", 0.1),
         
         # DCA settings (futures)
@@ -672,8 +673,10 @@ async def get_global_settings(user: dict = Depends(get_current_user)):
         "dca_pct_1": cfg.get("dca_pct_1", 10.0),
         "dca_pct_2": cfg.get("dca_pct_2", 25.0),
         
-        # Spot DCA settings
+        # Spot DCA settings (flat keys for iOS compat)
         "spot_enabled": bool(cfg.get("spot_enabled", 0)),
+        "spot_dca_enabled": bool(spot_settings.get("auto_dca", False)),
+        "spot_dca_pct": spot_settings.get("dca_amount", 10.0),
         "spot_settings": {
             "trading_mode": spot_settings.get("trading_mode", "demo"),
             "strategy": spot_settings.get("strategy", "fixed"),
@@ -786,6 +789,12 @@ async def get_exchange_trading_status(user: dict = Depends(get_current_user)):
     
     return {
         "active_exchange": exchange_type,
+        # Flat keys for iOS compat
+        "bybit_enabled": bybit_enabled,
+        "bybit_configured": bybit_configured,
+        "hyperliquid_enabled": hl_enabled,
+        "hyperliquid_configured": hl_configured,
+        # Nested keys for webapp compat
         "bybit": {
             "enabled": bybit_enabled,
             "configured": bybit_configured,

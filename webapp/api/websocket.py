@@ -970,6 +970,14 @@ class SettingsSyncManager:
         """Notify all user devices that exchange was switched"""
         await self.broadcast_to_user(user_id, {
             "type": "exchange_switched",
+            "source": "server",
+            "data": {
+                "exchange": new_exchange,
+                "old_exchange": old_exchange,
+                "connection_status": status,
+                "timestamp": datetime.now().isoformat()
+            },
+            # Legacy flat fields for backward compat
             "new_exchange": new_exchange,
             "old_exchange": old_exchange,
             "connection_status": status,
@@ -980,8 +988,13 @@ class SettingsSyncManager:
         """Notify all user devices about settings changes"""
         await self.broadcast_to_user(user_id, {
             "type": "settings_changed",
+            "source": source,
+            "data": {
+                "changes": changes,
+                "timestamp": datetime.now().isoformat()
+            },
+            # Legacy flat fields for backward compat
             "changes": changes,
-            "source": source,  # "webapp", "bot", "api"
             "timestamp": datetime.now().isoformat()
         })
     
@@ -1095,10 +1108,13 @@ async def settings_sync_websocket(websocket: WebSocket, user_id: int, token: Opt
                             if ws != websocket:
                                 try:
                                     await ws.send_json({
-                                        "type": "setting_updated",
-                                        "key": key,
-                                        "value": value,
-                                        "source": "websocket"
+                                        "type": "settings_changed",
+                                        "source": "websocket",
+                                        "data": {
+                                            "setting": key,
+                                            "new_value": str(value),
+                                            "timestamp": datetime.now().isoformat()
+                                        }
                                     })
                                 except Exception:
                                     pass  # Connection closed
