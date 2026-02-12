@@ -1,11 +1,13 @@
 0x211a5a4bfb4d86b3ceeb9081410513cf9502058c7503e8ea7b7126b604714f9e# Enliko Trading Platform - AI Coding Guidelines
 # =============================================
-# Версия: 3.63.0 | Обновлено: 12 февраля 2026
+# Версия: 3.64.0 | Обновлено: 12 февраля 2026
 # BlackRock-Level Deep Audit: PASSED ✅ (Feb 7, 2026) - FULL RE-AUDIT
 # Deep Audit #1 (Phase 7): ~30 bugs fixed incl. CRITICAL DCA nonlocal ✅ (Feb 10, 2026)
 # Deep Audit #2 (Phase 8): 11 HLAdapter resource leak fixes ✅ (Feb 11, 2026)
 # Server Optimization (Phase 9): CPU 10%→97% idle, Memory -165MB ✅ (Feb 11, 2026)
 # Deep Audit #3 (Phase 10): 8 bugs fixed — reduce_only, SL mutation, 4D PKs ✅ (Feb 12, 2026)
+# iOS Sync Audit (Phase 11): 14 sync bugs fixed across 7 files ✅ (Feb 12, 2026)
+# iOS Data Display Audit (Phase 12): 7 bugs fixed — optional models, orders fallback ✅ (Feb 12, 2026)
 # HyperLiquid Auto-Discovery: FULL SUPPORT ✅ (Feb 7, 2026)
 # HyperLiquid SPOT TRADING: FULL INTEGRATION ✅ (Feb 10, 2026) - ALL bot.py functions
 # API Settings BLOCK UI: COMPLETE ✅ (Feb 8, 2026)
@@ -65,6 +67,8 @@
 # - Deep Audit #2 (Phase 8): 11 HLAdapter resource leaks + BE type coercion (Feb 11, 2026) ✅
 # - Server Optimization (Phase 9): CPU idle 10%→97%, Memory -165MB (Feb 11, 2026) ✅
 # - Deep Audit #3 (Phase 10): 8 bugs fixed — reduce_only, SL mutation, side guard, 4D PKs (Feb 12, 2026) ✅
+# - iOS Sync Audit (Phase 11): 14 sync bugs fixed across 7 files (Feb 12, 2026) ✅
+# - iOS Data Display Audit (Phase 12): 7 bugs fixed — optional models, orders fallback (Feb 12, 2026) ✅
 
 ---
 
@@ -1364,6 +1368,48 @@ except Exception as e:
   | Memory | 625MB | **460MB** (-165MB) |
   | Workers | 2×147MB | **1×128MB** |
   | Tasks | 16 | **8** |
+
+### ✅ CRITICAL: iOS Data Display Audit - 7 Bugs Fixed (Feb 12, 2026) — Phase 12
+- **Проблема:** iOS приложение показывало множество 0 / пустых значений в стратегиях, статистике, списках ордеров
+- **Причина:** Non-optional Codable поля в iOS моделях — если сервер не отправлял хотя бы одно поле, ВЕСЬ ответ не декодировался → 0 / empty
+- **Найдено:** 7 багов (5 CRITICAL, 2 MEDIUM), исправлено 7/7
+- **Исправленные баги:**
+  | # | Severity | Файл | Баг | Fix |
+  |---|----------|------|-----|-----|
+  | 1 | **CRITICAL** | Models.swift + trading.py | `StrategyBreakdownItem` — `wins`/`losses` non-optional, сервер не отправлял | Сервер: добавлены `wins`/`losses` из `tp_count`/`sl_count`; iOS: поля сделаны optional + computed `*Value` accessors |
+  | 2 | **CRITICAL** | Models.swift + trading.py | `RecentTrade` — `entryPrice`, `exitPrice`, `size`, `pnlPercent` non-optional | Сервер: добавлены поля; iOS: все optional + safe accessors |
+  | 3 | **CRITICAL** | StrategyStatsView.swift | `StrategyStats` — все 8 полей non-optional, cascade failure | iOS: все optional + computed `*Value` accessors |
+  | 4 | **CRITICAL** | DashboardView.swift | `DashboardStatsSummary` non-optional + missing `worstTrade` | iOS: all optional + added `worstTrade: Double?` |
+  | 5 | **CRITICAL** | DashboardView.swift + PositionsOrdersView.swift | Orders decoding expects `{"orders":[...]}` but server may return `[...]` | iOS: array-first fallback (try `[Order]`, then `OrdersResponse`) |
+  | 6 | MEDIUM | trading.py | Order timestamps key mismatch (`createdTime` ms → missing `created_at`) | Сервер: добавлен `created_at` formatted from ms timestamp |
+  | 7 | MEDIUM | trading.py + hl_adapter.py | Missing `trigger_price`, `order_type`, `qty` in orders | Сервер: добавлены поля в обоих exchange adapters |
+- **Паттерн исправления iOS моделей (ОБЯЗАТЕЛЬНЫЙ для будущего!):**
+  ```swift
+  // ✅ ПРАВИЛЬНО — все поля optional + computed safe accessors
+  struct StrategyBreakdownItem: Codable, Identifiable {
+      let strategy: String?
+      let trades: Int?
+      let wins: Int?
+      let pnl: Double?
+      var tradesCount: Int { trades ?? 0 }
+      var winsCount: Int { wins ?? 0 }
+      var pnlValue: Double { pnl ?? 0 }
+  }
+  
+  // ❌ НЕПРАВИЛЬНО — non-optional поля ломают декодирование всего ответа
+  struct StrategyBreakdownItem: Codable {
+      let trades: Int      // Server не отправил → CRASH весь response!
+      let wins: Int
+  }
+  ```
+- **Commits:** `f2364dd` (server + iOS), `72de142` (submodule update)
+- **iOS Build:** 98 (TestFlight)
+
+### ✅ HIGH: iOS Sync Audit - 14 Bugs Fixed (Feb 12, 2026) — Phase 11
+- **Аудит:** Полный аудит синхронизации iOS ↔ Server для всех данных
+- **Найдено и исправлено:** 14 sync-багов в 7 файлах
+- **Commit:** `399b469`
+- **iOS Build:** 97 (TestFlight)
 
 ### ✅ HIGH: Deep Audit #3 - 8 Bugs Fixed (Feb 12, 2026) — Phase 10
 - **Аудит:** Глубокий аудит bot.py, exchange_router.py, core/db_postgres.py, bot_unified.py
@@ -4198,7 +4244,7 @@ xcodebuild -project EnlikoTrading.xcodeproj \
 ---
 
 *Last updated: 12 февраля 2026*
-*Version: 3.63.0*
+*Version: 3.64.0*
 *Database: PostgreSQL 14 (SQLite removed)*
 *WebApp API: All files migrated to PostgreSQL (marketplace, admin, backtest)*
 *Multitenancy: 4D isolation (user_id, strategy, side, exchange)*
@@ -4213,7 +4259,7 @@ xcodebuild -project EnlikoTrading.xcodeproj \
 *Main Menu: 4-row keyboard, Terminal button in MenuButton*
 *Translations: 15 languages, 1540+ keys, common button keys*
 *Cross-Platform Sync: iOS ↔ WebApp ↔ Telegram Bot ↔ Android*
-*iOS SwiftUI: 40+ files, BUILD 80 TestFlight (Feb 6, 2026) ✅*
+*iOS SwiftUI: 40+ files, BUILD 98 TestFlight (Feb 12, 2026) ✅*
 *Android Kotlin: 30+ files, Jetpack Compose, 2026 Glassmorphism Design ✅*
 *Modern Features: Biometrics, Haptics, Animations, Shimmer, Offline-First*
 *Break-Even (BE): Per-strategy Long/Short settings*
@@ -4230,6 +4276,9 @@ xcodebuild -project EnlikoTrading.xcodeproj \
 *Deep Audit #2 (Phase 8): 11 HLAdapter resource leak fixes (Feb 11, 2026) ✅*
 *Server Optimization (Phase 9): CPU 10%→97% idle, Memory -165MB (Feb 11, 2026) ✅*
 *Deep Audit #3 (Phase 10): 8 bugs fixed — reduce_only Bybit, SL mutation, side guard, 4D PKs (Feb 12, 2026) ✅*
+*iOS Sync Audit (Phase 11): 14 sync bugs fixed across 7 files (Feb 12, 2026) ✅*
+*iOS Data Display Audit (Phase 12): 7 bugs fixed — optional models, orders fallback, Build 98 (Feb 12, 2026) ✅*
 *HLAdapter Pattern: ALWAYS use try/finally with adapter.close() — prevents aiohttp session leaks*
 *Bybit PTP Pattern: ALWAYS pass reduce_only=True when closing partial positions to prevent counter-position in hedge mode*
+*iOS Codable Pattern: ALL data fields MUST be optional with computed safe accessors (var pnlValue: Double { pnl ?? 0 })*
 
