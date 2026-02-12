@@ -517,6 +517,7 @@ def pg_init_db():
                 user_id      BIGINT NOT NULL,
                 symbol       TEXT NOT NULL,
                 account_type TEXT NOT NULL DEFAULT 'demo',
+                exchange     TEXT NOT NULL DEFAULT 'bybit',
                 side         TEXT,
                 entry_price  REAL,
                 size         REAL,
@@ -546,7 +547,7 @@ def pg_init_db():
                 exchange_order_id    TEXT,
                 ptp_step_1_done      INTEGER NOT NULL DEFAULT 0,
                 ptp_step_2_done      INTEGER NOT NULL DEFAULT 0,
-                PRIMARY KEY(user_id, symbol, account_type)
+                PRIMARY KEY(user_id, symbol, account_type, exchange)
             )
         """)
         cur.execute("CREATE INDEX IF NOT EXISTS idx_active_user ON active_positions(user_id)")
@@ -1662,7 +1663,7 @@ def ensure_tables():
                     enabled       BOOLEAN DEFAULT TRUE,
                     updated_at    TIMESTAMP DEFAULT NOW(),
                     
-                    PRIMARY KEY (user_id, strategy, side)
+                    PRIMARY KEY (user_id, strategy, side, exchange)
                 )
             """)
             

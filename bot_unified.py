@@ -161,7 +161,7 @@ async def get_balance_unified(user_id: int, exchange: str = 'bybit', account_typ
 
 def _safe_float(value, default=0.0):
     """Safely convert value to float, handling empty strings and None"""
-    if value is None or value == '' or value == '0':
+    if value is None or value == '':
         return default
     try:
         return float(value)
@@ -170,7 +170,7 @@ def _safe_float(value, default=0.0):
 
 def _safe_int(value, default=0):
     """Safely convert value to int, handling empty strings and None"""
-    if value is None or value == '' or value == '0':
+    if value is None or value == '':
         return default
     try:
         return int(value)

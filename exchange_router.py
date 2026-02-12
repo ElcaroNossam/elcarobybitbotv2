@@ -534,6 +534,7 @@ class ExchangeRouter:
         """Execute order on single target."""
         
         # P0.7: Validate risk
+        adjusted_sl = intent.sl_percent  # Local copy to avoid mutating shared intent
         if intent.sl_percent and intent.leverage:
             is_valid, error = validate_risk(
                 intent.sl_percent, 
@@ -541,12 +542,13 @@ class ExchangeRouter:
                 target.risk_limit_pct
             )
             if not is_valid:
-                # Auto-adjust SL instead of rejecting
-                intent.sl_percent = auto_adjust_sl_for_risk(
+                # Auto-adjust SL instead of rejecting (use local var to avoid mutating shared intent)
+                adjusted_sl = auto_adjust_sl_for_risk(
                     intent.sl_percent,
                     intent.leverage,
                     target.risk_limit_pct
                 )
+                logger.info(f"[{intent.user_id}] SL auto-adjusted {intent.sl_percent}% → {adjusted_sl}% for {target.key}")
         
         # P0.6: Calculate qty if using percent
         qty = intent.qty
@@ -783,7 +785,7 @@ class ExchangeRouter:
     async def get_balance(self, user_id: int, target: Target) -> dict:
         """Get balance for specific target."""
         if target.exchange == Exchange.HYPERLIQUID.value:
-            return await self._get_hl_balance(user_id)
+            return await self._get_hl_balance(user_id, target=target)
         else:
             # Bybit balance should be fetched via factory
             return {"equity": 0, "available": 0}
@@ -822,7 +824,7 @@ class ExchangeRouter:
         """Get positions from exchange."""
         if target:
             if target.exchange == Exchange.HYPERLIQUID.value:
-                return await self._get_hl_positions(user_id, symbol)
+                return await self._get_hl_positions(user_id, symbol, target=target)
             # Bybit positions via factory
             return []
         
@@ -880,6 +882,14 @@ class ExchangeRouter:
         side: str | None = None,
     ) -> OrderResult:
         """Close position on target(s)."""
+        if side is None:
+            # Try to resolve side from active position in DB
+            ap = db.get_active_position(user_id, symbol)
+            if ap and ap.get("side"):
+                side = ap["side"]
+            else:
+                raise ValueError(f"side is required for close_position (symbol={symbol})")
+        
         intent = OrderIntent(
             user_id=user_id,
             symbol=symbol,

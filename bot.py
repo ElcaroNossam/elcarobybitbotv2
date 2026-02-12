@@ -7903,6 +7903,7 @@ async def _place_exchange_order(
             orderType="Market",
             qty=qty,
             account_type=account_type,
+            reduce_only=reduce_only,
         )
 
 
@@ -7916,6 +7917,7 @@ async def place_order(
     price: float | None = None,
     timeInForce: str = "GTC",
     account_type: str = None,
+    reduce_only: bool = False,
 ):
     """
     Place an order on Bybit. Uses per-user/symbol lock to prevent race conditions.
@@ -7925,7 +7927,8 @@ async def place_order(
     
     async with trading_lock:
         return await _place_order_impl(
-            user_id, symbol, side, orderType, qty, price, timeInForce, account_type
+            user_id, symbol, side, orderType, qty, price, timeInForce, account_type,
+            reduce_only=reduce_only,
         )
 
 async def _place_order_impl(
@@ -7937,6 +7940,7 @@ async def _place_order_impl(
     price: float | None = None,
     timeInForce: str = "GTC",
     account_type: str = None,
+    reduce_only: bool = False,
 ):
     # Check minimum notional value for Bybit BEFORE sending order
     # Bybit requires 5 USDT minimum, we use 5.0 here as final check
@@ -8008,6 +8012,10 @@ async def _place_order_impl(
         # Для Market — цену НЕ отправляем; TIF лучше явно как IOC
         body.pop("price", None)
         body["timeInForce"] = "IOC"
+
+    # reduceOnly for partial close orders (PTP, manual close)
+    if reduce_only:
+        body["reduceOnly"] = True
 
     # Проставляем корректный positionIdx (hedge/one_way)
     mode = await get_position_mode(user_id, symbol, account_type=account_type)
