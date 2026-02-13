@@ -324,23 +324,35 @@ async def switch_exchange(
                             connection_status["balance"] = f"${float(equity):,.2f}"
         
         else:  # hyperliquid
-            import aiohttp
             hl_creds = db.get_hl_credentials(user_id)
-            wallet = hl_creds.get("hl_wallet_address")
-            testnet = hl_creds.get("hl_testnet", False)
-            base_url = "https://api.hyperliquid-testnet.xyz" if testnet else "https://api.hyperliquid.xyz"
+            trading_mode = db.get_trading_mode(user_id) or "demo"
             
-            async with aiohttp.ClientSession() as session:
-                async with session.post(
-                    f"{base_url}/info",
-                    json={"type": "clearinghouseState", "user": wallet},
-                    timeout=aiohttp.ClientTimeout(total=5)
-                ) as resp:
-                    data_resp = await resp.json()
-                    if "marginSummary" in data_resp:
+            # Determine which network to test based on trading mode
+            is_testnet = trading_mode in ("demo", "both")
+            private_key = hl_creds.get("hl_testnet_private_key" if is_testnet else "hl_mainnet_private_key")
+            
+            # Fallback: try the other network
+            if not private_key:
+                is_testnet = not is_testnet
+                private_key = hl_creds.get("hl_testnet_private_key" if is_testnet else "hl_mainnet_private_key")
+            
+            # Final fallback: legacy key
+            if not private_key:
+                private_key = hl_creds.get("hl_private_key")
+                is_testnet = hl_creds.get("hl_testnet", False)
+            
+            if private_key:
+                from hl_adapter import HLAdapter
+                adapter = HLAdapter(private_key=private_key, testnet=is_testnet)
+                try:
+                    await adapter.initialize()
+                    balance_data = await adapter.get_balance(use_cache=False)
+                    if balance_data.get("success"):
                         connection_status["connected"] = True
-                        equity = float(data_resp["marginSummary"].get("accountValue", 0))
-                        connection_status["balance"] = f"${equity:,.2f}"
+                        equity = balance_data.get("data", {}).get("equity", 0)
+                        connection_status["balance"] = f"${float(equity):,.2f}"
+                finally:
+                    await adapter.close()
                         
     except Exception as e:
         connection_status["error"] = str(e)

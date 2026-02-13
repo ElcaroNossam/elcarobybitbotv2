@@ -94,10 +94,6 @@
                         <option value="real">Real</option>
                     </select>
                     <span class="demo-badge" id="accountBadge">DEMO</span>
-                    <button class="wallet-connect-btn" onclick="connectWallet()" title="Connect MetaMask Wallet">
-                        <i class="fab fa-ethereum"></i>
-                        <span id="walletBtnText">Connect Wallet</span>
-                    </button>
                 </div>
                 <div class="ws-status">
                     <span class="ws-dot" id="wsStatus"></span>
@@ -2958,83 +2954,6 @@
         // WALLET CONNECTION (MetaMask/Web3)
         // ═════════════════════════════════════════════════════════════════
         
-        let walletConnected = false;
-        let walletAddress = null;
-        
-        async function connectWallet() {
-            if (typeof window.ethereum === 'undefined') {
-                showNotification('Please install MetaMask extension', 'error');
-                window.open('https://metamask.io/download/', '_blank');
-                return;
-            }
-            
-            try {
-                const accounts = await window.ethereum.request({ method: 'eth_requestAccounts' });
-                walletAddress = accounts[0];
-                walletConnected = true;
-                
-                // Update UI
-                const walletBtn = document.getElementById('walletBtnText');
-                if (walletBtn) {
-                    walletBtn.textContent = walletAddress.slice(0, 6) + '...' + walletAddress.slice(-4);
-                }
-                
-                // Save to backend
-                const response = await fetch('/api/web3/connect', {
-                    method: 'POST',
-                    headers: {
-                        'Content-Type': 'application/json',
-                        'Authorization': `Bearer ${localStorage.getItem('enliko_token') || ''}`
-                    },
-                    body: JSON.stringify({ address: walletAddress })
-                });
-                
-                if (response.ok) {
-                    showNotification('Wallet connected successfully!', 'success');
-                } else {
-                    showNotification('Failed to save wallet connection', 'warning');
-                }
-                
-                // Listen for account changes
-                window.ethereum.on('accountsChanged', handleAccountsChanged);
-                window.ethereum.on('chainChanged', () => window.location.reload());
-                
-            } catch (error) {
-                console.error('Wallet connection error:', error);
-                showNotification('Failed to connect wallet: ' + error.message, 'error');
-            }
-        }
-        
-        function handleAccountsChanged(accounts) {
-            if (accounts.length === 0) {
-                walletConnected = false;
-                walletAddress = null;
-                document.getElementById('walletBtnText').textContent = 'Connect Wallet';
-                showNotification('Wallet disconnected', 'info');
-            } else {
-                walletAddress = accounts[0];
-                document.getElementById('walletBtnText').textContent = 
-                    walletAddress.slice(0, 6) + '...' + walletAddress.slice(-4);
-            }
-        }
-        
-        // Check if wallet already connected on page load
-        async function checkWalletConnection() {
-            if (typeof window.ethereum !== 'undefined') {
-                try {
-                    const accounts = await window.ethereum.request({ method: 'eth_accounts' });
-                    if (accounts.length > 0) {
-                        walletAddress = accounts[0];
-                        walletConnected = true;
-                        document.getElementById('walletBtnText').textContent = 
-                            walletAddress.slice(0, 6) + '...' + walletAddress.slice(-4);
-                    }
-                } catch (error) {
-                    console.error('Check wallet error:', error);
-                }
-            }
-        }
-        
         async function changeExchange() {
             const newExchange = document.getElementById('exchangeSelect').value;
             if (newExchange === state.exchange) return;
@@ -3600,7 +3519,6 @@
         // Initialize on DOM ready
         document.addEventListener('DOMContentLoaded', function() {
             initLanguageAndTheme();
-            checkWalletConnection(); // Check if wallet is already connected
         });
     </script>
     

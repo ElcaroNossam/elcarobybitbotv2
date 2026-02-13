@@ -6,8 +6,11 @@ import dagger.hilt.android.lifecycle.HiltViewModel
 import io.enliko.trading.data.api.EnlikoApi
 import io.enliko.trading.data.models.LoginRequest
 import io.enliko.trading.data.models.RegisterRequest
+import io.enliko.trading.data.models.Request2FABody
 import io.enliko.trading.data.repository.PreferencesRepository
 import io.enliko.trading.data.repository.SecurePreferencesRepository
+import kotlinx.coroutines.Job
+import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
@@ -20,7 +23,13 @@ import javax.inject.Inject
 data class AuthUiState(
     val isLoading: Boolean = false,
     val error: String? = null,
-    val isSuccess: Boolean = false
+    val isSuccess: Boolean = false,
+    // 2FA state
+    val isWaitingFor2FA: Boolean = false,
+    val twoFARequestId: String? = null,
+    val twoFACountdown: Int = 300,
+    val twoFAStatus: String? = null, // "pending", "approved", "denied", "expired"
+    val twoFAMessage: String? = null
 )
 
 @HiltViewModel
@@ -32,6 +41,9 @@ class AuthViewModel @Inject constructor(
 
     private val _uiState = MutableStateFlow(AuthUiState())
     val uiState: StateFlow<AuthUiState> = _uiState.asStateFlow()
+
+    private var pollingJob: Job? = null
+    private var countdownJob: Job? = null
 
     val isLoggedIn: StateFlow<Boolean> = securePreferencesRepository.authToken
         .map { it != null }
@@ -47,10 +59,8 @@ class AuthViewModel @Inject constructor(
                 val response = api.login(LoginRequest(email, password))
                 if (response.isSuccessful) {
                     response.body()?.let { authResponse ->
-                        // Store sensitive data in encrypted storage
                         securePreferencesRepository.saveAuthToken(authResponse.token)
                         securePreferencesRepository.saveUserId(authResponse.user.userId.toString())
-                        // Store non-sensitive data in regular preferences
                         preferencesRepository.saveLanguage(authResponse.user.lang)
                         _uiState.value = AuthUiState(isSuccess = true)
                     } ?: run {
@@ -72,7 +82,6 @@ class AuthViewModel @Inject constructor(
                 val response = api.register(RegisterRequest(email, password, username))
                 if (response.isSuccessful) {
                     response.body()?.let { authResponse ->
-                        // Store sensitive data in encrypted storage
                         securePreferencesRepository.saveAuthToken(authResponse.token)
                         securePreferencesRepository.saveUserId(authResponse.user.userId.toString())
                         _uiState.value = AuthUiState(isSuccess = true)
@@ -88,6 +97,140 @@ class AuthViewModel @Inject constructor(
         }
     }
 
+    // ==================== 2FA (Telegram Login) ====================
+
+    fun request2FALogin(username: String) {
+        val cleaned = username.trim().removePrefix("@")
+        if (cleaned.isBlank()) {
+            _uiState.value = _uiState.value.copy(error = "Enter your Telegram username")
+            return
+        }
+
+        viewModelScope.launch {
+            _uiState.value = AuthUiState(isLoading = true)
+            try {
+                val response = api.request2FA(Request2FABody(cleaned))
+                if (response.isSuccessful) {
+                    val body = response.body()
+                    if (body?.success == true && body.requestId != null) {
+                        _uiState.value = AuthUiState(
+                            isWaitingFor2FA = true,
+                            twoFARequestId = body.requestId,
+                            twoFACountdown = 300,
+                            twoFAStatus = "pending",
+                            twoFAMessage = body.message
+                        )
+                        startPolling(body.requestId)
+                        startCountdown()
+                    } else {
+                        _uiState.value = AuthUiState(
+                            error = body?.message ?: "User not found. Make sure you use @EnlikoBot first."
+                        )
+                    }
+                } else {
+                    val errorMsg = when (response.code()) {
+                        404 -> "User not found. Start @EnlikoBot in Telegram first."
+                        429 -> "Too many requests. Please wait."
+                        else -> "Request failed: ${response.code()}"
+                    }
+                    _uiState.value = AuthUiState(error = errorMsg)
+                }
+            } catch (e: Exception) {
+                _uiState.value = AuthUiState(error = e.message ?: "Connection error")
+            }
+        }
+    }
+
+    private fun startPolling(requestId: String) {
+        pollingJob?.cancel()
+        pollingJob = viewModelScope.launch {
+            while (true) {
+                delay(2500)
+                try {
+                    val response = api.check2FA(requestId)
+                    if (response.isSuccessful) {
+                        val body = response.body() ?: continue
+                        when (body.status) {
+                            "approved" -> {
+                                stopPolling()
+                                val token = body.token
+                                val user = body.user
+                                if (token != null && user != null) {
+                                    securePreferencesRepository.saveAuthToken(token)
+                                    securePreferencesRepository.saveUserId(user.userId.toString())
+                                    body.refreshToken?.let {
+                                        securePreferencesRepository.saveRefreshToken(it)
+                                    }
+                                    preferencesRepository.saveLanguage(user.lang)
+                                    _uiState.value = AuthUiState(
+                                        isSuccess = true,
+                                        twoFAStatus = "approved"
+                                    )
+                                } else {
+                                    _uiState.value = AuthUiState(error = "Approved but no token received")
+                                }
+                                return@launch
+                            }
+                            "denied" -> {
+                                stopPolling()
+                                _uiState.value = AuthUiState(
+                                    twoFAStatus = "denied",
+                                    error = "Login denied in Telegram"
+                                )
+                                return@launch
+                            }
+                            "expired" -> {
+                                stopPolling()
+                                _uiState.value = AuthUiState(
+                                    twoFAStatus = "expired",
+                                    error = "Request expired. Try again."
+                                )
+                                return@launch
+                            }
+                            // "pending" → continue polling
+                        }
+                    }
+                } catch (_: Exception) {
+                    // Network error during poll — continue trying
+                }
+            }
+        }
+    }
+
+    private fun startCountdown() {
+        countdownJob?.cancel()
+        countdownJob = viewModelScope.launch {
+            var remaining = 300
+            while (remaining > 0) {
+                delay(1000)
+                remaining--
+                if (_uiState.value.isWaitingFor2FA) {
+                    _uiState.value = _uiState.value.copy(twoFACountdown = remaining)
+                } else {
+                    return@launch
+                }
+            }
+            // Expired
+            stopPolling()
+            _uiState.value = AuthUiState(
+                twoFAStatus = "expired",
+                error = "Request expired. Try again."
+            )
+        }
+    }
+
+    fun cancel2FA() {
+        stopPolling()
+        _uiState.value = AuthUiState()
+    }
+
+    private fun stopPolling() {
+        pollingJob?.cancel()
+        pollingJob = null
+        countdownJob?.cancel()
+        countdownJob = null
+    }
+
     fun logout() {
         viewModelScope.launch {
             securePreferencesRepository.clearAuth()
@@ -97,5 +240,10 @@ class AuthViewModel @Inject constructor(
 
     fun clearError() {
         _uiState.value = _uiState.value.copy(error = null)
+    }
+
+    override fun onCleared() {
+        super.onCleared()
+        stopPolling()
     }
 }

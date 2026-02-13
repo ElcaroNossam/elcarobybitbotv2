@@ -19,6 +19,13 @@ interface EnlikoApi {
     @POST("/api/auth/logout")
     suspend fun logout(): Response<Unit>
 
+    // 2FA (Telegram Login)
+    @POST("/api/auth/telegram/request-2fa")
+    suspend fun request2FA(@Body body: Request2FABody): Response<Request2FAResponse>
+
+    @GET("/api/auth/telegram/check-2fa/{requestId}")
+    suspend fun check2FA(@Path("requestId") requestId: String): Response<Check2FAResponse>
+
     // ==================== TRADING ====================
     @GET("/api/trading/balance")
     suspend fun getBalance(

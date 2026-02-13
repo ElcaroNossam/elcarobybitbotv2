@@ -68,6 +68,28 @@ data class AuthResponse(
     val user: User
 )
 
+// ==================== 2FA (Telegram Login) ====================
+@Serializable
+data class Request2FABody(
+    val username: String
+)
+
+@Serializable
+data class Request2FAResponse(
+    val success: Boolean = false,
+    @SerialName("request_id") val requestId: String? = null,
+    val message: String? = null
+)
+
+@Serializable
+data class Check2FAResponse(
+    val status: String,
+    val token: String? = null,
+    @SerialName("refresh_token") val refreshToken: String? = null,
+    val user: User? = null,
+    val message: String? = null
+)
+
 @Serializable
 data class Position(
     val symbol: String,
