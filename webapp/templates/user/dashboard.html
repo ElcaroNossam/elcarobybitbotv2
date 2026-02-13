@@ -689,7 +689,7 @@
         .modal-btn.confirm:hover { filter: brightness(1.1); box-shadow: var(--glow-red); }
         
         @media (max-width: 1400px) {
-            .stats-grid { grid-template-columns: repeat(2, 1fr); }
+            .stats-grid { grid-template-columns: repeat(3, 1fr); }
         }
         
         @media (max-width: 1200px) {
@@ -707,6 +707,9 @@
             }
             .sidebar.active {
                 transform: translateX(0);
+            }
+            .hamburger-btn {
+                display: inline-flex !important;
             }
             .main-content { 
                 margin-left: 0 !important; 
@@ -1011,14 +1014,22 @@
     
     <main class="main-content">
         <header class="header">
-            <div>
-                <h1 class="page-title">Dashboard</h1>
-                <p class="page-subtitle">Welcome back! Here's your trading overview.</p>
+            <div style="display: flex; align-items: center; gap: 12px;">
+                <button class="btn btn-secondary hamburger-btn" onclick="document.querySelector('.sidebar').classList.toggle('active')" style="display:none; padding:8px 10px;">
+                    <i class="fas fa-bars"></i>
+                </button>
+                <div>
+                    <h1 class="page-title">Dashboard</h1>
+                    <p class="page-subtitle">Welcome back! Here's your trading overview.</p>
+                </div>
             </div>
             
             <div class="header-actions">
                 <button class="exchange-btn active" data-exchange="bybit">Bybit</button>
                 <button class="exchange-btn" data-exchange="hyperliquid">HyperLiquid</button>
+                <span style="width:1px; height:24px; background:var(--border); margin:0 4px;"></span>
+                <button class="exchange-btn account-btn active" data-account="demo">Demo</button>
+                <button class="exchange-btn account-btn" data-account="real">Real</button>
                 <button class="btn btn-secondary" onclick="refreshData()">
                     <i class="fas fa-sync-alt"></i>
                     Refresh
@@ -1051,7 +1062,7 @@
                     </div>
                     <div class="stat-value" id="daily-pnl" style="color: var(--green);">+$0.00</div>
                     <div class="stat-change positive">
-                        <span>— 0.00%</span>
+                        <span id="daily-pnl-pct">— 0.00%</span>
                     </div>
                 </div>
                 
@@ -1078,6 +1089,24 @@
                         <i class="fas fa-exchange-alt"></i>
                         <span id="trades-count">0 trades</span>
                     </div>
+                </div>
+                
+                <div class="stat-card">
+                    <div class="stat-header">
+                        <span class="stat-label">Week PnL</span>
+                        <div class="stat-icon"><i class="fas fa-calendar-week"></i></div>
+                    </div>
+                    <div class="stat-value" id="week-pnl">$0.00</div>
+                    <div class="stat-change" id="week-pnl-change">—</div>
+                </div>
+                
+                <div class="stat-card">
+                    <div class="stat-header">
+                        <span class="stat-label">Month PnL</span>
+                        <div class="stat-icon"><i class="fas fa-calendar-alt"></i></div>
+                    </div>
+                    <div class="stat-value" id="month-pnl">$0.00</div>
+                    <div class="stat-change" id="month-pnl-change">—</div>
                 </div>
             </div>
             
@@ -1122,13 +1151,15 @@
                                         <th>Size</th>
                                         <th>Entry</th>
                                         <th>Mark</th>
+                                        <th>SL / TP</th>
+                                        <th>Strategy</th>
                                         <th>PNL</th>
                                         <th>Actions</th>
                                     </tr>
                                 </thead>
                                 <tbody id="positions-body">
                                     <tr>
-                                        <td colspan="6">
+                                        <td colspan="8">
                                             <div class="empty-state">
                                                 <i class="fas fa-inbox"></i>
                                                 <p>No open positions</p>
@@ -1370,11 +1401,33 @@
             }
         });
         
-        document.querySelectorAll('.exchange-btn').forEach(btn => {
+        document.querySelectorAll('.exchange-btn:not(.account-btn)').forEach(btn => {
             btn.addEventListener('click', () => {
-                document.querySelectorAll('.exchange-btn').forEach(b => b.classList.remove('active'));
+                document.querySelectorAll('.exchange-btn:not(.account-btn)').forEach(b => b.classList.remove('active'));
+                btn.classList.add('active');
+                // Update account type buttons based on exchange
+                const exchange = btn.dataset.exchange;
+                const accBtns = document.querySelectorAll('.account-btn');
+                if (exchange === 'hyperliquid') {
+                    accBtns[0].textContent = 'Testnet'; accBtns[0].dataset.account = 'testnet';
+                    accBtns[1].textContent = 'Mainnet'; accBtns[1].dataset.account = 'mainnet';
+                } else {
+                    accBtns[0].textContent = 'Demo'; accBtns[0].dataset.account = 'demo';
+                    accBtns[1].textContent = 'Real'; accBtns[1].dataset.account = 'real';
+                }
+                refreshData();
+                loadPnLData(document.querySelector('.period-tab.active')?.dataset.period || '30d');
+                loadTradingSummary();
+            });
+        });
+        
+        document.querySelectorAll('.account-btn').forEach(btn => {
+            btn.addEventListener('click', () => {
+                document.querySelectorAll('.account-btn').forEach(b => b.classList.remove('active'));
                 btn.classList.add('active');
                 refreshData();
+                loadPnLData(document.querySelector('.period-tab.active')?.dataset.period || '30d');
+                loadTradingSummary();
             });
         });
         
@@ -1387,11 +1440,12 @@
         });
         
         async function refreshData() {
-            const exchange = document.querySelector('.exchange-btn.active').dataset.exchange;
+            const exchange = document.querySelector('.exchange-btn.active:not(.account-btn)')?.dataset.exchange || 'bybit';
+            const accountType = document.querySelector('.account-btn.active')?.dataset.account || 'demo';
             const headers = getAuthHeaders();
             
             try {
-                const balanceRes = await fetch(`/api/trading/balance?exchange=${exchange}&account_type=demo`, { headers });
+                const balanceRes = await fetch(`/api/trading/balance?exchange=${exchange}&account_type=${accountType}`, { headers });
                 if (balanceRes.status === 401) {
                     // Token expired - try re-auth via Telegram
                     if (tg?.initData) {
@@ -1411,20 +1465,14 @@
                         '$' + (balance.equity || balance.total_equity || 0).toFixed(2);
                 }
                 
-                const posRes = await fetch(`/api/trading/positions?exchange=${exchange}&account_type=demo`, { headers });
+                const posRes = await fetch(`/api/trading/positions?exchange=${exchange}&account_type=${accountType}`, { headers });
                 const positions = await posRes.json();
                 if (Array.isArray(positions)) {
                     updatePositionsTable(positions);
                     document.getElementById('open-positions').textContent = positions.length;
-                    
-                    // Calculate today's PnL from open positions
-                    const todayPnl = positions.reduce((sum, p) => sum + (parseFloat(p.unrealized_pnl) || 0), 0);
-                    document.getElementById('daily-pnl').textContent = 
-                        (todayPnl >= 0 ? '+$' : '-$') + Math.abs(todayPnl).toFixed(2);
-                    document.getElementById('daily-pnl').style.color = todayPnl >= 0 ? 'var(--green)' : 'var(--red)';
                 }
                 
-                // Use dashboard stats endpoint
+                // Use dashboard stats endpoint for PnL data
                 const statsRes = await fetch(`/api/stats/dashboard?exchange=${exchange}&period=30d`, { headers });
                 const stats = await statsRes.json();
                 if (stats.success && stats.data && stats.data.summary) {
@@ -1432,25 +1480,44 @@
                     document.getElementById('win-rate').textContent = (summary.winRate || 0).toFixed(1) + '%';
                     document.getElementById('trades-count').textContent = (summary.totalTrades || 0) + ' trades';
                     
-                    // Total PnL (30d) - beautiful formatting
+                    // Today's PnL from stats API (realized daily PnL)
+                    const todayPnl = parseFloat(summary.todayPnl) || 0;
+                    document.getElementById('daily-pnl').textContent = 
+                        (todayPnl >= 0 ? '+$' : '-$') + Math.abs(todayPnl).toFixed(2);
+                    document.getElementById('daily-pnl').style.color = todayPnl >= 0 ? 'var(--green)' : 'var(--red)';
+                    const dailyPctEl = document.getElementById('daily-pnl-pct');
+                    if (dailyPctEl) {
+                        const equity = balance.equity || balance.total_equity || 0;
+                        const todayPct = equity > 0 ? (todayPnl / equity * 100) : 0;
+                        dailyPctEl.textContent = `${todayPct >= 0 ? '+' : ''}${todayPct.toFixed(2)}%`;
+                        dailyPctEl.parentElement.className = 'stat-change ' + (todayPct >= 0 ? 'positive' : 'negative');
+                    }
+                    
+                    // Week PnL
+                    const weekPnl = parseFloat(summary.weekPnl) || 0;
+                    const weekEl = document.getElementById('week-pnl');
+                    weekEl.textContent = (weekPnl >= 0 ? '+$' : '-$') + Math.abs(weekPnl).toFixed(2);
+                    weekEl.style.color = weekPnl >= 0 ? 'var(--green)' : 'var(--red)';
+                    
+                    // Month PnL
+                    const monthPnl = parseFloat(summary.monthPnl) || 0;
+                    const monthEl = document.getElementById('month-pnl');
+                    monthEl.textContent = (monthPnl >= 0 ? '+$' : '-$') + Math.abs(monthPnl).toFixed(2);
+                    monthEl.style.color = monthPnl >= 0 ? 'var(--green)' : 'var(--red)';
+                    
+                    // Total PnL (30d)
                     const totalPnl = parseFloat(summary.totalPnL) || 0;
                     const pnlEl = document.getElementById('total-pnl-30d');
                     pnlEl.textContent = (totalPnl >= 0 ? '+$' : '-$') + Math.abs(totalPnl).toFixed(2);
                     pnlEl.style.color = totalPnl >= 0 ? 'var(--green)' : 'var(--red)';
                     pnlEl.style.fontWeight = '600';
-                    // Update percent displays
+                    
+                    // Return percent
                     const equityChangeEl = document.getElementById('equity-change');
                     if (equityChangeEl) {
                         const returnPct = summary.returnPct || summary.pnlChange || 0;
                         equityChangeEl.innerHTML = `${returnPct >= 0 ? '<i class="fas fa-arrow-up"></i>' : '<i class="fas fa-arrow-down"></i>'} <span>${(returnPct).toFixed(2)}%</span>`;
                         equityChangeEl.className = 'stat-change ' + (returnPct >= 0 ? 'positive' : 'negative');
-                    }
-                    // Today's PnL percent (use pnlChange as proxy)
-                    const todayChangeEl = document.querySelector('.stat-card.green .stat-change');
-                    if (todayChangeEl) {
-                        const pnlChange = summary.pnlChange || 0;
-                        todayChangeEl.innerHTML = `${pnlChange >= 0 ? '+' : ''}${pnlChange.toFixed(2)}%`;
-                        todayChangeEl.className = 'stat-change ' + (pnlChange >= 0 ? 'positive' : 'negative');
                     }
                 } else if (stats.detail) {
                     console.error('Stats API error:', stats.detail);
@@ -1462,10 +1529,8 @@
         
         async function loadPnLData(period) {
             try {
-                const exchange = document.querySelector('.exchange-btn.active').dataset.exchange;
+                const exchange = document.querySelector('.exchange-btn.active:not(.account-btn)')?.dataset.exchange || 'bybit';
                 const headers = getAuthHeaders();
-                console.log('[PnL] Loading data for exchange:', exchange, 'period:', period);
-                console.log('[PnL] Auth headers:', headers.Authorization ? 'Bearer ***' : 'NO TOKEN');
                 
                 const res = await fetch(`/api/stats/pnl-history?exchange=${exchange}&period=${period}`, { headers });
                 
@@ -1519,7 +1584,7 @@
             if (!positions || positions.length === 0) {
                 tbody.innerHTML = `
                     <tr>
-                        <td colspan="6">
+                        <td colspan="8">
                             <div class="empty-state">
                                 <i class="fas fa-inbox"></i>
                                 <p>No open positions</p>
@@ -1533,6 +1598,12 @@
                 const pnl = parseFloat(pos.unrealized_pnl || 0);
                 const pnlClass = pnl >= 0 ? 'pnl-positive' : 'pnl-negative';
                 const pnlSign = pnl >= 0 ? '+' : '';
+                const slPrice = pos.stop_loss || pos.sl_price || pos.stopLoss;
+                const tpPrice = pos.take_profit || pos.tp_price || pos.takeProfit;
+                const slStr = slPrice ? '$' + parseFloat(slPrice).toFixed(2) : '—';
+                const tpStr = tpPrice ? '$' + parseFloat(tpPrice).toFixed(2) : '—';
+                const strategy = pos.strategy || '—';
+                const stratBadge = strategy !== '—' ? `<span style="background:rgba(220,38,38,0.15); color:var(--accent); padding:2px 8px; border-radius:4px; font-size:0.7rem; text-transform:uppercase;">${strategy}</span>` : '—';
                 
                 return `
                     <tr>
@@ -1541,15 +1612,19 @@
                                 <div class="symbol-icon">${pos.symbol.substring(0, 3)}</div>
                                 <div>
                                     <div style="font-weight: 600;">${pos.symbol}</div>
-                                    <div style="font-size: 0.75rem; color: ${pos.side === 'long' ? 'var(--green)' : 'var(--red)'};">
-                                        ${pos.side.toUpperCase()} ${pos.leverage || 10}x
+                                    <div style="font-size: 0.75rem; color: ${pos.side === 'long' || pos.side === 'Buy' ? 'var(--green)' : 'var(--red)'};">
+                                        ${(pos.side || '').toUpperCase()} ${pos.leverage || 10}x
                                     </div>
                                 </div>
                             </div>
                         </td>
                         <td style="font-family: var(--font-mono);">${pos.size}</td>
                         <td style="font-family: var(--font-mono);">$${parseFloat(pos.entry_price).toFixed(2)}</td>
-                        <td style="font-family: var(--font-mono);">$${parseFloat(pos.mark_price).toFixed(2)}</td>
+                        <td style="font-family: var(--font-mono);">$${parseFloat(pos.mark_price || pos.current_price || 0).toFixed(2)}</td>
+                        <td style="font-family: var(--font-mono); font-size: 0.8rem;">
+                            <span style="color: var(--red);">${slStr}</span> / <span style="color: var(--green);">${tpStr}</span>
+                        </td>
+                        <td>${stratBadge}</td>
                         <td class="${pnlClass}" style="font-family: var(--font-mono); font-weight: 600;">
                             ${pnlSign}$${pnl.toFixed(2)}
                         </td>
@@ -1634,14 +1709,15 @@
                 'Close Position',
                 `Are you sure you want to close <strong>${symbol}</strong>?`,
                 async () => {
-                    const exchange = document.querySelector('.exchange-btn.active')?.dataset.exchange || 'bybit';
+                    const exchange = document.querySelector('.exchange-btn.active:not(.account-btn)')?.dataset.exchange || 'bybit';
+                    const accountType = document.querySelector('.account-btn.active')?.dataset.account || 'demo';
                     const headers = { ...getAuthHeaders(), 'Content-Type': 'application/json' };
                     
                     try {
                         const res = await fetch('/api/trading/close', {
                             method: 'POST',
                             headers,
-                            body: JSON.stringify({ symbol, exchange, account_type: 'demo' })
+                            body: JSON.stringify({ symbol, exchange, account_type: accountType })
                         });
                         const data = await res.json();
                         
@@ -1663,14 +1739,15 @@
                 'Close All Positions',
                 'Are you sure you want to close <strong>ALL</strong> open positions? This action cannot be undone.',
                 async () => {
-                    const exchange = document.querySelector('.exchange-btn.active')?.dataset.exchange || 'bybit';
+                    const exchange = document.querySelector('.exchange-btn.active:not(.account-btn)')?.dataset.exchange || 'bybit';
+                    const accountType = document.querySelector('.account-btn.active')?.dataset.account || 'demo';
                     const headers = { ...getAuthHeaders(), 'Content-Type': 'application/json' };
                     
                     try {
                         const res = await fetch('/api/trading/close-all', {
                             method: 'POST',
                             headers,
-                            body: JSON.stringify({ exchange, account_type: 'demo' })
+                            body: JSON.stringify({ exchange, account_type: accountType })
                         });
                         const data = await res.json();
                         
@@ -1702,7 +1779,7 @@
         // Load trading summary from stats
         async function loadTradingSummary() {
             try {
-                const exchange = document.querySelector('.exchange-btn.active')?.dataset.exchange || 'bybit';
+                const exchange = document.querySelector('.exchange-btn.active:not(.account-btn)')?.dataset.exchange || 'bybit';
                 const headers = getAuthHeaders();
                 const res = await fetch(`/api/stats/dashboard?exchange=${exchange}&period=30d`, { headers });
                 const data = await res.json();

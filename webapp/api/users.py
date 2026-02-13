@@ -214,7 +214,8 @@ async def update_settings(
             if key in ["percent", "leverage", "tp_percent", "sl_percent", 
                        "enable_scryptomera", "enable_elcaro", "enable_wyckoff", 
                        "enable_scalper", "enable_fibonacci", "enable_rsi_bb", "enable_oi",
-                       "limit_only", "use_oi", "use_rsi_bb", "use_atr"]:
+                       "limit_only", "use_oi", "use_rsi_bb", "use_atr",
+                       "trading_mode"]:
                 db.set_user_field(user_id, key, value)
     
     return {"success": True}

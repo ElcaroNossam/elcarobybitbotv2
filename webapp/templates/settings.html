@@ -756,27 +756,41 @@
                 </div>
             </div>
             
-            <div class="form-grid">
-                <div class="form-group full">
-                    <label class="form-label">Wallet Address</label>
-                    <input type="text" id="hl_wallet_address" class="form-input" placeholder="0x...">
-                </div>
-                <div class="form-group full">
-                    <label class="form-label">Private Key</label>
-                    <input type="password" id="hl_private_key" class="form-input" placeholder="Enter private key (stored encrypted)">
-                </div>
-                <div class="form-group full">
-                    <label class="form-label">Vault Address (optional)</label>
-                    <input type="text" id="hl_vault_address" class="form-input" placeholder="0x... (for vault trading)">
+            <!-- HL Network Tabs -->
+            <div class="api-tabs" style="margin-bottom: 16px;">
+                <div class="api-tab active" data-type="testnet" onclick="switchHLTab('testnet')">🧪 Testnet</div>
+                <div class="api-tab" data-type="mainnet" onclick="switchHLTab('mainnet')">🌐 Mainnet</div>
+            </div>
+            
+            <div id="hl-testnet-form">
+                <div class="form-grid">
+                    <div class="form-group full">
+                        <label class="form-label">Testnet Private Key</label>
+                        <input type="password" id="hl_testnet_private_key" class="form-input" placeholder="Enter testnet private key (auto-derives wallet address)">
+                    </div>
+                    <div class="form-group full">
+                        <label class="form-label">API Wallet Address <small style="color:var(--text-muted)">(auto-derived from key)</small></label>
+                        <input type="text" id="hl_testnet_wallet" class="form-input" placeholder="Auto-detected" readonly style="opacity:0.6">
+                    </div>
                 </div>
             </div>
             
-            <div class="toggle-group">
-                <div class="toggle-label">
-                    <span>Testnet Mode</span>
-                    <small>Use HyperLiquid testnet instead of mainnet</small>
+            <div id="hl-mainnet-form" style="display:none;">
+                <div class="form-grid">
+                    <div class="form-group full">
+                        <label class="form-label">Mainnet Private Key</label>
+                        <input type="password" id="hl_mainnet_private_key" class="form-input" placeholder="Enter mainnet private key (auto-derives wallet address)">
+                    </div>
+                    <div class="form-group full">
+                        <label class="form-label">API Wallet Address <small style="color:var(--text-muted)">(auto-derived from key)</small></label>
+                        <input type="text" id="hl_mainnet_wallet" class="form-input" placeholder="Auto-detected" readonly style="opacity:0.6">
+                    </div>
                 </div>
-                <div class="toggle" id="toggle_hl_testnet" onclick="toggleHLTestnet()"></div>
+            </div>
+            
+            <div style="background: rgba(0,212,255,0.08); border: 1px solid rgba(0,212,255,0.15); border-radius: 10px; padding: 12px 16px; margin-bottom: 16px; font-size: 0.85rem; color: var(--text-secondary);">
+                <i class="fas fa-info-circle" style="color: var(--accent-arc);"></i>
+                Only your Private Key is needed. The system auto-discovers your Main Wallet via the HyperLiquid API.
             </div>
             
             <div class="api-actions">
@@ -817,6 +831,14 @@
                 <div class="form-group">
                     <label class="form-label">Stop Loss (%)</label>
                     <input type="number" id="sl_percent" class="form-input" value="1" min="0.1" max="50" step="0.1">
+                </div>
+                <div class="form-group">
+                    <label class="form-label">Trading Mode</label>
+                    <select id="trading_mode" class="form-select">
+                        <option value="demo">Demo Only</option>
+                        <option value="real">Real Only</option>
+                        <option value="both">Both (Demo + Real)</option>
+                    </select>
                 </div>
             </div>
         </div>
@@ -959,6 +981,37 @@
                         </div>
                     </div>
                 </div>
+                <div class="strategy-atr-section">
+                    <div class="strategy-enable">
+                        <div class="toggle-label"><span>DCA (Dollar Cost Average)</span><small>Add to position at drawdown levels</small></div>
+                        <div class="toggle" id="toggle_scryptomera_dca" onclick="this.classList.toggle('active')"></div>
+                    </div>
+                    <div class="form-grid strategy-params atr-params">
+                        <div class="form-group"><label class="form-label">DCA Level 1 %</label><input type="number" id="scryptomera_dca_pct_1" class="form-input" value="10" min="1" max="50"></div>
+                        <div class="form-group"><label class="form-label">DCA Level 2 %</label><input type="number" id="scryptomera_dca_pct_2" class="form-input" value="25" min="1" max="50"></div>
+                    </div>
+                </div>
+                <div class="strategy-atr-section">
+                    <div class="strategy-enable">
+                        <div class="toggle-label"><span>Break-Even</span><small>Move SL to entry after profit trigger</small></div>
+                        <div class="toggle" id="toggle_scryptomera_be" onclick="this.classList.toggle('active')"></div>
+                    </div>
+                    <div class="form-grid strategy-params atr-params">
+                        <div class="form-group"><label class="form-label">BE Trigger %</label><input type="number" id="scryptomera_be_trigger_pct" class="form-input" value="1.0" min="0.1" max="10" step="0.1"></div>
+                    </div>
+                </div>
+                <div class="strategy-atr-section">
+                    <div class="strategy-enable">
+                        <div class="toggle-label"><span>Partial Take Profit</span><small>Close % of position at profit targets</small></div>
+                        <div class="toggle" id="toggle_scryptomera_ptp" onclick="this.classList.toggle('active')"></div>
+                    </div>
+                    <div class="form-grid strategy-params atr-params">
+                        <div class="form-group"><label class="form-label">Step 1 Close %</label><input type="number" id="scryptomera_partial_tp_1_close_pct" class="form-input" value="30" min="1" max="99"></div>
+                        <div class="form-group"><label class="form-label">Step 1 Trigger %</label><input type="number" id="scryptomera_partial_tp_1_trigger_pct" class="form-input" value="2.0" min="0.1" max="50" step="0.1"></div>
+                        <div class="form-group"><label class="form-label">Step 2 Close %</label><input type="number" id="scryptomera_partial_tp_2_close_pct" class="form-input" value="50" min="1" max="99"></div>
+                        <div class="form-group"><label class="form-label">Step 2 Trigger %</label><input type="number" id="scryptomera_partial_tp_2_trigger_pct" class="form-input" value="5.0" min="0.1" max="50" step="0.1"></div>
+                    </div>
+                </div>
             </div>
             
             <!-- Scalper Settings -->
@@ -1024,6 +1077,37 @@
                             <label class="form-label">ATR Trigger %</label>
                             <input type="number" id="scalper_atr_trigger_pct" class="form-input" value="2.0" min="0.1" max="10" step="0.1">
                         </div>
+                    </div>
+                </div>
+                <div class="strategy-atr-section">
+                    <div class="strategy-enable">
+                        <div class="toggle-label"><span>DCA (Dollar Cost Average)</span><small>Add to position at drawdown levels</small></div>
+                        <div class="toggle" id="toggle_scalper_dca" onclick="this.classList.toggle('active')"></div>
+                    </div>
+                    <div class="form-grid strategy-params atr-params">
+                        <div class="form-group"><label class="form-label">DCA Level 1 %</label><input type="number" id="scalper_dca_pct_1" class="form-input" value="10" min="1" max="50"></div>
+                        <div class="form-group"><label class="form-label">DCA Level 2 %</label><input type="number" id="scalper_dca_pct_2" class="form-input" value="25" min="1" max="50"></div>
+                    </div>
+                </div>
+                <div class="strategy-atr-section">
+                    <div class="strategy-enable">
+                        <div class="toggle-label"><span>Break-Even</span><small>Move SL to entry after profit trigger</small></div>
+                        <div class="toggle" id="toggle_scalper_be" onclick="this.classList.toggle('active')"></div>
+                    </div>
+                    <div class="form-grid strategy-params atr-params">
+                        <div class="form-group"><label class="form-label">BE Trigger %</label><input type="number" id="scalper_be_trigger_pct" class="form-input" value="1.0" min="0.1" max="10" step="0.1"></div>
+                    </div>
+                </div>
+                <div class="strategy-atr-section">
+                    <div class="strategy-enable">
+                        <div class="toggle-label"><span>Partial Take Profit</span><small>Close % of position at profit targets</small></div>
+                        <div class="toggle" id="toggle_scalper_ptp" onclick="this.classList.toggle('active')"></div>
+                    </div>
+                    <div class="form-grid strategy-params atr-params">
+                        <div class="form-group"><label class="form-label">Step 1 Close %</label><input type="number" id="scalper_partial_tp_1_close_pct" class="form-input" value="30" min="1" max="99"></div>
+                        <div class="form-group"><label class="form-label">Step 1 Trigger %</label><input type="number" id="scalper_partial_tp_1_trigger_pct" class="form-input" value="2.0" min="0.1" max="50" step="0.1"></div>
+                        <div class="form-group"><label class="form-label">Step 2 Close %</label><input type="number" id="scalper_partial_tp_2_close_pct" class="form-input" value="50" min="1" max="99"></div>
+                        <div class="form-group"><label class="form-label">Step 2 Trigger %</label><input type="number" id="scalper_partial_tp_2_trigger_pct" class="form-input" value="5.0" min="0.1" max="50" step="0.1"></div>
                     </div>
                 </div>
             </div>
@@ -1097,6 +1181,37 @@
                         </div>
                     </div>
                 </div>
+                <div class="strategy-atr-section">
+                    <div class="strategy-enable">
+                        <div class="toggle-label"><span>DCA (Dollar Cost Average)</span><small>Add to position at drawdown levels</small></div>
+                        <div class="toggle" id="toggle_fibonacci_dca" onclick="this.classList.toggle('active')"></div>
+                    </div>
+                    <div class="form-grid strategy-params atr-params">
+                        <div class="form-group"><label class="form-label">DCA Level 1 %</label><input type="number" id="fibonacci_dca_pct_1" class="form-input" value="10" min="1" max="50"></div>
+                        <div class="form-group"><label class="form-label">DCA Level 2 %</label><input type="number" id="fibonacci_dca_pct_2" class="form-input" value="25" min="1" max="50"></div>
+                    </div>
+                </div>
+                <div class="strategy-atr-section">
+                    <div class="strategy-enable">
+                        <div class="toggle-label"><span>Break-Even</span><small>Move SL to entry after profit trigger</small></div>
+                        <div class="toggle" id="toggle_fibonacci_be" onclick="this.classList.toggle('active')"></div>
+                    </div>
+                    <div class="form-grid strategy-params atr-params">
+                        <div class="form-group"><label class="form-label">BE Trigger %</label><input type="number" id="fibonacci_be_trigger_pct" class="form-input" value="1.0" min="0.1" max="10" step="0.1"></div>
+                    </div>
+                </div>
+                <div class="strategy-atr-section">
+                    <div class="strategy-enable">
+                        <div class="toggle-label"><span>Partial Take Profit</span><small>Close % of position at profit targets</small></div>
+                        <div class="toggle" id="toggle_fibonacci_ptp" onclick="this.classList.toggle('active')"></div>
+                    </div>
+                    <div class="form-grid strategy-params atr-params">
+                        <div class="form-group"><label class="form-label">Step 1 Close %</label><input type="number" id="fibonacci_partial_tp_1_close_pct" class="form-input" value="30" min="1" max="99"></div>
+                        <div class="form-group"><label class="form-label">Step 1 Trigger %</label><input type="number" id="fibonacci_partial_tp_1_trigger_pct" class="form-input" value="2.0" min="0.1" max="50" step="0.1"></div>
+                        <div class="form-group"><label class="form-label">Step 2 Close %</label><input type="number" id="fibonacci_partial_tp_2_close_pct" class="form-input" value="50" min="1" max="99"></div>
+                        <div class="form-group"><label class="form-label">Step 2 Trigger %</label><input type="number" id="fibonacci_partial_tp_2_trigger_pct" class="form-input" value="5.0" min="0.1" max="50" step="0.1"></div>
+                    </div>
+                </div>
             </div>
             
             <!-- RSI+BB Settings -->
@@ -1162,6 +1277,37 @@
                             <label class="form-label">ATR Trigger %</label>
                             <input type="number" id="rsi_bb_atr_trigger_pct" class="form-input" value="2.0" min="0.1" max="10" step="0.1">
                         </div>
+                    </div>
+                </div>
+                <div class="strategy-atr-section">
+                    <div class="strategy-enable">
+                        <div class="toggle-label"><span>DCA (Dollar Cost Average)</span><small>Add to position at drawdown levels</small></div>
+                        <div class="toggle" id="toggle_rsi_bb_dca" onclick="this.classList.toggle('active')"></div>
+                    </div>
+                    <div class="form-grid strategy-params atr-params">
+                        <div class="form-group"><label class="form-label">DCA Level 1 %</label><input type="number" id="rsi_bb_dca_pct_1" class="form-input" value="10" min="1" max="50"></div>
+                        <div class="form-group"><label class="form-label">DCA Level 2 %</label><input type="number" id="rsi_bb_dca_pct_2" class="form-input" value="25" min="1" max="50"></div>
+                    </div>
+                </div>
+                <div class="strategy-atr-section">
+                    <div class="strategy-enable">
+                        <div class="toggle-label"><span>Break-Even</span><small>Move SL to entry after profit trigger</small></div>
+                        <div class="toggle" id="toggle_rsi_bb_be" onclick="this.classList.toggle('active')"></div>
+                    </div>
+                    <div class="form-grid strategy-params atr-params">
+                        <div class="form-group"><label class="form-label">BE Trigger %</label><input type="number" id="rsi_bb_be_trigger_pct" class="form-input" value="1.0" min="0.1" max="10" step="0.1"></div>
+                    </div>
+                </div>
+                <div class="strategy-atr-section">
+                    <div class="strategy-enable">
+                        <div class="toggle-label"><span>Partial Take Profit</span><small>Close % of position at profit targets</small></div>
+                        <div class="toggle" id="toggle_rsi_bb_ptp" onclick="this.classList.toggle('active')"></div>
+                    </div>
+                    <div class="form-grid strategy-params atr-params">
+                        <div class="form-group"><label class="form-label">Step 1 Close %</label><input type="number" id="rsi_bb_partial_tp_1_close_pct" class="form-input" value="30" min="1" max="99"></div>
+                        <div class="form-group"><label class="form-label">Step 1 Trigger %</label><input type="number" id="rsi_bb_partial_tp_1_trigger_pct" class="form-input" value="2.0" min="0.1" max="50" step="0.1"></div>
+                        <div class="form-group"><label class="form-label">Step 2 Close %</label><input type="number" id="rsi_bb_partial_tp_2_close_pct" class="form-input" value="50" min="1" max="99"></div>
+                        <div class="form-group"><label class="form-label">Step 2 Trigger %</label><input type="number" id="rsi_bb_partial_tp_2_trigger_pct" class="form-input" value="5.0" min="0.1" max="50" step="0.1"></div>
                     </div>
                 </div>
             </div>
@@ -1231,6 +1377,37 @@
                         </div>
                     </div>
                 </div>
+                <div class="strategy-atr-section">
+                    <div class="strategy-enable">
+                        <div class="toggle-label"><span>DCA (Dollar Cost Average)</span><small>Add to position at drawdown levels</small></div>
+                        <div class="toggle" id="toggle_oi_dca" onclick="this.classList.toggle('active')"></div>
+                    </div>
+                    <div class="form-grid strategy-params atr-params">
+                        <div class="form-group"><label class="form-label">DCA Level 1 %</label><input type="number" id="oi_dca_pct_1" class="form-input" value="10" min="1" max="50"></div>
+                        <div class="form-group"><label class="form-label">DCA Level 2 %</label><input type="number" id="oi_dca_pct_2" class="form-input" value="25" min="1" max="50"></div>
+                    </div>
+                </div>
+                <div class="strategy-atr-section">
+                    <div class="strategy-enable">
+                        <div class="toggle-label"><span>Break-Even</span><small>Move SL to entry after profit trigger</small></div>
+                        <div class="toggle" id="toggle_oi_be" onclick="this.classList.toggle('active')"></div>
+                    </div>
+                    <div class="form-grid strategy-params atr-params">
+                        <div class="form-group"><label class="form-label">BE Trigger %</label><input type="number" id="oi_be_trigger_pct" class="form-input" value="1.0" min="0.1" max="10" step="0.1"></div>
+                    </div>
+                </div>
+                <div class="strategy-atr-section">
+                    <div class="strategy-enable">
+                        <div class="toggle-label"><span>Partial Take Profit</span><small>Close % of position at profit targets</small></div>
+                        <div class="toggle" id="toggle_oi_ptp" onclick="this.classList.toggle('active')"></div>
+                    </div>
+                    <div class="form-grid strategy-params atr-params">
+                        <div class="form-group"><label class="form-label">Step 1 Close %</label><input type="number" id="oi_partial_tp_1_close_pct" class="form-input" value="30" min="1" max="99"></div>
+                        <div class="form-group"><label class="form-label">Step 1 Trigger %</label><input type="number" id="oi_partial_tp_1_trigger_pct" class="form-input" value="2.0" min="0.1" max="50" step="0.1"></div>
+                        <div class="form-group"><label class="form-label">Step 2 Close %</label><input type="number" id="oi_partial_tp_2_close_pct" class="form-input" value="50" min="1" max="99"></div>
+                        <div class="form-group"><label class="form-label">Step 2 Trigger %</label><input type="number" id="oi_partial_tp_2_trigger_pct" class="form-input" value="5.0" min="0.1" max="50" step="0.1"></div>
+                    </div>
+                </div>
             </div>
             
             <div class="api-actions" style="margin-top: 16px;">
@@ -1256,18 +1433,21 @@
             </div>
             
             <select id="language" class="form-select" onchange="changeLanguage()">
-                <option value="en">English</option>
-                <option value="ru">Русский</option>
-                <option value="uk">Українська</option>
-                <option value="de">Deutsch</option>
-                <option value="fr">Français</option>
-                <option value="es">Español</option>
-                <option value="it">Italiano</option>
-                <option value="pl">Polski</option>
-                <option value="zh">中文</option>
-                <option value="ja">日本語</option>
-                <option value="ar">العربية</option>
-                <option value="he">עברית</option>
+                <option value="en">🇬🇧 English</option>
+                <option value="ru">🇷🇺 Русский</option>
+                <option value="uk">🇺🇦 Українська</option>
+                <option value="de">🇩🇪 Deutsch</option>
+                <option value="fr">🇫🇷 Français</option>
+                <option value="es">🇪🇸 Español</option>
+                <option value="it">🇮🇹 Italiano</option>
+                <option value="pl">🇵🇱 Polski</option>
+                <option value="cs">🇨🇿 Čeština</option>
+                <option value="lt">🇱🇹 Lietuvių</option>
+                <option value="sq">🇦🇱 Shqip</option>
+                <option value="zh">🇨🇳 中文</option>
+                <option value="ja">🇯🇵 日本語</option>
+                <option value="ar">🇸🇦 العربية</option>
+                <option value="he">🇮🇱 עברית</option>
             </select>
         </div>
         
@@ -1351,6 +1531,10 @@
             document.getElementById('tp_percent').value = settings.tp_percent || 2;
             document.getElementById('sl_percent').value = settings.sl_percent || 1;
             
+            // Trading mode
+            const tradingModeEl = document.getElementById('trading_mode');
+            if (tradingModeEl) tradingModeEl.value = settings.trading_mode || 'demo';
+            
             // Update toggles
             updateToggle('toggle_elcaro', settings.enable_elcaro);
             updateToggle('toggle_scryptomera', settings.enable_scryptomera);
@@ -1390,6 +1574,7 @@
         
         async function saveSettings() {
             try {
+                // Read CURRENT toggle state from UI, not stale settings object
                 const payload = {
                     exchange: currentExchange,
                     settings: {
@@ -1397,12 +1582,13 @@
                         leverage: parseInt(document.getElementById('leverage').value),
                         tp_percent: parseFloat(document.getElementById('tp_percent').value),
                         sl_percent: parseFloat(document.getElementById('sl_percent').value),
-                        enable_elcaro: settings.enable_elcaro || false,
-                        enable_scryptomera: settings.enable_scryptomera || false,
-                        enable_scalper: settings.enable_scalper || false,
-                        enable_fibonacci: settings.enable_fibonacci || false,
-                        enable_rsi_bb: settings.enable_rsi_bb || false,
-                        enable_oi: settings.enable_oi || false
+                        trading_mode: document.getElementById('trading_mode')?.value || 'demo',
+                        enable_elcaro: document.getElementById('toggle_elcaro')?.classList.contains('active') || false,
+                        enable_scryptomera: document.getElementById('toggle_scryptomera')?.classList.contains('active') || false,
+                        enable_scalper: document.getElementById('toggle_scalper')?.classList.contains('active') || false,
+                        enable_fibonacci: document.getElementById('toggle_fibonacci')?.classList.contains('active') || false,
+                        enable_rsi_bb: document.getElementById('toggle_rsi_bb')?.classList.contains('active') || false,
+                        enable_oi: document.getElementById('toggle_oi')?.classList.contains('active') || false
                     }
                 };
                 
@@ -1500,13 +1686,17 @@
                     if (data.real_api_key) {
                         document.getElementById('real_api_key').placeholder = '••••••' + data.real_api_key.slice(-4);
                     }
-                    if (data.hl_wallet_address) {
-                        document.getElementById('hl_wallet_address').value = data.hl_wallet_address;
+                    // HL testnet
+                    const hlTestnetWallet = data.hl_testnet_wallet_address || data.hl_wallet_address;
+                    if (hlTestnetWallet) {
+                        document.getElementById('hl_testnet_wallet').value = hlTestnetWallet;
+                        document.getElementById('hl_testnet_private_key').placeholder = '••••••••••';
                     }
-                    if (data.hl_vault_address) {
-                        document.getElementById('hl_vault_address').value = data.hl_vault_address;
+                    // HL mainnet
+                    if (data.hl_mainnet_wallet_address) {
+                        document.getElementById('hl_mainnet_wallet').value = data.hl_mainnet_wallet_address;
+                        document.getElementById('hl_mainnet_private_key').placeholder = '••••••••••';
                     }
-                    updateToggle('toggle_hl_testnet', data.hl_testnet);
                 }
             } catch (e) {
                 console.error('Failed to load API keys:', e);
@@ -1573,13 +1763,12 @@
         }
         
         async function saveHLApi() {
-            const wallet = document.getElementById('hl_wallet_address').value.trim();
-            const privateKey = document.getElementById('hl_private_key').value.trim();
-            const vault = document.getElementById('hl_vault_address').value.trim();
-            const testnet = document.getElementById('toggle_hl_testnet').classList.contains('active');
+            const activeTab = document.querySelector('.api-tab[data-type="testnet"].active, .api-tab[data-type="mainnet"].active');
+            const network = activeTab ? activeTab.dataset.type : 'testnet';
+            const privateKey = document.getElementById(`hl_${network}_private_key`).value.trim();
             
-            if (!wallet) {
-                showNotification('Please enter wallet address', 'error');
+            if (!privateKey) {
+                showNotification('Please enter private key', 'error');
                 return;
             }
             
@@ -1588,16 +1777,15 @@
                     method: 'POST',
                     headers: getAuthHeaders(),
                     body: JSON.stringify({
-                        wallet_address: wallet,
-                        private_key: privateKey || null,
-                        vault_address: vault || null,
-                        testnet: testnet
+                        private_key: privateKey,
+                        testnet: network === 'testnet'
                     })
                 });
                 
                 if (res.ok) {
-                    document.getElementById('hl_private_key').value = '';
-                    showNotification('HyperLiquid settings saved', 'success');
+                    document.getElementById(`hl_${network}_private_key`).value = '';
+                    showNotification(`HyperLiquid ${network} key saved`, 'success');
+                    loadApiKeys();
                 } else {
                     const error = await res.json();
                     showNotification(error.detail || 'Failed to save settings', 'error');
@@ -1612,7 +1800,10 @@
             try {
                 showNotification('Testing connection...', 'success');
                 
-                const res = await fetch('/api/users/api-keys/hyperliquid/test', {
+                const activeTab = document.querySelector('.api-tab[data-type="testnet"].active, .api-tab[data-type="mainnet"].active');
+                const network = activeTab ? activeTab.dataset.type : 'testnet';
+                
+                const res = await fetch(`/api/users/api-keys/hyperliquid/test?testnet=${network === 'testnet'}`, {
                     headers: getAuthHeaders()
                 });
                 
@@ -1629,9 +1820,14 @@
             }
         }
         
-        function toggleHLTestnet() {
-            const toggle = document.getElementById('toggle_hl_testnet');
-            toggle.classList.toggle('active');
+        function switchHLTab(type) {
+            document.querySelectorAll('.api-tab[data-type]').forEach(t => {
+                if (t.closest('#api-panel-hyperliquid')) {
+                    t.classList.toggle('active', t.dataset.type === type);
+                }
+            });
+            document.getElementById('hl-testnet-form').style.display = type === 'testnet' ? 'block' : 'none';
+            document.getElementById('hl-mainnet-form').style.display = type === 'mainnet' ? 'block' : 'none';
         }
         
         // Strategy Settings Functions
@@ -1704,13 +1900,25 @@
                 
                 // Update params
                 for (const [key, value] of Object.entries(data.params || {})) {
-                    // Handle ATR toggle specially
+                    // Handle toggle keys specially
                     if (key === 'use_atr') {
                         const atrToggle = document.getElementById(`toggle_${strategy}_use_atr`);
                         if (atrToggle) {
                             updateToggle(`toggle_${strategy}_use_atr`, value);
                             updateATRParamsState(strategy, value);
                         }
+                        continue;
+                    }
+                    if (key === 'dca_enabled') {
+                        updateToggle(`toggle_${strategy}_dca`, value);
+                        continue;
+                    }
+                    if (key === 'be_enabled') {
+                        updateToggle(`toggle_${strategy}_be`, value);
+                        continue;
+                    }
+                    if (key === 'partial_tp_enabled') {
+                        updateToggle(`toggle_${strategy}_ptp`, value);
                         continue;
                     }
                     
@@ -1782,6 +1990,24 @@
                 params.use_atr = atrToggle.classList.contains('active');
             }
             
+            // Check for DCA toggle
+            const dcaToggle = document.getElementById(`toggle_${strategy}_dca`);
+            if (dcaToggle) {
+                params.dca_enabled = dcaToggle.classList.contains('active');
+            }
+            
+            // Check for Break-Even toggle
+            const beToggle = document.getElementById(`toggle_${strategy}_be`);
+            if (beToggle) {
+                params.be_enabled = beToggle.classList.contains('active');
+            }
+            
+            // Check for Partial TP toggle
+            const ptpToggle = document.getElementById(`toggle_${strategy}_ptp`);
+            if (ptpToggle) {
+                params.partial_tp_enabled = ptpToggle.classList.contains('active');
+            }
+            
             try {
                 const res = await fetch(`/api/users/strategy-settings/${strategy}`, {
                     method: 'PUT',
@@ -1842,6 +2068,12 @@
             if (atrToggle) {
                 params.use_atr = atrToggle.classList.contains('active');
             }
+            const dcaToggle2 = document.getElementById(`toggle_${strategy}_dca`);
+            if (dcaToggle2) params.dca_enabled = dcaToggle2.classList.contains('active');
+            const beToggle2 = document.getElementById(`toggle_${strategy}_be`);
+            if (beToggle2) params.be_enabled = beToggle2.classList.contains('active');
+            const ptpToggle2 = document.getElementById(`toggle_${strategy}_ptp`);
+            if (ptpToggle2) params.partial_tp_enabled = ptpToggle2.classList.contains('active');
             
             const targets = [
                 { exchange: 'bybit', account_type: 'demo' },
