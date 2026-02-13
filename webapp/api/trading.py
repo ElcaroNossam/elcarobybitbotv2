@@ -10,7 +10,7 @@ import asyncio
 import hashlib
 import logging
 import aiohttp
-from typing import Optional, List
+from typing import Optional, List, Any
 from fastapi import APIRouter, HTTPException, Depends, Query
 from pydantic import BaseModel
 
@@ -35,6 +35,11 @@ except ImportError:
     SYNC_SERVICE_AVAILABLE = False
 
 # NEW: Use services integration layer
+get_positions_service: Any = None
+get_balance_service: Any = None
+place_order_service: Any = None
+close_position_service: Any = None
+set_leverage_service: Any = None
 try:
     from webapp.services_integration import (
         get_positions_service, get_balance_service,
@@ -46,6 +51,7 @@ except ImportError as e:
     SERVICES_AVAILABLE = False
 
 # Import position calculator
+position_calculator: Any = None
 try:
     from webapp.services.position_calculator import position_calculator
     POSITION_CALCULATOR_AVAILABLE = True
@@ -244,8 +250,8 @@ async def bybit_request(
     user_id: int,
     method: str,
     path: str,
-    params: dict = None,
-    body: dict = None,
+    params: Optional[dict] = None,
+    body: Optional[dict] = None,
     account_type: str = "demo"
 ) -> dict:
     """Make authenticated Bybit API request"""
@@ -310,7 +316,7 @@ async def get_balance(
     user_id = user["user_id"]
     
     # Normalize 'both' -> 'demo'/'testnet' based on exchange
-    account_type = _normalize_both_account_type(account_type, exchange)
+    account_type = _normalize_both_account_type(account_type, exchange) or account_type or "demo"
     
     # NEW: Use services integration if available
     if SERVICES_AVAILABLE:
@@ -509,7 +515,7 @@ async def get_positions(
             account_type = "real" if exchange == "bybit" else "mainnet"
     
     # Normalize 'both' -> 'demo'/'testnet' based on exchange
-    account_type = _normalize_both_account_type(account_type, exchange)
+    account_type = _normalize_both_account_type(account_type, exchange) or account_type or "demo"
     
     # NEW: Use services integration if available
     if SERVICES_AVAILABLE:
@@ -525,7 +531,7 @@ async def get_positions(
     # OLD CODE (fallback)
     if exchange == "hyperliquid":
         hl_creds = db.get_hl_credentials(user_id)
-        account_type = _normalize_both_account_type(account_type, "hyperliquid")
+        account_type = _normalize_both_account_type(account_type, "hyperliquid") or "testnet"
         private_key, is_testnet, wallet_address = _get_hl_credentials_for_account(hl_creds, account_type)
         
         if not private_key:
@@ -656,7 +662,7 @@ async def get_orders(
     user_id = user["user_id"]
     
     # Normalize 'both' -> 'demo'/'testnet' based on exchange
-    account_type = _normalize_both_account_type(account_type, exchange)
+    account_type = _normalize_both_account_type(account_type, exchange) or account_type or "demo"
     
     if exchange == "hyperliquid":
         hl_creds = db.get_hl_credentials(user_id)
@@ -760,7 +766,6 @@ async def close_position(
                 # CROSS-PLATFORM: Log activity for sync
                 if SYNC_SERVICE_AVAILABLE and sync_service:
                     try:
-                        import asyncio
                         asyncio.create_task(sync_service.sync_trade_action(
                             user_id=user_id,
                             source="webapp",
@@ -783,7 +788,7 @@ async def close_position(
     # OLD CODE (fallback)
     if req.exchange == "hyperliquid":
         hl_creds = db.get_hl_credentials(user_id)
-        account_type = _normalize_both_account_type(req.account_type, "hyperliquid")
+        account_type = _normalize_both_account_type(req.account_type, "hyperliquid") or "testnet"
         private_key, is_testnet, wallet_address = _get_hl_credentials_for_account(hl_creds, account_type)
         
         if not private_key:
@@ -997,7 +1002,7 @@ async def close_all_positions(
     
     if req.exchange == "hyperliquid":
         hl_creds = db.get_hl_credentials(user_id)
-        account_type = _normalize_both_account_type(req.account_type, "hyperliquid")
+        account_type = _normalize_both_account_type(req.account_type, "hyperliquid") or "testnet"
         private_key, is_testnet, wallet_address = _get_hl_credentials_for_account(hl_creds, account_type)
         
         if not private_key:
@@ -1262,7 +1267,7 @@ async def get_execution_history(
     user_id = user["user_id"]
     
     # Normalize 'both' -> 'demo'/'testnet' based on exchange
-    account_type = _normalize_both_account_type(account_type, exchange)
+    account_type = _normalize_both_account_type(account_type, exchange) or account_type or "demo"
     
     if exchange == "hyperliquid":
         # HyperLiquid execution history via user_fills API
@@ -1369,7 +1374,7 @@ async def get_trades(
     user_id = user["user_id"]
     
     # Normalize 'both' -> 'demo'/'testnet' based on exchange
-    account_type = _normalize_both_account_type(account_type, exchange)
+    account_type = _normalize_both_account_type(account_type, exchange) or account_type
     
     try:
         from core.db_postgres import execute, execute_scalar
@@ -1447,7 +1452,7 @@ async def get_trading_stats(
     user_id = user["user_id"]
     
     # Normalize 'both' -> 'demo'/'testnet' based on exchange
-    account_type = _normalize_both_account_type(account_type, exchange)
+    account_type = _normalize_both_account_type(account_type, exchange) or account_type
     
     try:
         # Use db module's get_trade_stats which works with PostgreSQL
@@ -1528,7 +1533,7 @@ async def get_stats_by_strategy(
     user_id = user["user_id"]
     
     # Normalize account type
-    account_type = _normalize_both_account_type(account_type, exchange)
+    account_type = _normalize_both_account_type(account_type, exchange) or account_type
     
     # Period to days mapping
     period_days = {
@@ -1608,7 +1613,7 @@ async def get_stats_by_strategy(
         try:
             trades = db.get_trade_logs_list(
                 user_id,
-                strategy=strategy_filter,
+                strategy=strategy_filter or None,  # type: ignore[arg-type]
                 limit=10,
                 account_type=account_type,
                 exchange=exchange
@@ -2025,11 +2030,11 @@ async def modify_position_tpsl(
     
     if req.exchange == "hyperliquid":
         hl_creds = db.get_hl_credentials(user_id)
-        account_type = getattr(req, 'account_type', 'testnet')
-        private_key, is_testnet, wallet_address = _get_hl_credentials_for_account(hl_creds, account_type)
+        hl_account: str = getattr(req, 'account_type', 'testnet') or "testnet"
+        private_key, is_testnet, wallet_address = _get_hl_credentials_for_account(hl_creds, hl_account)
         
         if not private_key:
-            return {"success": False, "error": f"HL {account_type} not configured"}
+            return {"success": False, "error": f"HL {hl_account} not configured"}
         
         try:
             adapter = HLAdapter(
@@ -2063,7 +2068,7 @@ async def modify_position_tpsl(
             # P0.8: Set manual_sltp_override in DB so bot won't overwrite
             try:
                 # Use normalized account_type from request, not global hl_testnet flag
-                hl_account_type = _normalize_both_account_type(req.account_type, "hyperliquid")
+                hl_account_type = _normalize_both_account_type(req.account_type, "hyperliquid") or "testnet"
                 db.set_manual_sltp_override(
                     user_id, req.symbol, hl_account_type, 
                     sl_price=req.stop_loss, tp_price=req.take_profit
@@ -2102,7 +2107,7 @@ async def modify_position_tpsl(
             
             # P0.8: Set manual_sltp_override in DB so bot won't overwrite
             try:
-                bybit_account_type = _normalize_both_account_type(req.account_type, "bybit")
+                bybit_account_type = _normalize_both_account_type(req.account_type, "bybit") or "demo"
                 db.set_manual_sltp_override(
                     user_id, req.symbol, bybit_account_type, 
                     sl_price=req.stop_loss, tp_price=req.take_profit
@@ -2198,7 +2203,7 @@ async def cancel_all_orders(
     user_id = user["user_id"]
     
     # Normalize 'both' -> 'demo'/'testnet' based on exchange
-    account_type = _normalize_both_account_type(account_type, exchange)
+    account_type = _normalize_both_account_type(account_type, exchange) or account_type or "demo"
     
     if exchange == "hyperliquid":
         # HyperLiquid cancel all - would need implementation
@@ -2344,7 +2349,7 @@ async def place_dca_ladder(
     }
 
 
-def _fib_sequence(n: int) -> List[float]:
+def _fib_sequence(n: int) -> List[int]:
     """Generate Fibonacci sequence"""
     if n <= 0:
         return []
@@ -2504,8 +2509,8 @@ async def calculate_position_size(req: CalculatePositionRequest):
             take_profit_percent=result.take_profit_percent,
             potential_profit_usd=result.potential_profit_usd,
             risk_reward_ratio=result.risk_reward_ratio,
-            max_loss_usd=result.max_loss_usd,
-            margin_ratio=result.margin_ratio,
+            max_loss_usd=result.risk_amount_usd,
+            margin_ratio=round(result.margin_required / result.position_value_usd, 4) if result.position_value_usd > 0 else 0,
             is_valid=len(warnings) == 0,
             warnings=warnings
         )
@@ -2840,7 +2845,7 @@ async def get_all_strategy_settings(
     user_id = user["user_id"]
     
     # Normalize 'both' -> 'demo'/'testnet' based on exchange
-    account_type = _normalize_both_account_type(account_type, exchange)
+    account_type = _normalize_both_account_type(account_type, exchange) or account_type or "demo"
     
     try:
         # Get global user config for defaults
@@ -2906,7 +2911,7 @@ async def get_single_strategy_settings(
     user_id = user["user_id"]
     
     # Normalize 'both' -> 'demo'/'testnet' based on exchange
-    account_type = _normalize_both_account_type(account_type, exchange)
+    account_type = _normalize_both_account_type(account_type, exchange) or account_type or "demo"
     
     if strategy not in STRATEGY_NAMES:
         raise HTTPException(status_code=400, detail=f"Unknown strategy: {strategy}")
@@ -3096,7 +3101,7 @@ async def toggle_strategy(
         
         # Save each setting
         for field, value in settings.items():
-            db.set_strategy_setting_db(user_id, strategy, field, value, req.exchange, account_type)
+            db.set_strategy_setting_db(user_id, strategy, field, value, req.exchange, account_type or "demo")
         
         logger.info(f"User {user_id} toggled {strategy}: {settings} (exchange={req.exchange}, account={account_type})")
         

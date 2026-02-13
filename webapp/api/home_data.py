@@ -119,7 +119,7 @@ async def fetch_platform_stats() -> Dict[str, Any]:
             FROM trade_logs
             WHERE ts > NOW() - INTERVAL '30 days'
         """)
-        win_rate = round(float(winrate_result["winrate"] or 0), 1)
+        win_rate = round(float(winrate_result["winrate"] or 0), 1) if winrate_result else 0.0
         
         # Active positions
         positions_result = execute_one("SELECT COUNT(*) as cnt FROM active_positions")

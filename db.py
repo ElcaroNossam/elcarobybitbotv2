@@ -7,7 +7,7 @@ import threading
 import os
 import logging
 from pathlib import Path
-from typing import Any
+from typing import Any, Optional
 
 from coin_params import DEFAULT_TP_PCT, DEFAULT_SL_PCT, DEFAULT_LANG
 
@@ -3678,8 +3678,8 @@ def get_trade_stats(user_id: int, strategy: str | None = None, period: str = "al
         return result
 
 
-def get_trade_logs_list(user_id: int, limit: int = 500, strategy: str = None, 
-                        account_type: str = None, exchange: str = None,
+def get_trade_logs_list(user_id: int, limit: int = 500, strategy: Optional[str] = None, 
+                        account_type: Optional[str] = None, exchange: Optional[str] = None,
                         period: str = "all", offset: int = 0,
                         return_count: bool = False) -> list | tuple:
     """
