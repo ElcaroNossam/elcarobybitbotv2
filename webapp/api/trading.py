@@ -840,7 +840,7 @@ async def close_position(
                         logger.warning(f"[{user_id}] WebApp HL: Failed to log trade: {log_err}")
                 
                 try:
-                    db.remove_active_position(user_id, req.symbol, account_type=account_type, exchange="hyperliquid")
+                    db.remove_active_position(user_id, req.symbol, account_type=hl_account_type, exchange="hyperliquid")
                     logger.info(f"[{user_id}] WebApp HL: Position removed from DB for {req.symbol}")
                 except Exception as rm_err:
                     logger.warning(f"[{user_id}] WebApp HL: Failed to remove position: {rm_err}")

@@ -7862,6 +7862,7 @@ async def _place_hl_market_order(
             coin=coin,
             sz=qty,
             slippage=0.02,
+            address=adapter._main_wallet_address,
         )
     else:
         result = await adapter._client.market_open(
@@ -24507,7 +24508,12 @@ async def on_admin_cb(update: Update, ctx: ContextTypes.DEFAULT_TYPE):
         filter_label = parts[3] if len(parts) > 3 else "all"
         page = int(parts[4]) if len(parts) > 4 else 0
         
-        db.pg_remove_active_position(target_uid, symbol)
+        # Find the position to get correct exchange and account_type
+        all_positions = db.get_active_positions(target_uid)
+        pos = next((p for p in all_positions if p.get("symbol") == symbol), None)
+        pos_exchange = pos.get("exchange", "bybit") if pos else "bybit"
+        pos_account_type = pos.get("account_type", "demo") if pos else "demo"
+        db.pg_remove_active_position(target_uid, symbol, account_type=pos_account_type, exchange=pos_exchange)
         await q.answer(f"✅ Position {symbol} removed for user {target_uid}", show_alert=True)
         
         # Refresh list
@@ -30087,28 +30093,53 @@ async def on_hl_close_callback(update: Update, ctx: ContextTypes.DEFAULT_TYPE):
         # Close each position
         closed_count = 0
         failed_count = 0
+        hl_account_type = "testnet" if is_testnet else "mainnet"
+        
+        # Get DB positions for strategy info
+        db_positions = get_active_positions(uid, account_type=hl_account_type, exchange="hyperliquid")
         
         for pos in positions:
             try:
                 coin = pos.get("coin") or pos.get("symbol", "").replace("USDT", "")
                 size = float(pos.get("size") or pos.get("szi") or 0)
                 side = pos.get("side", "Buy")
+                entry_price = float(pos.get("entryPx") or pos.get("avgPrice") or 0)
+                mark_price = float(pos.get("markPx") or pos.get("markPrice") or 0)
                 
                 if abs(size) <= 0:
                     continue
                 
-                # market_close needs is_buy=True to close a short (Buy to close), is_buy=False to close a long (Sell to close)
-                is_buy = side != "Buy"  # Opposite direction to close
+                symbol = f"{coin}USDT"
                 
-                result = await adapter._client.market_close(
-                    coin=coin,
-                    sz=abs(size),
-                    slippage=0.02  # 2% slippage for closing
-                )
+                # Use adapter.close_position() which handles address correctly
+                result = await adapter.close_position(symbol, abs(size))
                 
-                if result.get("status") == "ok":
+                if result.get("retCode") == 0:
                     closed_count += 1
                     logger.info(f"[{uid}] Closed HL position: {coin} {side} size={size}")
+                    
+                    # Log trade and remove from DB
+                    ap = next((a for a in db_positions if a.get("symbol") == symbol or a.get("symbol") == coin), None)
+                    strategy = ap.get("strategy") if ap else "manual"
+                    try:
+                        log_exit_and_remove_position(
+                            user_id=uid,
+                            signal_id=ap.get("signal_id") if ap else None,
+                            symbol=symbol,
+                            side=side,
+                            entry_price=entry_price or (float(ap.get("entry_price") or 0) if ap else 0),
+                            exit_price=mark_price,
+                            exit_reason="MANUAL",
+                            size=abs(size),
+                            strategy=strategy,
+                            account_type=hl_account_type,
+                            applied_sl_pct=ap.get("applied_sl_pct") if ap else None,
+                            applied_tp_pct=ap.get("applied_tp_pct") if ap else None,
+                            exchange="hyperliquid",
+                        )
+                    except Exception as log_err:
+                        logger.warning(f"[{uid}] Failed to log HL close for {symbol}: {log_err}")
+                    reset_pyramid(uid, symbol)
                 else:
                     failed_count += 1
                     logger.warning(f"[{uid}] Failed to close HL position {coin}: {result}")

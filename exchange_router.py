@@ -884,7 +884,9 @@ class ExchangeRouter:
         """Close position on target(s)."""
         if side is None:
             # Try to resolve side from active position in DB
-            ap = db.get_active_position(user_id, symbol)
+            _ap_exchange = target.exchange if target else "bybit"
+            _ap_account = target.account_type if target else "demo"
+            ap = db.pg_get_active_position(user_id, symbol, account_type=_ap_account, exchange=_ap_exchange)
             if ap and ap.get("side"):
                 side = ap["side"]
             else:
