@@ -1,0 +1,40 @@
+{
+  "latest": {
+    "version": "1.0.0",
+    "versionCode": 1,
+    "buildDate": "2026-02-13",
+    "size": "15 MB",
+    "minAndroid": "8.0",
+    "fileName": "EnlikoTrading.apk",
+    "sha256": "",
+    "required": false
+  },
+  "changelog": [
+    {
+      "version": "1.0.0",
+      "versionCode": 1,
+      "date": "2026-02-13",
+      "type": "major",
+      "title": "Initial Beta Release",
+      "changes": [
+        "Portfolio with real-time balance & positions from API",
+        "Trading screen with leverage, SL/TP controls",
+        "Live positions with mark price & unrealized PnL",
+        "7 strategy support: OI, Scryptomera, Scalper, Elcaro, Fibonacci, RSI_BB, Manual",
+        "Screener with OI change, volume, 24h price change",
+        "Multi-exchange support: Bybit + HyperLiquid",
+        "15 languages with RTL support (Arabic, Hebrew)",
+        "Glassmorphism dark theme design",
+        "Deep link support (enliko://)",
+        "Biometric authentication (fingerprint, face)",
+        "WebSocket real-time data streaming"
+      ]
+    }
+  ],
+  "ios": {
+    "available": true,
+    "platform": "TestFlight",
+    "version": "1.0.0",
+    "build": 98
+  }
+}

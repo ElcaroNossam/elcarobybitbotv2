@@ -703,7 +703,18 @@ def create_app() -> FastAPI:
     async def download_page(request: Request):
         """Download page for Android APK / iOS TestFlight"""
         return templates.TemplateResponse("download.html", {"request": request})
-    
+
+    @app.get("/api/app/version")
+    async def app_version():
+        """Return APK version manifest for update checking and changelog display"""
+        import json as _json
+        versions_path = os.path.join(os.path.dirname(__file__), "static", "downloads", "versions.json")
+        try:
+            with open(versions_path, "r") as f:
+                return _json.load(f)
+        except Exception:
+            return {"latest": {"version": "1.0.0", "versionCode": 1}, "changelog": [], "ios": None}
+
     # ===== LEGAL PAGES =====
     
     @app.get("/privacy", response_class=HTMLResponse)
