@@ -225,8 +225,9 @@ fun LinkEmailScreen(
                 onClick = {
                     isLoading = true
                     errorMessage = null
-                    // TODO: Call API to link email
-                    // On success: showSuccess = true
+                    // Feature not yet available - show message and reset
+                    errorMessage = "Email linking will be available in a future update"
+                    isLoading = false
                 },
                 modifier = Modifier
                     .fillMaxWidth()

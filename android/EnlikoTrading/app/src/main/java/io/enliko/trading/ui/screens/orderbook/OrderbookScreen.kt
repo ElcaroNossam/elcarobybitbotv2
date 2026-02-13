@@ -104,27 +104,6 @@ fun OrderbookScreen(
         }
         
         isLoading = false
-        
-        // Simulate updates
-        while (true) {
-            delay(1000)
-            lastPrice += Random.nextDouble(-10.0, 10.0)
-            markPrice = lastPrice + Random.nextDouble(-5.0, 5.0)
-            
-            // Update orderbook slightly
-            asks = asks.map { it.copy(quantity = (it.quantity + Random.nextDouble(-0.5, 0.5)).coerceAtLeast(0.1)) }
-            bids = bids.map { it.copy(quantity = (it.quantity + Random.nextDouble(-0.5, 0.5)).coerceAtLeast(0.1)) }
-            
-            // Add new trade
-            recentTrades = listOf(
-                RecentTrade(
-                    price = lastPrice + Random.nextDouble(-5.0, 5.0),
-                    quantity = Random.nextDouble(0.001, 1.0),
-                    isBuy = Random.nextBoolean(),
-                    timestamp = System.currentTimeMillis()
-                )
-            ) + recentTrades.take(19)
-        }
     }
     
     Scaffold(

@@ -17,113 +17,38 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
+import androidx.hilt.navigation.compose.hiltViewModel
+import io.enliko.trading.data.api.PositionData
 import io.enliko.trading.ui.theme.*
 import java.text.NumberFormat
 import java.util.Locale
 
 /**
  * PositionsScreen - Matching iOS PositionsView.swift
- * Display open positions with detailed information
+ * Display open positions with detailed information from API
  */
-
-// Local model for this screen (different from API Position)
-data class PositionDisplay(
-    val id: String,
-    val symbol: String,
-    val side: String, // "long" or "short"
-    val entryPrice: Double,
-    val markPrice: Double,
-    val size: Double,
-    val leverage: Int,
-    val unrealizedPnl: Double,
-    val unrealizedPnlPercent: Double,
-    val margin: Double,
-    val liquidationPrice: Double?,
-    val strategy: String?,
-    val tpPrice: Double?,
-    val slPrice: Double?,
-    val exchange: String // "bybit" or "hyperliquid"
-)
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun PositionsScreen(
     onBack: () -> Unit = {},
-    showBackButton: Boolean = true
+    showBackButton: Boolean = true,
+    viewModel: PositionsViewModel = hiltViewModel()
 ) {
-    var isRefreshing by remember { mutableStateOf(false) }
+    val uiState by viewModel.uiState.collectAsState()
     var selectedFilter by remember { mutableStateOf("all") } // all, long, short
     var selectedExchange by remember { mutableStateOf("all") } // all, bybit, hyperliquid
     
-    // Sample positions data
-    val positions = remember {
-        listOf(
-            PositionDisplay(
-                id = "1",
-                symbol = "BTCUSDT",
-                side = "long",
-                entryPrice = 96500.0,
-                markPrice = 97250.0,
-                size = 0.1,
-                leverage = 10,
-                unrealizedPnl = 75.0,
-                unrealizedPnlPercent = 0.78,
-                margin = 965.0,
-                liquidationPrice = 87000.0,
-                strategy = "OI Strategy",
-                tpPrice = 100000.0,
-                slPrice = 94000.0,
-                exchange = "bybit"
-            ),
-            PositionDisplay(
-                id = "2",
-                symbol = "ETHUSDT",
-                side = "long",
-                entryPrice = 3450.0,
-                markPrice = 3480.0,
-                size = 1.5,
-                leverage = 15,
-                unrealizedPnl = 45.0,
-                unrealizedPnlPercent = 0.87,
-                margin = 345.0,
-                liquidationPrice = 3100.0,
-                strategy = "Scryptomera",
-                tpPrice = 3600.0,
-                slPrice = 3350.0,
-                exchange = "bybit"
-            ),
-            PositionDisplay(
-                id = "3",
-                symbol = "SOLUSDT",
-                side = "short",
-                entryPrice = 195.0,
-                markPrice = 193.50,
-                size = 20.0,
-                leverage = 5,
-                unrealizedPnl = 30.0,
-                unrealizedPnlPercent = 0.77,
-                margin = 780.0,
-                liquidationPrice = 215.0,
-                strategy = "Manual",
-                tpPrice = 180.0,
-                slPrice = 205.0,
-                exchange = "hyperliquid"
-            )
-        )
-    }
+    val positions = uiState.positions
     
     val filteredPositions = positions.filter { position ->
+        val side = position.side.lowercase()
         val matchesFilter = when (selectedFilter) {
-            "long" -> position.side == "long"
-            "short" -> position.side == "short"
+            "long" -> side == "buy" || side == "long"
+            "short" -> side == "sell" || side == "short"
             else -> true
         }
-        val matchesExchange = when (selectedExchange) {
-            "bybit" -> position.exchange == "bybit"
-            "hyperliquid" -> position.exchange == "hyperliquid"
-            else -> true
-        }
-        matchesFilter && matchesExchange
+        matchesFilter
     }
     
     Scaffold(
@@ -143,7 +68,7 @@ fun PositionsScreen(
                 actions = {
                     // Close All button
                     if (positions.isNotEmpty()) {
-                        TextButton(onClick = { /* Close all positions */ }) {
+                        TextButton(onClick = { viewModel.closeAllPositions() }) {
                             Text("Close All", color = EnlikoRed)
                         }
                     }
@@ -153,14 +78,20 @@ fun PositionsScreen(
         containerColor = EnlikoBackground
     ) { padding ->
         PullToRefreshBox(
-            isRefreshing = isRefreshing,
-            onRefresh = {
-                isRefreshing = true
-                // Simulate refresh
-                isRefreshing = false
-            },
+            isRefreshing = uiState.isRefreshing,
+            onRefresh = { viewModel.refresh() },
             modifier = Modifier.fillMaxSize()
         ) {
+            if (uiState.isLoading && positions.isEmpty()) {
+                Box(
+                    modifier = Modifier
+                        .fillMaxSize()
+                        .padding(padding),
+                    contentAlignment = Alignment.Center
+                ) {
+                    CircularProgressIndicator()
+                }
+            } else {
             LazyColumn(
                 modifier = Modifier
                     .fillMaxSize()
@@ -238,23 +169,24 @@ fun PositionsScreen(
                         EmptyPositionsState()
                     }
                 } else {
-                    items(filteredPositions, key = { it.id }) { position ->
+                    items(filteredPositions, key = { "${it.symbol}_${it.side}" }) { position ->
                         PositionCard(
                             position = position,
-                            onClose = { /* Close position */ },
+                            onClose = { viewModel.closePosition(position.symbol, position.side) },
                             onModifyTpSl = { /* Modify TP/SL */ }
                         )
                     }
                 }
+            }
             }
         }
     }
 }
 
 @Composable
-private fun PositionsSummaryCard(positions: List<PositionDisplay>) {
-    val totalUnrealizedPnl = positions.sumOf { it.unrealizedPnl }
-    val totalMargin = positions.sumOf { it.margin }
+private fun PositionsSummaryCard(positions: List<PositionData>) {
+    val totalUnrealizedPnl = positions.sumOf { it.unrealizedPnl ?: 0.0 }
+    val totalMargin = positions.sumOf { it.entryPrice * it.size / it.leverage }
     
     Card(
         modifier = Modifier.fillMaxWidth(),
@@ -309,13 +241,20 @@ private fun SummaryItem(
 
 @Composable
 private fun PositionCard(
-    position: PositionDisplay,
+    position: PositionData,
     onClose: () -> Unit,
     onModifyTpSl: () -> Unit
 ) {
-    val isLong = position.side == "long"
+    val side = position.side.lowercase()
+    val isLong = side == "buy" || side == "long"
     val sideColor = if (isLong) EnlikoGreen else EnlikoRed
-    val pnlColor = if (position.unrealizedPnl >= 0) EnlikoGreen else EnlikoRed
+    val pnl = position.unrealizedPnl ?: 0.0
+    val mark = position.markPrice ?: position.entryPrice
+    val pnlPercent = if (position.entryPrice > 0) {
+        val raw = (mark - position.entryPrice) / position.entryPrice * 100.0
+        if (isLong) raw else -raw
+    } else 0.0
+    val pnlColor = if (pnl >= 0) EnlikoGreen else EnlikoRed
     
     Card(
         modifier = Modifier.fillMaxWidth(),
@@ -358,7 +297,7 @@ private fun PositionCard(
                     )
                     
                     Text(
-                        text = "${position.leverage}x",
+                        text = "${position.leverage.toInt()}x",
                         style = MaterialTheme.typography.bodySmall,
                         color = EnlikoTextSecondary
                     )
@@ -367,13 +306,13 @@ private fun PositionCard(
                 // PnL
                 Column(horizontalAlignment = Alignment.End) {
                     Text(
-                        text = formatCurrency(position.unrealizedPnl),
+                        text = formatCurrency(pnl),
                         style = MaterialTheme.typography.titleMedium,
                         fontWeight = FontWeight.Bold,
                         color = pnlColor
                     )
                     Text(
-                        text = "${if (position.unrealizedPnlPercent >= 0) "+" else ""}${String.format("%.2f", position.unrealizedPnlPercent)}%",
+                        text = "${if (pnlPercent >= 0) "+" else ""}${String.format("%.2f", pnlPercent)}%",
                         style = MaterialTheme.typography.bodySmall,
                         color = pnlColor
                     )
@@ -386,8 +325,8 @@ private fun PositionCard(
                 horizontalArrangement = Arrangement.SpaceBetween
             ) {
                 PriceInfoColumn("Entry", formatPrice(position.entryPrice))
-                PriceInfoColumn("Mark", formatPrice(position.markPrice))
-                PriceInfoColumn("Size", position.size.toString())
+                PriceInfoColumn("Mark", formatPrice(mark))
+                PriceInfoColumn("Size", String.format("%.4f", position.size))
             }
             
             // TP/SL
@@ -404,7 +343,7 @@ private fun PositionCard(
                                 color = EnlikoTextSecondary
                             )
                             Text(
-                                text = formatPrice(position.tpPrice),
+                                text = formatPrice(position.tpPrice!!),
                                 style = MaterialTheme.typography.bodySmall,
                                 fontWeight = FontWeight.Medium,
                                 color = EnlikoGreen
@@ -419,7 +358,7 @@ private fun PositionCard(
                                 color = EnlikoTextSecondary
                             )
                             Text(
-                                text = formatPrice(position.slPrice),
+                                text = formatPrice(position.slPrice!!),
                                 style = MaterialTheme.typography.bodySmall,
                                 fontWeight = FontWeight.Medium,
                                 color = EnlikoRed
@@ -429,20 +368,10 @@ private fun PositionCard(
                 }
             }
             
-            // Strategy & Exchange
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.SpaceBetween
-            ) {
-                position.strategy?.let {
-                    Text(
-                        text = "📊 $it",
-                        style = MaterialTheme.typography.bodySmall,
-                        color = EnlikoTextSecondary
-                    )
-                }
+            // Strategy
+            position.strategy?.let {
                 Text(
-                    text = if (position.exchange == "bybit") "🟠 Bybit" else "🔷 HyperLiquid",
+                    text = "📊 ${it.uppercase()}",
                     style = MaterialTheme.typography.bodySmall,
                     color = EnlikoTextSecondary
                 )

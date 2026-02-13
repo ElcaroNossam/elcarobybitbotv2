@@ -87,7 +87,7 @@ fun AdvancedTradingScreen(
     var volume24h by remember { mutableDoubleStateOf(0.0) }
     var availableBalance by remember { mutableDoubleStateOf(0.0) }
     
-    // Simulated data loading
+    // Load initial data (no infinite loop - one-time load)
     LaunchedEffect(symbol) {
         lastPrice = 98500.0
         markPrice = 98485.0
@@ -97,13 +97,6 @@ fun AdvancedTradingScreen(
         volume24h = 45_000_000_000.0
         availableBalance = 10000.0
         isLoading = false
-        
-        // Simulate price updates
-        while (true) {
-            delay(1000)
-            lastPrice += Random.nextDouble(-50.0, 50.0)
-            markPrice = lastPrice + Random.nextDouble(-10.0, 10.0)
-        }
     }
     
     Scaffold(

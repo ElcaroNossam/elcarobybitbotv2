@@ -119,8 +119,8 @@ fun EnlikoNavHost(
                         }
                     },
                     onDecline = {
-                        // User declined - close app
-                        android.os.Process.killProcess(android.os.Process.myPid())
+                        // User declined - close app gracefully
+                        (context as? android.app.Activity)?.finish()
                     }
                 )
             }
@@ -163,6 +163,72 @@ fun EnlikoNavHost(
                     },
                     onNavigateToManualTrading = { symbol ->
                         navController.navigate(Screen.ManualTrading.createRoute(symbol))
+                    },
+                    onNavigateToActivity = {
+                        // Activity handled in Settings tab internal nav
+                    },
+                    onNavigateToSpot = {
+                        navController.navigate(Screen.SpotTrading.route)
+                    },
+                    onNavigateToNotifications = {
+                        // Handled by MainScreen internal NavHost (notifications route)
+                    },
+                    onNavigateToStrategies = {
+                        navController.navigate(Screen.Strategies.route)
+                    },
+                    onNavigateToCharts = { symbol ->
+                        navController.navigate(Screen.Charts.createRoute(symbol))
+                    },
+                    onNavigateToSocialTrading = {
+                        navController.navigate(Screen.CopyTrading.route)
+                    },
+                    onNavigateToLanguage = {
+                        // Handled by SettingsScreen language dialog
+                    },
+                    onNavigateToSubscription = {
+                        // Subscription screen (future)
+                    },
+                    onNavigateToTradeHistory = {
+                        navController.navigate(Screen.TradeHistory.route)
+                    },
+                    onNavigateToTradingSettings = {
+                        navController.navigate(Screen.TradingSettings.route)
+                    },
+                    onNavigateToLinkEmail = {
+                        navController.navigate(Screen.LinkEmail.route)
+                    },
+                    onNavigateToApiKeys = {
+                        navController.navigate(Screen.ApiKeys.route)
+                    },
+                    onNavigateToLeverageSettings = {
+                        navController.navigate(Screen.Leverage.route)
+                    },
+                    onNavigateToRiskSettings = {
+                        navController.navigate(Screen.RiskSettings.route)
+                    },
+                    onNavigateToExchangeSettings = {
+                        navController.navigate(Screen.ExchangeSettings.route)
+                    },
+                    onNavigateToMarketHeatmap = {
+                        navController.navigate(Screen.MarketHub.route)
+                    },
+                    onNavigateToStats = {
+                        navController.navigate(Screen.Stats.route)
+                    },
+                    onNavigateToPositions = {
+                        navController.navigate(Screen.Positions.route)
+                    },
+                    onNavigateToScreener = {
+                        navController.navigate(Screen.Screener.route)
+                    },
+                    onNavigateToAICopilot = {
+                        navController.navigate(Screen.AIAssistant.route)
+                    },
+                    onNavigateToAdmin = {
+                        navController.navigate(Screen.Admin.route)
+                    },
+                    onNavigateToDebug = {
+                        // Debug console (future)
                     }
                 )
             }

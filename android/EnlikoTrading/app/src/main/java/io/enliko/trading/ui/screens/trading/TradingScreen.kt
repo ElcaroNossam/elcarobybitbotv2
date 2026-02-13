@@ -26,8 +26,10 @@ fun TradingScreen(
     val strings = LocalStrings.current
     val uiState by viewModel.uiState.collectAsState()
     
-    var selectedSymbol by remember { mutableStateOf("BTCUSDT") }
     var searchQuery by remember { mutableStateOf("") }
+    
+    // Sync selected symbol with viewModel
+    val selectedSymbol = uiState.selectedSymbol
     
     Scaffold(
         topBar = {
@@ -77,18 +79,19 @@ fun TradingScreen(
                         )
                         
                         Text(
-                            text = "$97,543.21",
+                            text = selectedSymbol,
                             style = MaterialTheme.typography.headlineSmall,
-                            fontWeight = FontWeight.Bold
+                            fontWeight = FontWeight.Bold,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant
                         )
                     }
                     
                     Spacer(modifier = Modifier.height(8.dp))
                     
                     Text(
-                        text = "+2.45%",
+                        text = "${uiState.accountType.uppercase()} · ${uiState.leverage}x",
                         style = MaterialTheme.typography.bodyMedium,
-                        color = LongGreen
+                        color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.7f)
                     )
                 }
             }
@@ -158,14 +161,14 @@ fun TradingScreen(
                     ) {
                         Text(strings.leverage)
                         Text(
-                            text = "10x",
+                            text = "${uiState.leverage}x",
                             fontWeight = FontWeight.Bold
                         )
                     }
                     
                     Slider(
-                        value = 10f,
-                        onValueChange = { },
+                        value = uiState.leverage.toFloat(),
+                        onValueChange = { viewModel.setLeverage(it.toInt().coerceIn(1, 100)) },
                         valueRange = 1f..100f,
                         steps = 99
                     )
@@ -174,8 +177,8 @@ fun TradingScreen(
                     
                     // Stop Loss
                     OutlinedTextField(
-                        value = "3.0",
-                        onValueChange = { },
+                        value = String.format("%.1f", uiState.slPercent),
+                        onValueChange = { v -> v.toDoubleOrNull()?.let { viewModel.setSlPercent(it) } },
                         label = { Text("${strings.stopLoss} (%)") },
                         modifier = Modifier.fillMaxWidth(),
                         singleLine = true,
@@ -186,8 +189,8 @@ fun TradingScreen(
                     
                     // Take Profit
                     OutlinedTextField(
-                        value = "8.0",
-                        onValueChange = { },
+                        value = String.format("%.1f", uiState.tpPercent),
+                        onValueChange = { v -> v.toDoubleOrNull()?.let { viewModel.setTpPercent(it) } },
                         label = { Text("${strings.takeProfit} (%)") },
                         modifier = Modifier.fillMaxWidth(),
                         singleLine = true,

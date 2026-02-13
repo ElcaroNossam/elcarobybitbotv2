@@ -19,6 +19,7 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import io.enliko.trading.ui.theme.*
+import io.enliko.trading.data.models.ScreenerCoin
 import java.text.NumberFormat
 import java.util.Locale
 
@@ -27,25 +28,11 @@ import java.util.Locale
  * Crypto screener with filters and sorting
  */
 
-data class ScreenerCoin(
-    val symbol: String,
-    val name: String,
-    val price: Double,
-    val change24h: Double,
-    val volume24h: Double,
-    val marketCap: Double,
-    val oiChange: Double?,
-    val funding: Double?,
-    val volumeDelta: Double?
-)
-
 enum class ScreenerSortBy {
-    MARKET_CAP,
+    VOLUME,
     PRICE,
     CHANGE_24H,
-    VOLUME,
-    OI_CHANGE,
-    FUNDING
+    OI_CHANGE
 }
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -57,32 +44,31 @@ fun ScreenerScreen(
 ) {
     var isRefreshing by remember { mutableStateOf(false) }
     var searchQuery by remember { mutableStateOf("") }
-    var sortBy by remember { mutableStateOf(ScreenerSortBy.MARKET_CAP) }
+    var sortBy by remember { mutableStateOf(ScreenerSortBy.VOLUME) }
     var sortAscending by remember { mutableStateOf(false) }
     var showDerivatives by remember { mutableStateOf(false) }
     var selectedFilter by remember { mutableStateOf("all") } // all, gainers, losers
     
-    // Sample data
+    // Sample data (fallback when API is unavailable)
     val coins = remember {
         listOf(
-            ScreenerCoin("BTCUSDT", "Bitcoin", 97150.0, 1.25, 45_000_000_000.0, 1_920_000_000_000.0, 2.5, 0.01, 15.0),
-            ScreenerCoin("ETHUSDT", "Ethereum", 3475.0, 2.15, 22_000_000_000.0, 418_000_000_000.0, 3.2, 0.008, 12.0),
-            ScreenerCoin("SOLUSDT", "Solana", 193.50, -0.85, 8_500_000_000.0, 92_000_000_000.0, -1.5, 0.015, -5.0),
-            ScreenerCoin("BNBUSDT", "BNB", 685.0, 0.75, 3_200_000_000.0, 102_000_000_000.0, 0.8, 0.005, 3.0),
-            ScreenerCoin("XRPUSDT", "XRP", 2.35, 5.25, 12_000_000_000.0, 135_000_000_000.0, 8.5, 0.012, 25.0),
-            ScreenerCoin("ADAUSDT", "Cardano", 1.05, -2.15, 2_100_000_000.0, 37_000_000_000.0, -3.2, 0.002, -8.0),
-            ScreenerCoin("DOGEUSDT", "Dogecoin", 0.385, 3.85, 5_800_000_000.0, 57_000_000_000.0, 5.5, 0.018, 18.0),
-            ScreenerCoin("AVAXUSDT", "Avalanche", 42.50, 1.95, 1_800_000_000.0, 17_500_000_000.0, 4.2, 0.008, 10.0),
-            ScreenerCoin("DOTUSDT", "Polkadot", 7.85, -1.25, 950_000_000.0, 11_200_000_000.0, -2.1, 0.003, -4.0),
-            ScreenerCoin("LINKUSDT", "Chainlink", 23.75, 2.85, 1_200_000_000.0, 15_100_000_000.0, 3.8, 0.006, 12.0)
+            ScreenerCoin("BTCUSDT", 97150.0, 1.25, 45_000_000_000.0, 2.5),
+            ScreenerCoin("ETHUSDT", 3475.0, 2.15, 22_000_000_000.0, 3.2),
+            ScreenerCoin("SOLUSDT", 193.50, -0.85, 8_500_000_000.0, -1.5),
+            ScreenerCoin("BNBUSDT", 685.0, 0.75, 3_200_000_000.0, 0.8),
+            ScreenerCoin("XRPUSDT", 2.35, 5.25, 12_000_000_000.0, 8.5),
+            ScreenerCoin("ADAUSDT", 1.05, -2.15, 2_100_000_000.0, -3.2),
+            ScreenerCoin("DOGEUSDT", 0.385, 3.85, 5_800_000_000.0, 5.5),
+            ScreenerCoin("AVAXUSDT", 42.50, 1.95, 1_800_000_000.0, 4.2),
+            ScreenerCoin("DOTUSDT", 7.85, -1.25, 950_000_000.0, -2.1),
+            ScreenerCoin("LINKUSDT", 23.75, 2.85, 1_200_000_000.0, 3.8)
         )
     }
     
     val filteredCoins = coins
         .filter { coin ->
             val matchesSearch = searchQuery.isEmpty() || 
-                coin.symbol.contains(searchQuery, ignoreCase = true) ||
-                coin.name.contains(searchQuery, ignoreCase = true)
+                coin.symbol.contains(searchQuery, ignoreCase = true)
             val matchesFilter = when (selectedFilter) {
                 "gainers" -> coin.change24h > 0
                 "losers" -> coin.change24h < 0
@@ -93,12 +79,10 @@ fun ScreenerScreen(
         .sortedWith(
             compareBy<ScreenerCoin> { coin ->
                 when (sortBy) {
-                    ScreenerSortBy.MARKET_CAP -> coin.marketCap
+                    ScreenerSortBy.VOLUME -> coin.volume24h
                     ScreenerSortBy.PRICE -> coin.price
                     ScreenerSortBy.CHANGE_24H -> coin.change24h
-                    ScreenerSortBy.VOLUME -> coin.volume24h
                     ScreenerSortBy.OI_CHANGE -> coin.oiChange ?: 0.0
-                    ScreenerSortBy.FUNDING -> coin.funding ?: 0.0
                 }
             }.let { if (sortAscending) it else it.reversed() }
         )
@@ -273,8 +257,8 @@ private fun SortOptionsRow(
             modifier = Modifier.weight(1f)
         ) {
             item {
-                SortChip("Cap", sortBy == ScreenerSortBy.MARKET_CAP) {
-                    onSortChange(ScreenerSortBy.MARKET_CAP)
+                SortChip("Volume", sortBy == ScreenerSortBy.VOLUME) {
+                    onSortChange(ScreenerSortBy.VOLUME)
                 }
             }
             item {
@@ -287,20 +271,10 @@ private fun SortOptionsRow(
                     onSortChange(ScreenerSortBy.CHANGE_24H)
                 }
             }
-            item {
-                SortChip("Volume", sortBy == ScreenerSortBy.VOLUME) {
-                    onSortChange(ScreenerSortBy.VOLUME)
-                }
-            }
             if (showDerivatives) {
                 item {
                     SortChip("OI Δ", sortBy == ScreenerSortBy.OI_CHANGE) {
                         onSortChange(ScreenerSortBy.OI_CHANGE)
-                    }
-                }
-                item {
-                    SortChip("Fund", sortBy == ScreenerSortBy.FUNDING) {
-                        onSortChange(ScreenerSortBy.FUNDING)
                     }
                 }
             }
@@ -406,7 +380,7 @@ private fun ScreenerCoinRow(
                     color = EnlikoTextPrimary
                 )
                 Text(
-                    text = coin.name,
+                    text = coin.symbol,
                     style = MaterialTheme.typography.bodySmall,
                     color = EnlikoTextSecondary
                 )
