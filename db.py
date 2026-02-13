@@ -3709,16 +3709,20 @@ def get_trade_logs_list(user_id: int, limit: int = 500, strategy: Optional[str] 
         params = [user_id]
         
         if strategy:
-            where_clauses.append("strategy = ?")
-            params.append(strategy)
+            if strategy == "manual_all":
+                # Special case: include both manual and unknown strategies
+                where_clauses.append("(strategy IS NULL OR strategy IN ('unknown', 'manual'))")
+            else:
+                where_clauses.append("strategy = ?")
+                params.append(strategy)
         
         if account_type:
             where_clauses.append("(account_type = ? OR account_type IS NULL)")
             params.append(account_type)
             
-        # Exchange filter - check if exchange column exists
+        # Exchange filter
         if exchange and _col_exists(conn, "trade_logs", "exchange"):
-            where_clauses.append("exchange = ?")
+            where_clauses.append("(exchange = ? OR exchange IS NULL)")
             params.append(exchange)
         
         # Period filter (rolling windows, same as get_trade_stats)

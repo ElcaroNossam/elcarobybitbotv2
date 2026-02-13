@@ -17056,12 +17056,15 @@ STRATEGY_DISPLAY_NAMES = {
     "elcaro": "🔥 Enliko",
     "fibonacci": "📐 Fibonacci",
     "manual": "✋ Manual",
+    "spot": "💹 Spot",
     "all": "📈 All",
 }
 
 ACCOUNT_DISPLAY_NAMES = {
     "demo": "🔵 Demo",
     "real": "🟢 Real",
+    "testnet": "🧪 Testnet",
+    "mainnet": "🌐 Mainnet",
 }
 
 async def format_trade_stats(stats: dict, t: dict, strategy_name: str = "all", period_label: str = "", unrealized_pnl: float = 0.0, uid: int = None, account_type: str = "demo", period: str = "all", api_pnl: float = None) -> str:
@@ -17520,9 +17523,56 @@ def get_stats_keyboard(t: dict, current_strategy: str = "all", current_period: s
     return InlineKeyboardMarkup(keyboard)
 
 
-async def get_unrealized_pnl(user_id: int, strategy: str | None = None, account_type: str | None = None) -> float:
-    """Get total unrealized PnL from Bybit positions, optionally filtered by strategy and account_type.
+async def _get_unrealized_pnl_hl(user_id: int, strategy: str | None, account_type: str | None, account_types: list) -> float:
+    """Get unrealized PnL from HyperLiquid positions."""
+    from hl_adapter import HLAdapter
+    from core.account_utils import get_hl_credentials_for_account
     
+    total_unrealized = 0.0
+    hl_creds = db.get_hl_credentials(user_id)
+    
+    # If strategy is specified, get DB positions for filtering
+    symbol_strategy_map = {}
+    if strategy:
+        db_positions = db.get_active_positions(user_id, account_type=account_type, exchange="hyperliquid")
+        symbol_strategy_map = {p["symbol"]: p.get("strategy") for p in db_positions}
+    
+    for acc_type in account_types:
+        private_key, is_testnet, _wallet = get_hl_credentials_for_account(hl_creds, acc_type)
+        if not private_key:
+            continue
+        adapter = HLAdapter(private_key=private_key, testnet=is_testnet)
+        try:
+            await adapter.initialize()
+            if strategy:
+                # Get individual position unrealized PnL for filtering
+                positions = await adapter.get_positions()
+                for pos in positions:
+                    coin = pos.get("coin", "")
+                    szi = float(pos.get("szi", 0))
+                    if szi == 0:
+                        continue
+                    # Match coin to DB symbol for strategy filtering
+                    pos_strategy = symbol_strategy_map.get(f"{coin}USDT") or symbol_strategy_map.get(coin)
+                    if strategy and pos_strategy != strategy:
+                        continue
+                    total_unrealized += float(pos.get("unrealizedPnl") or 0)
+            else:
+                # No strategy filter — get total unrealized PnL in one call
+                pnl = await adapter._client.get_unrealized_pnl()
+                total_unrealized += float(pnl or 0)
+        except Exception as e:
+            logger.warning(f"[{user_id}] Failed to get HL unrealized PnL for {acc_type}: {e}")
+        finally:
+            await adapter.close()
+    
+    return total_unrealized
+
+
+async def get_unrealized_pnl(user_id: int, strategy: str | None = None, account_type: str | None = None) -> float:
+    """Get total unrealized PnL from exchange positions, optionally filtered by strategy and account_type.
+    
+    Supports both Bybit and HyperLiquid exchanges.
     OPTIMIZED: Fetches positions for specified account type or all account types in parallel.
     """
     try:
@@ -17536,6 +17586,12 @@ async def get_unrealized_pnl(user_id: int, strategy: str | None = None, account_
             return 0.0
         
         user_exchange = db.get_exchange_type(user_id) or "bybit"
+        
+        # HyperLiquid: use HLAdapter to get unrealized PnL
+        if user_exchange == "hyperliquid":
+            return await _get_unrealized_pnl_hl(user_id, strategy, account_type, account_types)
+        
+        # Bybit: use positions API
         db_positions = db.get_active_positions(user_id, account_type=account_type, exchange=user_exchange)
         
         # Build a mapping of symbol -> strategy from DB
@@ -17801,8 +17857,18 @@ async def on_trades_callback(update: Update, ctx: ContextTypes.DEFAULT_TYPE):
     if data == "trades:to_stats":
         # Switch back to stats view - reuse on_stats_callback logic
         user_exchange = db.get_exchange_type(uid) or "bybit"
-        creds = db.get_all_user_credentials(uid)
-        default_account = "real" if creds.get("real_api_key") else "demo"
+        # Detect default account based on exchange (same logic as cmd_trade_stats)
+        if user_exchange == "hyperliquid":
+            _tm = get_trading_mode(uid)
+            if _tm == "real":
+                default_account = "mainnet"
+            elif _tm == "both":
+                default_account = "mainnet" if db.get_hl_credentials(uid).get("hl_mainnet_private_key") else "testnet"
+            else:
+                default_account = "testnet"
+        else:
+            creds = db.get_all_user_credentials(uid)
+            default_account = "real" if creds.get("real_api_key") else "demo"
         stats = get_trade_stats(uid, strategy=None, period="all", account_type=default_account, exchange=user_exchange)
         period_label = t.get('stats_period_all', 'All time')
         unrealized_pnl = await get_unrealized_pnl(uid, strategy=None, account_type=default_account)
@@ -17858,23 +17924,12 @@ async def on_trades_callback(update: Update, ctx: ContextTypes.DEFAULT_TYPE):
     
     # Manual strategy includes unknown
     if strategy == "manual":
-        # Get both manual and unknown trades
-        trades_manual, count_manual = db.get_trade_logs_list(
+        # Use special "manual_all" marker to query both manual+unknown in one DB call
+        trades, total_count = db.get_trade_logs_list(
             uid, limit=per_page, offset=page * per_page,
-            strategy="manual", account_type=account_type,
+            strategy="manual_all", account_type=account_type,
             exchange=user_exchange, period=period, return_count=True
         )
-        trades_unknown, count_unknown = db.get_trade_logs_list(
-            uid, limit=per_page, offset=0,
-            strategy="unknown", account_type=account_type,
-            exchange=user_exchange, period=period, return_count=True
-        )
-        # Merge and sort
-        all_trades = trades_manual + trades_unknown
-        total_count = count_manual + count_unknown
-        # Sort by time desc and take per_page
-        all_trades.sort(key=lambda x: x.get("time", ""), reverse=True)
-        trades = all_trades[:per_page]
     else:
         trades, total_count = db.get_trade_logs_list(
             uid, limit=per_page, offset=page * per_page,
