@@ -16498,7 +16498,10 @@ async def on_positions_cb(update: Update, ctx: ContextTypes.DEFAULT_TYPE):
     
     if data == "pos:back":
         # Go back to main menu
-        await query.message.delete()
+        try:
+            await query.message.delete()
+        except Exception:
+            pass
         await ctx.bot.send_message(
             chat_id=uid,
             text=t.get("welcome", "Welcome!"),
@@ -26581,7 +26584,7 @@ def get_subscribe_menu_keyboard(t: dict) -> InlineKeyboardMarkup:
             InlineKeyboardButton(t.get("btn_enter_promo", "🎟 Invite"), callback_data="sub:promo"),
             InlineKeyboardButton(t.get("btn_my_subscription", "📋 My Status"), callback_data="sub:my"),
         ],
-        [InlineKeyboardButton(t.get("btn_back", "« Back"), callback_data="back:main")],
+        [InlineKeyboardButton(t.get("btn_back", "« Back"), callback_data="menu:main")],
     ])
 
 
@@ -27807,11 +27810,14 @@ async def on_subscribe_cb(update: Update, ctx: ContextTypes.DEFAULT_TYPE):
     
     if action == "menu":
         # Back to main subscription menu
-        await q.edit_message_text(
-            f"{t.get('subscribe_menu_header', '💎 *Subscription Plans*')}\n\n{t.get('subscribe_menu_info', 'Choose your plan:')}",
-            parse_mode="Markdown",
-            reply_markup=get_subscribe_menu_keyboard(t)
-        )
+        try:
+            await q.edit_message_text(
+                f"{t.get('subscribe_menu_header', '💎 *Subscription Plans*')}\n\n{t.get('subscribe_menu_info', 'Choose your plan:')}",
+                parse_mode="Markdown",
+                reply_markup=get_subscribe_menu_keyboard(t)
+            )
+        except Exception:
+            pass
     
     elif action == "plan":
         plan = parts[2] if len(parts) > 2 else ""
