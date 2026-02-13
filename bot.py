@@ -5424,7 +5424,7 @@ def main_menu_keyboard(ctx: ContextTypes.DEFAULT_TYPE, user_id: int = None, upda
     
     # Add admin row if user is admin
     if user_id == ADMIN_ID:
-        keyboard.append([ t.get('button_licenses', '🎫 Licenses'), t.get('button_admin', '🛡️ Admin') ])
+        keyboard.append([ t.get('button_admin', '🛡️ Admin') ])
     
     return ReplyKeyboardMarkup(
         keyboard=keyboard,
@@ -25702,15 +25702,6 @@ async def text_handler(update: Update, ctx: ContextTypes.DEFAULT_TYPE):
     
     # Admin-only buttons
     if uid == ADMIN_ID:
-        if text == ctx.t.get("button_licenses", "🎫 Licenses"):
-            # Show license management menu
-            await update.message.reply_text(
-                ctx.t.get("admin_license_menu", "🎫 *License Management*"),
-                parse_mode="Markdown",
-                reply_markup=get_admin_license_keyboard(ctx.t)
-            )
-            return
-        
         if text == ctx.t.get("button_admin", "🛡️ Admin"):
             return await cmd_admin(update, ctx)
     
@@ -27784,8 +27775,13 @@ async def cmd_subscribe(update: Update, ctx: ContextTypes.DEFAULT_TYPE):
     # Show current license status if any
     if license_info["is_active"]:
         import datetime
-        expires_dt = datetime.datetime.fromtimestamp(license_info["expires"])
-        status = f"\n\n✅ Current: {license_info['license_type'].title()} (expires {expires_dt.strftime('%Y-%m-%d')})"
+        expires_ts = license_info.get("expires")
+        if expires_ts:
+            expires_dt = datetime.datetime.fromtimestamp(expires_ts)
+            days_left = license_info.get("days_left", 0)
+            status = f"\n\n✅ Current: {license_info['license_type'].title()} (expires {expires_dt.strftime('%Y-%m-%d')}, {days_left} days left)"
+        else:
+            status = f"\n\n✅ Current: {license_info['license_type'].title()} (Lifetime ♾️)"
     else:
         status = ""
     
