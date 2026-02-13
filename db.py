@@ -115,6 +115,9 @@ USER_FIELDS_WHITELIST = {
     "trade_elcaro",
     "trade_fibonacci",
     "trade_manual",  # 0/1 - monitor and manage manual positions (set SL/TP/ATR)
+    # Enable flags (webapp format - aliases for trade_* fields)
+    "enable_scryptomera", "enable_elcaro", "enable_scalper",
+    "enable_fibonacci", "enable_rsi_bb", "enable_oi", "enable_wyckoff",
     # настройки по стратегиям (JSON)
     "strategy_settings",
     # DCA настройки

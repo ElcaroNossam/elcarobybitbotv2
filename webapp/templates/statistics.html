@@ -7,15 +7,15 @@
     <meta name="apple-mobile-web-app-capable" content="yes">
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
     <meta name="theme-color" content="#0a0a0a">
-    <meta name="theme-color" content="#0a0a0a">
     <title>Trading Statistics | Enliko</title>
     
     <!-- Telegram WebApp SDK -->
     <script src="https://telegram.org/js/telegram-web-app.js"></script>
     
     <!-- Favicon -->
+    <link rel="icon" type="image/png" href="/static/images/favicon.png">
     <link rel="icon" type="image/svg+xml" href="/static/images/favicon.svg">
-    <link rel="apple-touch-icon" href="/static/images/favicon.svg">
+    <link rel="apple-touch-icon" href="/static/images/favicon.png">
     
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
@@ -693,11 +693,12 @@
                     <span class="filter-label">Strategy:</span>
                     <select class="filter-select" id="strategyFilter">
                         <option value="all">All Strategies</option>
-                        <option value="elcaro">Enliko</option>
+                        <option value="oi">OI Flow</option>
                         <option value="scryptomera">Scryptomera</option>
                         <option value="scalper">Scalper</option>
-                        <option value="wyckoff">Wyckoff</option>
-                        <option value="oi">OI Flow</option>
+                        <option value="elcaro">Elcaro AI</option>
+                        <option value="fibonacci">Fibonacci</option>
+                        <option value="rsi_bb">RSI + BB</option>
                         <option value="manual">Manual</option>
                     </select>
                 </div>
@@ -1016,7 +1017,6 @@
                 'elcaro': '#3b82f6',         // Blue
                 'fibonacci': '#a855f7',      // Purple
                 'rsi_bb': '#00d4ff',         // Cyan
-                'wyckoff': '#f97316',        // Orange
                 'manual': '#ec4899',         // Pink
                 'atr': '#14b8a6',            // Teal
                 'unknown': '#6b7280'         // Gray
@@ -1075,7 +1075,6 @@
                 'elcaro': 'fa-bolt',
                 'scryptomera': 'fa-newspaper',
                 'scalper': 'fa-stopwatch',
-                'wyckoff': 'fa-chart-bar',
                 'oi': 'fa-water',
                 'fibonacci': 'fa-wave-square',
                 'rsi_bb': 'fa-chart-area',
@@ -1091,7 +1090,6 @@
                 'elcaro': '#3b82f6',
                 'fibonacci': '#a855f7',
                 'rsi_bb': '#00d4ff',
-                'wyckoff': '#f97316',
                 'manual': '#ec4899',
                 'atr': '#14b8a6'
             };

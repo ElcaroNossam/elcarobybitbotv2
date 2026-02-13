@@ -154,13 +154,13 @@ async def fetch_platform_stats() -> Dict[str, Any]:
     except Exception as e:
         logger.error(f"Error fetching platform stats: {e}")
         return {
-            "total_users": 12500,
-            "total_trades": 847293,
-            "total_volume": 15847000,
-            "win_rate": 78.5,
-            "active_positions": 1247,
-            "today_pnl": 28470,
-            "signals_today": 156,
+            "total_users": 0,
+            "total_trades": 0,
+            "total_volume": 0,
+            "win_rate": 0,
+            "active_positions": 0,
+            "today_pnl": 0,
+            "signals_today": 0,
             "uptime": 99.9,
             "server_status": "online"
         }

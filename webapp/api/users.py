@@ -122,8 +122,10 @@ async def get_settings(
             "sl_percent": creds.get("sl_percent", 1),
             "enable_scryptomera": creds.get("enable_scryptomera", False),
             "enable_elcaro": creds.get("enable_elcaro", False),
-            "enable_wyckoff": creds.get("enable_wyckoff", False),
             "enable_scalper": creds.get("enable_scalper", False),
+            "enable_fibonacci": creds.get("enable_fibonacci", False),
+            "enable_rsi_bb": creds.get("enable_rsi_bb", False),
+            "enable_oi": creds.get("enable_oi", False),
             "limit_only": creds.get("limit_only", False),
             "use_oi": creds.get("use_oi", False),
             "use_rsi_bb": creds.get("use_rsi_bb", False),
@@ -211,7 +213,8 @@ async def update_settings(
             # Bybit settings
             if key in ["percent", "leverage", "tp_percent", "sl_percent", 
                        "enable_scryptomera", "enable_elcaro", "enable_wyckoff", 
-                       "enable_scalper", "limit_only", "use_oi", "use_rsi_bb", "use_atr"]:
+                       "enable_scalper", "enable_fibonacci", "enable_rsi_bb", "enable_oi",
+                       "limit_only", "use_oi", "use_rsi_bb", "use_atr"]:
                 db.set_user_field(user_id, key, value)
     
     return {"success": True}

@@ -857,7 +857,7 @@
             
             <!-- Strategy Tabs -->
             <div class="strategy-tabs">
-                <div class="strategy-tab active" data-strategy="enliko" onclick="selectStrategyTab('enliko')">Enliko AI</div>
+                <div class="strategy-tab active" data-strategy="elcaro" onclick="selectStrategyTab('elcaro')">Elcaro AI</div>
                 <div class="strategy-tab" data-strategy="scryptomera" onclick="selectStrategyTab('scryptomera')">Scryptomera</div>
                 <div class="strategy-tab" data-strategy="scalper" onclick="selectStrategyTab('scalper')">Scalper</div>
                 <div class="strategy-tab" data-strategy="fibonacci" onclick="selectStrategyTab('fibonacci')">Fibonacci</div>
@@ -865,23 +865,23 @@
                 <div class="strategy-tab" data-strategy="oi" onclick="selectStrategyTab('oi')">OI</div>
             </div>
             
-            <!-- Enliko AI Settings -->
-            <div id="strategy-enliko" class="strategy-panel active">
+            <!-- Elcaro AI Settings -->
+            <div id="strategy-elcaro" class="strategy-panel active">
                 <div class="strategy-enable">
                     <div class="toggle-label">
-                        <span>Enable Enliko AI</span>
+                        <span>Enable Elcaro AI</span>
                         <small>AI-powered signals with ATR trailing - Settings from signals</small>
                     </div>
-                    <div class="toggle" id="toggle_enliko" onclick="toggleStrategyEnabled('enliko')"></div>
+                    <div class="toggle" id="toggle_elcaro" onclick="toggleStrategyEnabled('elcaro')"></div>
                 </div>
                 <div class="form-grid strategy-params">
                     <div class="form-group">
                         <label class="form-label">Position Size %</label>
-                        <input type="number" id="enliko_percent" class="form-input" value="5" min="0.1" max="100" step="0.1">
+                        <input type="number" id="elcaro_percent" class="form-input" value="5" min="0.1" max="100" step="0.1">
                     </div>
                     <div class="form-group">
                         <label class="form-label">Direction</label>
-                        <select id="enliko_direction" class="form-select">
+                        <select id="elcaro_direction" class="form-select">
                             <option value="all">ALL</option>
                             <option value="long">LONG Only</option>
                             <option value="short">SHORT Only</option>
@@ -1352,10 +1352,12 @@
             document.getElementById('sl_percent').value = settings.sl_percent || 1;
             
             // Update toggles
-            updateToggle('toggle_enliko', settings.enable_enliko);
-            updateToggle('toggle_wyckoff', settings.enable_wyckoff);
+            updateToggle('toggle_elcaro', settings.enable_elcaro);
             updateToggle('toggle_scryptomera', settings.enable_scryptomera);
             updateToggle('toggle_scalper', settings.enable_scalper);
+            updateToggle('toggle_fibonacci', settings.enable_fibonacci);
+            updateToggle('toggle_rsi_bb', settings.enable_rsi_bb);
+            updateToggle('toggle_oi', settings.enable_oi);
             
             // Update exchange tabs
             document.querySelectorAll('.exchange-tab').forEach(tab => {
@@ -1395,10 +1397,12 @@
                         leverage: parseInt(document.getElementById('leverage').value),
                         tp_percent: parseFloat(document.getElementById('tp_percent').value),
                         sl_percent: parseFloat(document.getElementById('sl_percent').value),
-                        enable_enliko: settings.enable_enliko || false,
-                        enable_wyckoff: settings.enable_wyckoff || false,
+                        enable_elcaro: settings.enable_elcaro || false,
                         enable_scryptomera: settings.enable_scryptomera || false,
-                        enable_scalper: settings.enable_scalper || false
+                        enable_scalper: settings.enable_scalper || false,
+                        enable_fibonacci: settings.enable_fibonacci || false,
+                        enable_rsi_bb: settings.enable_rsi_bb || false,
+                        enable_oi: settings.enable_oi || false
                     }
                 };
                 
@@ -1632,7 +1636,7 @@
         
         // Strategy Settings Functions
         let strategySettings = {};
-        let currentStrategy = 'enliko';
+        let currentStrategy = 'elcaro';
         let strategyExchange = 'bybit';
         let strategyAccountType = 'demo';
         
