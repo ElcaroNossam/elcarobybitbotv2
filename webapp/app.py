@@ -698,6 +698,11 @@ def create_app() -> FastAPI:
     async def stats_page(request: Request):
         """Trading statistics dashboard (alias)"""
         return templates.TemplateResponse("statistics.html", {"request": request})
+
+    @app.get("/download", response_class=HTMLResponse)
+    async def download_page(request: Request):
+        """Download page for Android APK / iOS TestFlight"""
+        return templates.TemplateResponse("download.html", {"request": request})
     
     # ===== LEGAL PAGES =====
     

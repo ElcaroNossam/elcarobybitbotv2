@@ -1,0 +1,446 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Download Enliko Trading</title>
+    <link rel="icon" href="/static/img/favicon.png" type="image/png">
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'SF Pro Display', 'Segoe UI', Roboto, sans-serif;
+            background: #050505;
+            color: #f0f0f0;
+            min-height: 100vh;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            padding: 20px;
+            overflow-x: hidden;
+        }
+
+        /* Ambient glow */
+        body::before {
+            content: '';
+            position: fixed;
+            top: -40%;
+            left: -20%;
+            width: 80%;
+            height: 80%;
+            background: radial-gradient(circle, rgba(99, 102, 241, 0.08) 0%, transparent 70%);
+            pointer-events: none;
+            z-index: 0;
+        }
+        body::after {
+            content: '';
+            position: fixed;
+            bottom: -40%;
+            right: -20%;
+            width: 80%;
+            height: 80%;
+            background: radial-gradient(circle, rgba(168, 85, 247, 0.06) 0%, transparent 70%);
+            pointer-events: none;
+            z-index: 0;
+        }
+
+        .container {
+            position: relative;
+            z-index: 1;
+            max-width: 520px;
+            width: 100%;
+            text-align: center;
+        }
+
+        .logo {
+            font-size: 48px;
+            margin-bottom: 8px;
+        }
+
+        h1 {
+            font-size: 28px;
+            font-weight: 700;
+            margin-bottom: 4px;
+            background: linear-gradient(135deg, #f0f0f0, #a0a0b0);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+        }
+
+        .subtitle {
+            color: #888;
+            font-size: 14px;
+            margin-bottom: 32px;
+        }
+
+        /* Glass card */
+        .card {
+            background: rgba(255, 255, 255, 0.04);
+            border: 1px solid rgba(255, 255, 255, 0.08);
+            border-radius: 20px;
+            padding: 32px 28px;
+            backdrop-filter: blur(20px);
+            -webkit-backdrop-filter: blur(20px);
+            margin-bottom: 20px;
+        }
+
+        .platform-badge {
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+            background: rgba(76, 175, 80, 0.12);
+            border: 1px solid rgba(76, 175, 80, 0.25);
+            color: #4CAF50;
+            padding: 6px 14px;
+            border-radius: 20px;
+            font-size: 12px;
+            font-weight: 600;
+            margin-bottom: 20px;
+            letter-spacing: 0.5px;
+        }
+
+        .app-icon {
+            width: 80px;
+            height: 80px;
+            border-radius: 20px;
+            background: linear-gradient(135deg, #6366f1, #a855f7);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 36px;
+            margin: 0 auto 16px;
+            box-shadow: 0 8px 32px rgba(99, 102, 241, 0.3);
+        }
+
+        .app-name {
+            font-size: 22px;
+            font-weight: 700;
+            margin-bottom: 4px;
+        }
+
+        .app-version {
+            color: #888;
+            font-size: 13px;
+            margin-bottom: 20px;
+        }
+
+        .app-size {
+            color: #666;
+            font-size: 12px;
+            margin-bottom: 24px;
+        }
+
+        /* Download button */
+        .download-btn {
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            gap: 10px;
+            width: 100%;
+            padding: 16px 32px;
+            background: linear-gradient(135deg, #6366f1, #a855f7);
+            color: white;
+            font-size: 16px;
+            font-weight: 700;
+            border: none;
+            border-radius: 14px;
+            cursor: pointer;
+            text-decoration: none;
+            transition: all 0.3s ease;
+            box-shadow: 0 4px 20px rgba(99, 102, 241, 0.35);
+            letter-spacing: 0.3px;
+        }
+
+        .download-btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 8px 30px rgba(99, 102, 241, 0.5);
+        }
+
+        .download-btn:active {
+            transform: translateY(0);
+        }
+
+        .download-btn svg {
+            width: 20px;
+            height: 20px;
+        }
+
+        /* Info section */
+        .info-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 12px;
+            margin-top: 20px;
+        }
+
+        .info-item {
+            background: rgba(255, 255, 255, 0.03);
+            border: 1px solid rgba(255, 255, 255, 0.06);
+            border-radius: 12px;
+            padding: 14px 12px;
+            text-align: center;
+        }
+
+        .info-label {
+            color: #666;
+            font-size: 11px;
+            text-transform: uppercase;
+            letter-spacing: 0.8px;
+            margin-bottom: 4px;
+        }
+
+        .info-value {
+            color: #e0e0e0;
+            font-size: 14px;
+            font-weight: 600;
+        }
+
+        /* Instructions */
+        .instructions {
+            margin-top: 8px;
+        }
+
+        .instructions h3 {
+            font-size: 15px;
+            font-weight: 600;
+            margin-bottom: 16px;
+            color: #ccc;
+        }
+
+        .step {
+            display: flex;
+            align-items: flex-start;
+            gap: 12px;
+            text-align: left;
+            margin-bottom: 14px;
+        }
+
+        .step-num {
+            flex-shrink: 0;
+            width: 28px;
+            height: 28px;
+            border-radius: 50%;
+            background: rgba(99, 102, 241, 0.15);
+            border: 1px solid rgba(99, 102, 241, 0.3);
+            color: #818cf8;
+            font-size: 13px;
+            font-weight: 700;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .step-text {
+            color: #999;
+            font-size: 13px;
+            line-height: 1.5;
+            padding-top: 3px;
+        }
+
+        .step-text strong {
+            color: #ccc;
+        }
+
+        /* Warning */
+        .warning {
+            display: flex;
+            align-items: flex-start;
+            gap: 10px;
+            background: rgba(251, 191, 36, 0.08);
+            border: 1px solid rgba(251, 191, 36, 0.15);
+            border-radius: 12px;
+            padding: 14px 16px;
+            margin-top: 20px;
+            text-align: left;
+        }
+
+        .warning-icon {
+            font-size: 18px;
+            flex-shrink: 0;
+            margin-top: 1px;
+        }
+
+        .warning-text {
+            color: #b89a3c;
+            font-size: 12px;
+            line-height: 1.5;
+        }
+
+        /* iOS section */
+        .ios-section {
+            margin-top: 12px;
+        }
+
+        .ios-btn {
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            gap: 8px;
+            width: 100%;
+            padding: 14px 24px;
+            background: rgba(255, 255, 255, 0.06);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            color: #ccc;
+            font-size: 14px;
+            font-weight: 600;
+            border-radius: 14px;
+            cursor: default;
+            text-decoration: none;
+        }
+
+        .ios-badge {
+            background: rgba(99, 102, 241, 0.15);
+            color: #818cf8;
+            font-size: 10px;
+            padding: 2px 8px;
+            border-radius: 6px;
+            font-weight: 700;
+        }
+
+        .footer {
+            margin-top: 24px;
+            color: #444;
+            font-size: 11px;
+        }
+
+        .footer a {
+            color: #666;
+            text-decoration: none;
+        }
+
+        .footer a:hover {
+            color: #818cf8;
+        }
+
+        /* Build date */
+        .build-date {
+            color: #555;
+            font-size: 11px;
+            margin-top: 8px;
+        }
+
+        @media (max-width: 480px) {
+            .card { padding: 24px 20px; }
+            h1 { font-size: 24px; }
+            .download-btn { padding: 14px 24px; font-size: 15px; }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="logo">📊</div>
+        <h1>Enliko Trading</h1>
+        <p class="subtitle">Professional Algorithmic Trading Platform</p>
+
+        <!-- Android Download Card -->
+        <div class="card">
+            <div class="platform-badge">
+                <span>🤖</span> ANDROID
+            </div>
+
+            <div class="app-icon">📈</div>
+            <div class="app-name">Enliko Trading</div>
+            <div class="app-version">Version 1.0.0 · Build 20260213</div>
+            <div class="app-size">15 MB · Signed Release APK</div>
+
+            <a href="/static/downloads/EnlikoTrading.apk" class="download-btn" id="downloadBtn">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+                    <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/>
+                    <polyline points="7 10 12 15 17 10"/>
+                    <line x1="12" y1="15" x2="12" y2="3"/>
+                </svg>
+                Download APK
+            </a>
+
+            <div class="info-grid">
+                <div class="info-item">
+                    <div class="info-label">Min Android</div>
+                    <div class="info-value">8.0 (API 26)</div>
+                </div>
+                <div class="info-item">
+                    <div class="info-label">Target SDK</div>
+                    <div class="info-value">Android 15</div>
+                </div>
+                <div class="info-item">
+                    <div class="info-label">Architecture</div>
+                    <div class="info-value">Universal</div>
+                </div>
+                <div class="info-item">
+                    <div class="info-label">Package</div>
+                    <div class="info-value">io.enliko.trading</div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Installation Instructions -->
+        <div class="card instructions">
+            <h3>📋 Installation Steps</h3>
+            <div class="step">
+                <div class="step-num">1</div>
+                <div class="step-text">Tap <strong>Download APK</strong> above</div>
+            </div>
+            <div class="step">
+                <div class="step-num">2</div>
+                <div class="step-text">Open the downloaded file. If prompted, go to <strong>Settings → Install unknown apps</strong> and allow your browser</div>
+            </div>
+            <div class="step">
+                <div class="step-num">3</div>
+                <div class="step-text">Tap <strong>Install</strong> and wait for completion</div>
+            </div>
+            <div class="step">
+                <div class="step-num">4</div>
+                <div class="step-text">Open the app and log in with your <strong>Enliko</strong> credentials</div>
+            </div>
+
+            <div class="warning">
+                <span class="warning-icon">⚠️</span>
+                <div class="warning-text">
+                    This is a <strong>beta build</strong> for testers. If you find any issues, 
+                    please report them to the development team via Telegram.
+                </div>
+            </div>
+        </div>
+
+        <!-- iOS Section -->
+        <div class="card ios-section">
+            <div class="ios-btn">
+                🍎 iOS — Available on TestFlight
+                <span class="ios-badge">BETA</span>
+            </div>
+            <p style="color: #555; font-size: 12px; margin-top: 10px;">
+                Contact the team for TestFlight invite link
+            </p>
+        </div>
+
+        <p class="build-date">Built: February 13, 2026</p>
+
+        <div class="footer">
+            <a href="https://enliko.com">enliko.com</a> · 
+            <a href="https://enliko.com/terminal">Terminal</a> · 
+            <a href="https://enliko.com/pricing">Pricing</a>
+        </div>
+    </div>
+
+    <script>
+        // Track download
+        document.getElementById('downloadBtn')?.addEventListener('click', function() {
+            this.innerHTML = `
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" style="width:20px;height:20px">
+                    <polyline points="20 6 9 17 4 12"/>
+                </svg>
+                Downloading...
+            `;
+            setTimeout(() => {
+                this.innerHTML = `
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" style="width:20px;height:20px">
+                        <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/>
+                        <polyline points="7 10 12 15 17 10"/>
+                        <line x1="12" y1="15" x2="12" y2="3"/>
+                    </svg>
+                    Download APK
+                `;
+            }, 3000);
+        });
+    </script>
+</body>
+</html>
