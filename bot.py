@@ -30,6 +30,7 @@ try:
         place_order_unified, close_position_unified, set_leverage_unified,
         invalidate_hl_cache,
     )
+    from hl_adapter import invalidate_adapter_cache
     from exchange_router import get_user_targets, Target, normalize_env
     UNIFIED_AVAILABLE = True
 except ImportError as e:
@@ -39,6 +40,7 @@ except ImportError as e:
     # Fallback empty implementations
     def get_user_targets(uid): return []
     def invalidate_hl_cache(user_id, account_type=None): pass
+    def invalidate_adapter_cache(wallet_address=None): pass
     Target = None
     normalize_env = lambda x: x
 
@@ -8897,6 +8899,7 @@ async def place_order_hyperliquid(
             try:
                 _acc_type = "testnet" if testnet else "mainnet"
                 invalidate_hl_cache(user_id, _acc_type)
+                invalidate_adapter_cache()  # Also clear adapter-level balance/positions cache
             except Exception:
                 pass
             return {
@@ -16754,6 +16757,7 @@ async def on_positions_cb(update: Update, ctx: ContextTypes.DEFAULT_TYPE):
                 # Invalidate HL positions/balance cache so refresh shows updated data
                 try:
                     invalidate_hl_cache(uid, account_type)
+                    invalidate_adapter_cache()  # Also clear adapter-level balance cache
                 except Exception:
                     pass
                 logger.info(f"[{uid}] HL close {symbol}: success, cache invalidated")
@@ -17067,6 +17071,7 @@ async def on_positions_cb(update: Update, ctx: ContextTypes.DEFAULT_TYPE):
         if exchange == "hyperliquid":
             try:
                 invalidate_hl_cache(uid, account_type)
+                invalidate_adapter_cache()  # Also clear adapter-level balance cache
             except Exception:
                 pass
             logger.info(f"[{uid}] HL close_all: {closed} closed, {errors} errors, cache invalidated")
@@ -21703,6 +21708,7 @@ async def monitor_positions_loop(app: Application):
                                         if current_exchange == "hyperliquid":
                                             try:
                                                 invalidate_hl_cache(uid, ap_account_type)
+                                                invalidate_adapter_cache()  # Also clear adapter-level balance cache
                                             except Exception:
                                                 pass
                                     finally:
@@ -21889,6 +21895,7 @@ async def monitor_positions_loop(app: Application):
                                     if current_exchange == "hyperliquid":
                                         try:
                                             invalidate_hl_cache(uid, ap_account_type)
+                                            invalidate_adapter_cache()  # Also clear adapter-level balance cache
                                         except Exception:
                                             pass
 

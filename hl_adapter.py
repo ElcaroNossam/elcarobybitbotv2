@@ -36,6 +36,26 @@ def _set_adapter_cache(key: str, data: Any):
     # Reduced logging
 
 
+def invalidate_adapter_cache(wallet_address: str = None):
+    """Invalidate HyperLiquid adapter-level cache.
+    
+    Args:
+        wallet_address: If provided, only clear entries matching this address.
+                       If None, clear ALL entries (safe since TTL is 180s).
+    """
+    if wallet_address:
+        keys_to_delete = [k for k in _hl_adapter_cache if wallet_address in k]
+        for k in keys_to_delete:
+            del _hl_adapter_cache[k]
+        if keys_to_delete:
+            logger.info(f"[HL-CACHE] Invalidated adapter cache for {wallet_address}: {len(keys_to_delete)} entries")
+    else:
+        count = len(_hl_adapter_cache)
+        _hl_adapter_cache.clear()
+        if count:
+            logger.info(f"[HL-CACHE] Invalidated ALL adapter cache: {count} entries")
+
+
 def _safe_float(val, default=0.0):
     """Safely convert value to float, handling empty strings and None"""
     if val is None or val == '':
