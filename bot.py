@@ -6422,6 +6422,12 @@ async def _bybit_request(user_id: int, method: str, path: str,
                     logger.warning(f"Bybit SL/TP validation: {path} - {data.get('retMsg')}")
                     raise RuntimeError(f"Bybit error {path}: {data}")
                 
+                # Delisting errors - coin is being delisted, no new positions allowed
+                # 30228 = "No new positions during delisting."
+                elif ret_code == 30228:
+                    logger.warning(f"Bybit delisting restriction for user {user_id}: {path} - {data.get('retMsg')}")
+                    raise RuntimeError(f"⚠️ Symbol is being delisted — no new positions allowed")
+                
                 else:
                     logger.error(f"Bybit error for user {user_id} on {path}: {data}")
                     raise RuntimeError(f"Bybit error {path}: {data}")
