@@ -16622,7 +16622,7 @@ async def on_positions_cb(update: Update, ctx: ContextTypes.DEFAULT_TYPE):
         
         if not pos:
             await query.edit_message_text(
-                t.get('position_not_found', 'Position not found'),
+                t.get('position_already_closed', '❌ Position {symbol} already closed.').format(symbol=symbol),
                 reply_markup=InlineKeyboardMarkup([[
                     InlineKeyboardButton(t.get('btn_back', '🔙 Back'), callback_data=f"pos:refresh:{saved_page}")
                 ]])
@@ -16648,7 +16648,7 @@ async def on_positions_cb(update: Update, ctx: ContextTypes.DEFAULT_TYPE):
         
         if not pos:
             await query.edit_message_text(
-                t.get('position_not_found', 'Position not found'),
+                t.get('position_already_closed', '❌ Position {symbol} already closed.').format(symbol=symbol),
                 reply_markup=InlineKeyboardMarkup([[
                     InlineKeyboardButton(t.get('btn_back', '🔙 Back'), callback_data=f"pos:refresh:{saved_page}")
                 ]])
@@ -16679,16 +16679,27 @@ async def on_positions_cb(update: Update, ctx: ContextTypes.DEFAULT_TYPE):
     if data.startswith("pos:confirm_close:"):
         # Execute close
         symbol = data.split(":")[2]
-        positions = await fetch_open_positions(uid, account_type=account_type, exchange=exchange)
-        pos = next((p for p in positions if p["symbol"] == symbol), None)
         
         # Get saved page
         saved_page = ctx.user_data.get('positions_page', 0)
         quote_currency = "USDC" if exchange == "hyperliquid" else "USDT"
         
+        # Show loading indicator IMMEDIATELY to prevent double-clicks
+        try:
+            await query.edit_message_text(
+                f"⏳ *{t.get('closing_position', 'Closing position')}...*\n\n"
+                f"📊 {symbol}",
+                parse_mode="Markdown"
+            )
+        except Exception:
+            pass
+        
+        positions = await fetch_open_positions(uid, account_type=account_type, exchange=exchange)
+        pos = next((p for p in positions if p["symbol"] == symbol), None)
+        
         if not pos:
             await query.edit_message_text(
-                t.get('position_already_closed', 'Position already closed'),
+                t.get('position_already_closed', '❌ Position {symbol} already closed.').format(symbol=symbol),
                 reply_markup=InlineKeyboardMarkup([[
                     InlineKeyboardButton(t.get('btn_back', '🔙 Back'), callback_data=f"pos:refresh:{saved_page}")
                 ]])
@@ -16883,6 +16894,15 @@ async def on_positions_cb(update: Update, ctx: ContextTypes.DEFAULT_TYPE):
         return
     
     if data == "pos:confirm_close_all":
+        # Show loading indicator IMMEDIATELY to prevent double-clicks
+        try:
+            await query.edit_message_text(
+                f"⏳ *{t.get('closing_all_positions', 'Closing all positions')}...*",
+                parse_mode="Markdown"
+            )
+        except Exception:
+            pass
+        
         # Execute close all
         positions = await fetch_open_positions(uid, account_type=account_type, exchange=exchange)
         if not positions:
@@ -30163,6 +30183,15 @@ async def on_hl_close_callback(update: Update, ctx: ContextTypes.DEFAULT_TYPE):
                 parse_mode="Markdown"
             )
             return
+        
+        # Show loading indicator IMMEDIATELY to prevent double-clicks
+        try:
+            await q.edit_message_text(
+                f"⏳ *Closing {len(positions)} position(s)...*",
+                parse_mode="Markdown"
+            )
+        except Exception:
+            pass
         
         # Close each position
         closed_count = 0
