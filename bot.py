@@ -1978,10 +1978,10 @@ def get_api_settings_keyboard(t: dict, creds: dict, uid: int = None) -> InlineKe
         hl_margin = db.get_user_field(uid, "hl_margin_mode") or "cross"
         bybit_leverage = db.get_user_field(uid, "bybit_leverage") or 10
         bybit_order_type = db.get_user_field(uid, "bybit_order_type") or "market"
-        bybit_coins = db.get_user_field(uid, "bybit_coins_filter") or "ALL"
+        bybit_coins = db.get_user_field(uid, "bybit_coins_group") or "ALL"
         hl_leverage = db.get_user_field(uid, "hl_leverage") or 10
         hl_order_type = db.get_user_field(uid, "hl_order_type") or "market"
-        hl_coins = db.get_user_field(uid, "hl_coins_filter") or "ALL"
+        hl_coins = db.get_user_field(uid, "hl_coins_group") or "ALL"
     
     # Status indicators
     demo_status = "✅" if bybit_demo_ok else "❌"
