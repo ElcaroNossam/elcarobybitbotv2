@@ -1898,6 +1898,7 @@ async def set_leverage(
         if not private_key:
             return {"success": False, "error": f"HL {account_type} not configured"}
         
+        adapter = None
         try:
             adapter = HLAdapter(
                 private_key=private_key,
@@ -1905,10 +1906,12 @@ async def set_leverage(
             )
             await adapter.initialize()  # Auto-discover main wallet
             await adapter.set_leverage(req.symbol.replace("USDT", "").replace("USDC", ""), req.leverage)
-            await adapter.close()
             return {"success": True, "leverage": req.leverage}
         except Exception as e:
             return {"success": False, "error": str(e)}
+        finally:
+            if adapter:
+                await adapter.close()
     else:
         # Bybit
         try:
@@ -1943,6 +1946,7 @@ async def cancel_order(
         if not private_key:
             return {"success": False, "error": f"HL {account_type} not configured"}
         
+        adapter = None
         try:
             adapter = HLAdapter(
                 private_key=private_key,
@@ -1950,10 +1954,12 @@ async def cancel_order(
             )
             await adapter.initialize()  # Auto-discover main wallet
             result = await adapter.cancel_order(req.symbol, req.order_id)
-            await adapter.close()
             return {"success": result.get("retCode") == 0}
         except Exception as e:
             return {"success": False, "error": str(e)}
+        finally:
+            if adapter:
+                await adapter.close()
     else:
         try:
             await bybit_request(
@@ -2036,6 +2042,7 @@ async def modify_position_tpsl(
         if not private_key:
             return {"success": False, "error": f"HL {hl_account} not configured"}
         
+        adapter = None
         try:
             adapter = HLAdapter(
                 private_key=private_key,
@@ -2049,7 +2056,6 @@ async def modify_position_tpsl(
             pos = next((p for p in positions if p.get("symbol") == req.symbol), None)
             
             if not pos:
-                await adapter.close()
                 return {"success": False, "error": "Position not found"}
             
             is_long = pos.get("side", "").lower() == "buy" or pos.get("side", "").lower() == "long"
@@ -2063,7 +2069,6 @@ async def modify_position_tpsl(
                 tp_price=req.take_profit,
                 sl_price=req.stop_loss
             )
-            await adapter.close()
             
             # P0.8: Set manual_sltp_override in DB so bot won't overwrite
             try:
@@ -2080,6 +2085,9 @@ async def modify_position_tpsl(
             return {"success": True, "message": "TP/SL updated", "result": result}
         except Exception as e:
             return {"success": False, "error": str(e)}
+        finally:
+            if adapter:
+                await adapter.close()
     
     else:
         # Bybit TP/SL modification
@@ -2144,6 +2152,7 @@ async def cancel_order_by_id(
         if not private_key:
             return {"success": False, "error": f"HL {account_type} not configured"}
         
+        adapter = None
         try:
             adapter = HLAdapter(
                 private_key=private_key,
@@ -2151,7 +2160,6 @@ async def cancel_order_by_id(
             )
             await adapter.initialize()  # Auto-discover main wallet
             result = await adapter.cancel_order(req.symbol, req.order_id)
-            await adapter.close()
             
             if result.get("success"):
                 return {"success": True, "message": f"Cancelled order {req.order_id}"}
@@ -2160,6 +2168,9 @@ async def cancel_order_by_id(
         except Exception as e:
             logger.error(f"HL cancel order error: {e}")
             return {"success": False, "error": str(e)}
+        finally:
+            if adapter:
+                await adapter.close()
     
     else:
         # Bybit cancel
@@ -3302,13 +3313,17 @@ async def get_chart_markers(
                 })
         
         # Also get active positions for current SL/TP levels
-        from db import get_active_positions, get_trading_mode
+        from db import get_active_positions, get_trading_mode, get_exchange_type
         
+        exchange = get_exchange_type(user_id) or "bybit"
         trading_mode = get_trading_mode(user_id)
-        account_types = ["demo"] if trading_mode == "demo" else ["real"] if trading_mode == "real" else ["demo", "real"]
+        if exchange == "hyperliquid":
+            account_types = ["testnet"] if trading_mode == "demo" else ["mainnet"] if trading_mode == "real" else ["testnet", "mainnet"]
+        else:
+            account_types = ["demo"] if trading_mode == "demo" else ["real"] if trading_mode == "real" else ["demo", "real"]
         
         for acc_type in account_types:
-            positions = get_active_positions(user_id, account_type=acc_type, exchange="bybit")
+            positions = get_active_positions(user_id, account_type=acc_type, exchange=exchange)
             active_pos = next((p for p in positions if p.get("symbol", "").upper() == symbol.upper()), None)
             if active_pos:
                 entry_price = active_pos.get("entry_price")

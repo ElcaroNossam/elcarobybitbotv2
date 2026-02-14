@@ -30297,6 +30297,7 @@ async def cmd_hl_settings(update: Update, ctx: ContextTypes.DEFAULT_TYPE):
     mainnet_main_wallet = None
     
     if has_testnet_key:
+        adapter = None
         try:
             from hl_adapter import HLAdapter
             adapter = HLAdapter(
@@ -30305,11 +30306,14 @@ async def cmd_hl_settings(update: Update, ctx: ContextTypes.DEFAULT_TYPE):
             )
             await adapter.initialize()
             testnet_main_wallet = adapter._main_wallet_address
-            await adapter.close()
         except Exception as e:
             logger.debug(f"Failed to discover testnet main wallet: {e}")
+        finally:
+            if adapter:
+                await adapter.close()
     
     if has_mainnet_key:
+        adapter = None
         try:
             from hl_adapter import HLAdapter
             adapter = HLAdapter(
@@ -30318,9 +30322,11 @@ async def cmd_hl_settings(update: Update, ctx: ContextTypes.DEFAULT_TYPE):
             )
             await adapter.initialize()
             mainnet_main_wallet = adapter._main_wallet_address
-            await adapter.close()
         except Exception as e:
             logger.debug(f"Failed to discover mainnet main wallet: {e}")
+        finally:
+            if adapter:
+                await adapter.close()
     
     # Build status message
     msg = "🔷 <b>HyperLiquid API Settings</b>\n\n"
