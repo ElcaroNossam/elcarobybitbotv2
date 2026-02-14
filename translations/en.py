@@ -237,7 +237,7 @@ TEXTS = {
         '_This action cannot be undone._'
     ),
     
-    'position_closed_success': '✅ Position {symbol} closed.',
+    'position_closed_success': 'Position closed',
     'position_close_error': '❌ Error closing position: {error}',
     
     # =====================================================
