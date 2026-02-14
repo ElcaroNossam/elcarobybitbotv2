@@ -2450,7 +2450,10 @@ def add_active_position(
                                  WHEN active_positions.strategy IS NOT NULL
                                       AND active_positions.strategy NOT IN ('manual', 'unknown')
                                  THEN active_positions.strategy
-                                 ELSE COALESCE(excluded.strategy, active_positions.strategy)
+                                 ELSE COALESCE(
+                                   NULLIF(NULLIF(excluded.strategy, 'manual'), 'unknown'),
+                                   NULLIF(NULLIF(active_positions.strategy, 'manual'), 'unknown')
+                                 )
                                END,
             -- P0.3: Обновляем source/exchange только если они пустые
             source           = COALESCE(active_positions.source, excluded.source),

@@ -8507,6 +8507,7 @@ async def place_order_for_targets(
                                 # main_wallet_address auto-discovered
                             )
                             try:
+                                await adapter.initialize()  # CRITICAL: auto-discover main wallet
                                 # Try to get actual position entry price
                                 positions = await adapter.get_positions()
                                 hl_coin = hl_symbol_to_coin(symbol)
@@ -21317,7 +21318,25 @@ async def monitor_positions_loop(app: Application):
                                     if detected_strategy:
                                         logger.info(f"[{uid}] Detected strategy from signal: {detected_strategy}")
                                 
-                                # If no recent signal found or strategy not detected, it's truly external
+                                # If no recent signal found or strategy not detected, try cross-exchange lookup
+                                # Check if same symbol exists on another exchange with a real strategy
+                                if not detected_strategy:
+                                    try:
+                                        other_exchange = 'bybit' if current_exchange == 'hyperliquid' else 'hyperliquid'
+                                        other_positions = get_active_positions(uid, exchange=other_exchange)
+                                        for other_pos in other_positions:
+                                            if other_pos.get('symbol') == sym:
+                                                other_strat = other_pos.get('strategy')
+                                                if other_strat and other_strat not in ('manual', 'unknown'):
+                                                    detected_strategy = other_strat
+                                                    logger.info(f"[{uid}] {sym}: Copied strategy '{detected_strategy}' from {other_exchange} position")
+                                                    # Also copy signal_id if available
+                                                    if not signal_id and other_pos.get('signal_id'):
+                                                        signal_id = other_pos.get('signal_id')
+                                                    break
+                                    except Exception as e:
+                                        logger.warning(f"[{uid}] Cross-exchange strategy lookup failed: {e}")
+                                
                                 # Use None (not "manual") so UPSERT COALESCE preserves existing DB strategy
                                 final_strategy = detected_strategy or None
                                 
