@@ -11864,6 +11864,15 @@ async def on_moderate_cb(update: Update, ctx: ContextTypes.DEFAULT_TYPE):
 _realized_pnl_cache: dict[str, tuple[float, float]] = {}  # key: "uid:days:account_type" -> (pnl, timestamp)
 _REALIZED_PNL_CACHE_TTL = 300  # 5 minutes
 
+
+def invalidate_realized_pnl_cache(user_id: int):
+    """Clear all realized PnL cache entries for a user after position close."""
+    keys_to_remove = [k for k in _realized_pnl_cache if k.startswith(f"{user_id}:")]
+    for k in keys_to_remove:
+        del _realized_pnl_cache[k]
+    if keys_to_remove:
+        logger.debug(f"[{user_id}] Invalidated realized_pnl_cache: {keys_to_remove}")
+
 @log_calls
 async def fetch_realized_pnl(uid: int, days: int = 1, account_type: str | None = None, exchange: str | None = None) -> float:
     """
@@ -16758,6 +16767,12 @@ async def on_positions_cb(update: Update, ctx: ContextTypes.DEFAULT_TYPE):
                     account_type=account_type
                 )
             
+            # Invalidate PnL cache so balance page shows fresh data
+            try:
+                invalidate_realized_pnl_cache(uid)
+            except Exception:
+                pass
+            
             # Get active position info for strategy
             active_pos = get_active_positions(uid, account_type=account_type, exchange=exchange)
             ap = next((a for a in active_pos if a["symbol"] == symbol), None)
@@ -17055,6 +17070,12 @@ async def on_positions_cb(update: Update, ctx: ContextTypes.DEFAULT_TYPE):
             except Exception:
                 pass
             logger.info(f"[{uid}] HL close_all: {closed} closed, {errors} errors, cache invalidated")
+        
+        # Invalidate PnL cache so balance page shows fresh data
+        try:
+            invalidate_realized_pnl_cache(uid)
+        except Exception:
+            pass
         
         # Set cooldown flag to prevent monitoring loop from re-adding positions
         import time
