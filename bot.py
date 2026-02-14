@@ -27,7 +27,8 @@ try:
     from models import Position, Order, Balance, OrderSide, OrderType, normalize_symbol
     from bot_unified import (
         get_balance_unified, get_positions_unified, 
-        place_order_unified, close_position_unified, set_leverage_unified
+        place_order_unified, close_position_unified, set_leverage_unified,
+        invalidate_hl_cache,
     )
     from exchange_router import get_user_targets, Target, normalize_env
     UNIFIED_AVAILABLE = True
@@ -37,6 +38,7 @@ except ImportError as e:
     UNIFIED_AVAILABLE = False
     # Fallback empty implementations
     def get_user_targets(uid): return []
+    def invalidate_hl_cache(user_id, account_type=None): pass
     Target = None
     normalize_env = lambda x: x
 
@@ -8891,6 +8893,12 @@ async def place_order_hyperliquid(
                     logger.warning(f"[{user_id}] Could not set HL TP/SL: {tpsl_err}")
             
             logger.info(f"✅ [{user_id}] HL order placed: {symbol} {side} qty={hl_qty} lev={hl_leverage}x")
+            # Invalidate HL cache so positions list refreshes immediately
+            try:
+                _acc_type = "testnet" if testnet else "mainnet"
+                invalidate_hl_cache(user_id, _acc_type)
+            except Exception:
+                pass
             return {
                 "success": True,
                 "exchange": "hyperliquid",
@@ -16734,6 +16742,12 @@ async def on_positions_cb(update: Update, ctx: ContextTypes.DEFAULT_TYPE):
                 finally:
                     if adapter:
                         await adapter.close()
+                # Invalidate HL positions/balance cache so refresh shows updated data
+                try:
+                    invalidate_hl_cache(uid, account_type)
+                except Exception:
+                    pass
+                logger.info(f"[{uid}] HL close {symbol}: success, cache invalidated")
             else:
                 await place_order(
                     user_id=uid,
@@ -16776,8 +16790,9 @@ async def on_positions_cb(update: Update, ctx: ContextTypes.DEFAULT_TYPE):
                     applied_tp_pct=ap.get("applied_tp_pct") if ap else None,
                     exchange=exchange,  # Use detected exchange
                 )
+                logger.info(f"[{uid}] Manual close {symbol}: logged trade + removed from DB (exchange={exchange}, acc={account_type})")
             except Exception as log_err:
-                logger.warning(f"Failed to log manual close for {symbol}: {log_err}")
+                logger.warning(f"[{uid}] Failed to log manual close for {symbol}: {log_err}", exc_info=True)
             
             # Clean up internal tracking (log_exit_and_remove_position already removes position)
             reset_pyramid(uid, symbol)
@@ -17032,6 +17047,14 @@ async def on_positions_cb(update: Update, ctx: ContextTypes.DEFAULT_TYPE):
                     await hl_adapter.close()
                 except Exception:
                     pass
+        
+        # Invalidate HL cache after closing all positions
+        if exchange == "hyperliquid":
+            try:
+                invalidate_hl_cache(uid, account_type)
+            except Exception:
+                pass
+            logger.info(f"[{uid}] HL close_all: {closed} closed, {errors} errors, cache invalidated")
         
         # Set cooldown flag to prevent monitoring loop from re-adding positions
         import time
@@ -21655,6 +21678,12 @@ async def monitor_positions_loop(app: Application):
                                         # Pass entry_price to avoid race condition
                                         remove_active_position(uid, sym, account_type=ap_account_type, entry_price=ap.get("entry_price"), exchange=current_exchange)
                                         reset_pyramid(uid, sym)
+                                        # Invalidate HL cache so positions list refreshes
+                                        if current_exchange == "hyperliquid":
+                                            try:
+                                                invalidate_hl_cache(uid, ap_account_type)
+                                            except Exception:
+                                                pass
                                     finally:
                                         _atr_triggered.pop((uid, sym, ap_account_type), None)
                                         _atr_was_enabled.pop((uid, sym, ap_account_type), None)  # Clear ATR was enabled cache
@@ -21834,6 +21863,13 @@ async def monitor_positions_loop(app: Application):
 
                                     # Mark as processed ONLY after successful log_exit_and_remove_position
                                     _processed_closures[closure_key] = now_ts
+
+                                    # Invalidate HL cache so positions list refreshes
+                                    if current_exchange == "hyperliquid":
+                                        try:
+                                            invalidate_hl_cache(uid, ap_account_type)
+                                        except Exception:
+                                            pass
 
                                     pnl_from_exch = rec.get("closedPnl")
                                     rate_from_exch = rec.get("closedPnlRate")  # ROE as decimal (0.05 = 5%)
