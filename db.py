@@ -2441,8 +2441,17 @@ def add_active_position(
             size             = excluded.size,
             timeframe        = COALESCE(excluded.timeframe, active_positions.timeframe),
             signal_id        = COALESCE(excluded.signal_id, active_positions.signal_id),
-            -- P0.3: НЕ перезаписываем strategy на NULL
-            strategy         = COALESCE(excluded.strategy, active_positions.strategy),
+            -- P0.3: НЕ перезаписываем strategy если уже есть реальная стратегия
+            -- Не позволяем 'manual'/'unknown' перезаписать реальную стратегию
+            strategy         = CASE
+                                 WHEN excluded.strategy IS NOT NULL 
+                                      AND excluded.strategy NOT IN ('manual', 'unknown')
+                                 THEN excluded.strategy
+                                 WHEN active_positions.strategy IS NOT NULL
+                                      AND active_positions.strategy NOT IN ('manual', 'unknown')
+                                 THEN active_positions.strategy
+                                 ELSE COALESCE(excluded.strategy, active_positions.strategy)
+                               END,
             -- P0.3: Обновляем source/exchange только если они пустые
             source           = COALESCE(active_positions.source, excluded.source),
             exchange         = COALESCE(excluded.exchange, active_positions.exchange),

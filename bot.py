@@ -16813,12 +16813,22 @@ async def on_positions_cb(update: Update, ctx: ContextTypes.DEFAULT_TYPE):
             )
         except Exception as e:
             logger.error(f"Close position {symbol} failed: {e}")
-            await query.edit_message_text(
-                f"❌ {t.get('position_close_error', 'Error closing position')}: {str(e)}",
-                reply_markup=InlineKeyboardMarkup([[
-                    InlineKeyboardButton(t.get('btn_back', '🔙 Back'), callback_data=f"pos:refresh:{saved_page}")
-                ]])
-            )
+            error_msg = str(e)
+            # Handle "No position found" gracefully — position was likely closed by SL/TP
+            if "no position found" in error_msg.lower():
+                await query.edit_message_text(
+                    t.get('position_already_closed', '❌ Position already closed').format(symbol=symbol),
+                    reply_markup=InlineKeyboardMarkup([[
+                        InlineKeyboardButton(t.get('btn_back', '🔙 Back'), callback_data=f"pos:refresh:{saved_page}")
+                    ]])
+                )
+            else:
+                await query.edit_message_text(
+                    t.get('position_close_error', '❌ Error closing position: {error}').format(error=error_msg),
+                    reply_markup=InlineKeyboardMarkup([[
+                        InlineKeyboardButton(t.get('btn_back', '🔙 Back'), callback_data=f"pos:refresh:{saved_page}")
+                    ]])
+                )
         return
     
     if data == "pos:close_all":
@@ -21288,7 +21298,8 @@ async def monitor_positions_loop(app: Application):
                                         logger.info(f"[{uid}] Detected strategy from signal: {detected_strategy}")
                                 
                                 # If no recent signal found or strategy not detected, it's truly external
-                                final_strategy = detected_strategy or "manual"
+                                # Use None (not "manual") so UPSERT COALESCE preserves existing DB strategy
+                                final_strategy = detected_strategy or None
                                 
                                 # P0.5: Get use_atr from strategy settings
                                 cfg_detected = get_user_config(uid) or {}
@@ -30183,7 +30194,7 @@ async def on_hl_close_callback(update: Update, ctx: ContextTypes.DEFAULT_TYPE):
                     
                     # Log trade and remove from DB
                     ap = next((a for a in db_positions if a.get("symbol") == symbol or a.get("symbol") == coin), None)
-                    strategy = ap.get("strategy") if ap else "manual"
+                    strategy = ap.get("strategy") if ap else None
                     try:
                         log_exit_and_remove_position(
                             user_id=uid,
