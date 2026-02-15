@@ -8,11 +8,11 @@
 import SwiftUI
 
 extension Color {
-    // MARK: - Brand Colors (Synced with WebApp - Stark Theme 2026)
-    static let enlikoPrimary = Color(hex: "#DC2626")      // Red - primary accent
-    static let enlikoSecondary = Color(hex: "#D4A017")    // Gold - secondary accent
-    static let enlikoAccent = Color(hex: "#00D4FF")       // Cyan - utility accent
-    static let enlikoPink = Color(hex: "#EC4899")         // Pink - for highlights
+    // MARK: - Brand Colors (Synced with WebApp - Violet Theme 2026)
+    static let enlikoPrimary = Color(hex: "#7C3AED")      // Violet - primary accent
+    static let enlikoSecondary = Color(hex: "#A78BFA")    // Light violet - secondary accent
+    static let enlikoAccent = Color(hex: "#C084FC")       // Soft purple - utility accent
+    static let enlikoPink = Color(hex: "#D946EF")         // Fuchsia - for highlights
     static let enlikoViolet = Color(hex: "#8B5CF6")       // Violet - for premium
     
     // MARK: - Background Colors (Refined Dark Theme)
@@ -42,11 +42,11 @@ extension Color {
     static let enlikoYellow = Color(hex: "#F59E0B")       // Warning yellow
     static let enlikoOrange = Color(hex: "#F97316")       // Orange
     static let enlikoBlue = Color(hex: "#3B82F6")         // Info blue
-    static let enlikoPurple = Color(hex: "#A855F7")       // Purple accent
+    static let enlikoPurple = Color(hex: "#A855F7")       // Purple accent (lighter)
     
     // MARK: - Gradients
     static let enlikoGradient = LinearGradient(
-        colors: [enlikoPrimary, enlikoOrange],
+        colors: [Color(hex: "#7C3AED"), Color(hex: "#C084FC")],
         startPoint: .topLeading,
         endPoint: .bottomTrailing
     )
@@ -64,7 +64,7 @@ extension Color {
     )
     
     static let enlikoPremiumGradient = LinearGradient(
-        colors: [enlikoViolet, enlikoPink],
+        colors: [Color(hex: "#7C3AED"), Color(hex: "#D946EF")],
         startPoint: .topLeading,
         endPoint: .bottomTrailing
     )

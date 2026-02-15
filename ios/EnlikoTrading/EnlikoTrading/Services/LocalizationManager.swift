@@ -228,6 +228,23 @@ class LocalizationManager: ObservableObject {
         "telegram_support": "Telegram Support",
         "email_support": "Email Support",
         
+        // Support Chat
+        "support_title": "Support",
+        "support_welcome_title": "How can we help?",
+        "support_welcome_subtitle": "Chat with our support team",
+        "start_chat": "Start Chat",
+        "close_chat": "Close Chat",
+        "faq_title": "Frequently Asked Questions",
+        "type_message": "Type a message...",
+        "ask_about_this": "Ask about this",
+        "rate_support": "Rate Support",
+        "rate_support_message": "How was your experience?",
+        "chat_status_open": "Chat open",
+        "chat_status_waiting": "Waiting for reply",
+        "chat_status_resolved": "Resolved",
+        "chat_status_closed": "Closed",
+        "common_cancel": "Cancel",
+        
         // Settings (legacy)
         "settings_title": "Settings",
         "settings_account": "Account",
@@ -959,6 +976,23 @@ class LocalizationManager: ObservableObject {
         "documentation": "Документация",
         "telegram_support": "Поддержка в Telegram",
         "email_support": "Написать на почту",
+        
+        // Support Chat
+        "support_title": "Поддержка",
+        "support_welcome_title": "Чем помочь?",
+        "support_welcome_subtitle": "Напишите в чат поддержки",
+        "start_chat": "Начать чат",
+        "close_chat": "Закрыть чат",
+        "faq_title": "Частые вопросы",
+        "type_message": "Введите сообщение...",
+        "ask_about_this": "Спросить об этом",
+        "rate_support": "Оценить поддержку",
+        "rate_support_message": "Как вам качество обслуживания?",
+        "chat_status_open": "Чат открыт",
+        "chat_status_waiting": "Ожидание ответа",
+        "chat_status_resolved": "Решено",
+        "chat_status_closed": "Закрыт",
+        "common_cancel": "Отмена",
         
         // Settings (legacy)
         "settings_title": "Настройки",

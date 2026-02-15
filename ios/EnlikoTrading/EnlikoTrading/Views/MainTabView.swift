@@ -13,7 +13,7 @@ struct MainTabView: View {
     @EnvironmentObject var appState: AppState
     @EnvironmentObject var tradingService: TradingService
     @ObservedObject var localization = LocalizationManager.shared
-    @State private var showAICopilot = false
+    @State private var showSupportChat = false
     @State private var showConfetti = false
     
     // Tab bar height for safe area calculations
@@ -53,12 +53,12 @@ struct MainTabView: View {
                 customTabBar
                     .frame(width: geometry.size.width)
                 
-                // 🔥 Floating AI Copilot Button
+                // � Floating Support Chat Button
                 VStack {
                     Spacer()
                     HStack {
                         Spacer()
-                        FloatingCopilotButton(isOpen: $showAICopilot)
+                        FloatingSupportButton(isOpen: $showSupportChat)
                             .padding(.trailing, 16)
                             .padding(.bottom, tabBarHeight + 20) // Above tab bar
                     }
@@ -73,8 +73,8 @@ struct MainTabView: View {
         }
         .ignoresSafeArea(.keyboard)
         .withRTLSupport()
-        .sheet(isPresented: $showAICopilot) {
-            AICopilotView()
+        .sheet(isPresented: $showSupportChat) {
+            SupportChatView()
         }
         .onAppear {
             Task {
@@ -219,19 +219,18 @@ struct MainTabView: View {
 // MARK: - More View (Hub for additional features)
 struct MoreView: View {
     @ObservedObject var localization = LocalizationManager.shared
-    @State private var showAICopilot = false
     
     var body: some View {
         NavigationView {
             List {
                 // 🔥 Premium Features Section (some features in beta)
                 Section(header: Text("section_premium_features".localized)) {
-                    // AI Copilot - Live feature
-                    NavigationLink(destination: AICopilotView()) {
+                    // Support Chat - Live feature
+                    NavigationLink(destination: SupportChatView()) {
                         MoreMenuItem(
-                            icon: "sparkles",
-                            title: "ai_trading_copilot".localized,
-                            subtitle: "smart_trading_assistant".localized,
+                            icon: "headphones",
+                            title: "support_title".localized,
+                            subtitle: "support_welcome_subtitle".localized,
                             color: .purple
                         )
                     }

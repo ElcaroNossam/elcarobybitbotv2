@@ -494,6 +494,14 @@ def create_app() -> FastAPI:
     except ImportError as e:
         logger.warning(f"strategy_sync router not available: {e}")
     
+    # Support Chat API
+    try:
+        from webapp.api import support_chat
+        app.include_router(support_chat.router, prefix="/api", tags=["support-chat"])
+        logger.info("✅ Support Chat API loaded at /api/support/*")
+    except ImportError as e:
+        logger.warning(f"support_chat router not available: {e}")
+    
     # Payments & Subscriptions API
     try:
         from webapp.api import payments

@@ -38,7 +38,7 @@ class AppDelegate: NSObject, UIApplicationDelegate {
         
         UITabBar.appearance().standardAppearance = tabAppearance
         UITabBar.appearance().scrollEdgeAppearance = tabAppearance
-        UITabBar.appearance().tintColor = UIColor(red: 0.86, green: 0.15, blue: 0.15, alpha: 1.0) // #DC2626
+        UITabBar.appearance().tintColor = UIColor(red: 0.486, green: 0.227, blue: 0.929, alpha: 1.0) // #7C3AED violet
     }
 }
 
