@@ -1219,6 +1219,11 @@ def get_user_field(user_id: int, field: str, default: Any = None) -> Any:
         return default
 
 
+def get_user_lang(user_id: int) -> str:
+    """Get user's language preference."""
+    return get_user_field(user_id, "lang", "en")
+
+
 def get_user_config(user_id: int) -> dict:
     # Check cache first
     now = time.time()
