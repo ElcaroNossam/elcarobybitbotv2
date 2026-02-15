@@ -10292,6 +10292,11 @@ async def callback_strategy_settings(update: Update, ctx: ContextTypes.DEFAULT_T
         next_idx = (modes.index(current) + 1) % 3 if current in modes else 0
         new_mode = modes[next_idx]
         set_trading_mode(uid, new_mode)
+        # Auto-enable live_enabled when user switches to Real or Both
+        if new_mode in ("real", "both"):
+            if not db.get_live_enabled(uid):
+                db.set_live_enabled(uid, True)
+                logger.info(f"[GLOBAL_MODE] {uid}: auto-enabled live_enabled=True (mode={new_mode})")
         # Return directly to global settings with updated value
         return await _show_global_settings_menu(query, uid, t)
     
@@ -10716,6 +10721,13 @@ async def callback_strategy_settings(update: Update, ctx: ContextTypes.DEFAULT_T
         # Save trading_mode for this strategy
         db.set_strategy_trading_mode(uid, strategy, new_mode)
         logger.info(f"[STRAT_MODE] {strategy}: set to {new_mode}")
+        
+        # Auto-enable live_enabled when user selects Real or Both
+        # Without this, get_execution_targets() silently skips all live targets!
+        if new_mode in ("real", "both"):
+            if not db.get_live_enabled(uid):
+                db.set_live_enabled(uid, True)
+                logger.info(f"[STRAT_MODE] {uid}: auto-enabled live_enabled=True (mode={new_mode})")
         
         # Check credentials and warn if needed
         warning = ""
