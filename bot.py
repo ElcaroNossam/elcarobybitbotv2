@@ -17926,9 +17926,13 @@ async def on_digest_callback(update: Update, ctx: ContextTypes.DEFAULT_TYPE):
     
     today = __import__("datetime").datetime.now().date()
     
+    # Detect user's configured exchanges (for smart keyboard)
+    has_bybit = db.is_bybit_enabled(uid)
+    has_hl = db.is_hl_enabled(uid)
+    
     if action == "detail":
         # Detailed breakdown: show per-strategy stats
-        await _send_detailed_digest(query, uid, today, exchange, account_type, t=t)
+        await _send_detailed_digest(query, uid, today, exchange, account_type, t=t, has_bybit=has_bybit, has_hl=has_hl)
         return
     
     # === Exchange or Account type switch ===
@@ -17965,22 +17969,20 @@ async def on_digest_callback(update: Update, ctx: ContextTypes.DEFAULT_TYPE):
         except Exception:
             date_str = today.strftime("%d %B %Y")
         
-        message = f"""
-📉 <b>{title}</b>
+        message = f"""<b>{title}</b>
+<i>📅 {date_str}</i>  •  {filter_label}
 
-📅 {date_str}
-🏷 {filter_label}
-━━━━━━━━━━━━━━━━━━━━━━
+{'━' * 22}
 
 <b>{no_trades}</b>
 
-{no_trades_hint}
+<i>{no_trades_hint}</i>
 """
         keyboard = NotificationService.build_digest_keyboard(
             uid, 
             current_exchange=exchange_raw if exchange_raw != "all" else None,
             current_account=account_raw if account_raw != "all" else None,
-            t=t
+            t=t, has_bybit=has_bybit, has_hl=has_hl
         )
         try:
             await query.edit_message_text(message, parse_mode='HTML', reply_markup=keyboard)
@@ -17993,7 +17995,7 @@ async def on_digest_callback(update: Update, ctx: ContextTypes.DEFAULT_TYPE):
         uid,
         current_exchange=exchange_raw if exchange_raw != "all" else None,
         current_account=account_raw if account_raw != "all" else None,
-        t=t
+        t=t, has_bybit=has_bybit, has_hl=has_hl
     )
     
     try:
@@ -18002,7 +18004,7 @@ async def on_digest_callback(update: Update, ctx: ContextTypes.DEFAULT_TYPE):
         pass
 
 
-async def _send_detailed_digest(query, uid: int, today, exchange: str = None, account_type: str = None, t: dict = None):
+async def _send_detailed_digest(query, uid: int, today, exchange: str = None, account_type: str = None, t: dict = None, has_bybit: bool = True, has_hl: bool = False):
     """Send detailed per-strategy breakdown in digest."""
     from services.notification_service import NotificationService
     from core.db_postgres import get_conn
@@ -18086,29 +18088,27 @@ async def _send_detailed_digest(query, uid: int, today, exchange: str = None, ac
     except Exception:
         date_str = today.strftime("%d %B %Y")
     
-    message = f"""
-{title}
+    message = f"""<b>{title}</b>
+<i>📅 {date_str}</i>  •  {filter_label}
 
-📅 {date_str}
-🏷 {filter_label}
-━━━━━━━━━━━━━━━━━━━━━━
+{'━' * 22}
 """
     
     # Exchange breakdown
     by_exchange_label = t.get("digest_by_exchange", "By Exchange")
     if exchange_rows and len(exchange_rows) > 1:
-        message += f"\n🏢 <b>{by_exchange_label}</b>\n"
+        message += f"\n🏢 <b>{by_exchange_label}</b>\n\n"
         for row in exchange_rows:
             ex_name = "🟠 Bybit" if row[0] == "bybit" else "🔷 HL"
             pnl = row[2] or 0
-            pnl_emoji = "🟢" if pnl >= 0 else "🔴"
-            message += f"├ {ex_name}: {row[1]} trades • {pnl_emoji} <code>${pnl:+,.2f}</code>\n"
-        message += "\n"
+            pnl_icon = "🟢" if pnl >= 0 else "🔴"
+            message += f"   {ex_name}  •  {row[1]}t  •  {pnl_icon} <code>${pnl:+,.2f}</code>\n"
+        message += f"\n{'━' * 22}\n"
     
     # Strategy breakdown
     by_strategy_label = t.get("digest_by_strategy", "By Strategy")
     if strat_rows:
-        message += f"📊 <b>{by_strategy_label}</b>\n"
+        message += f"\n📊 <b>{by_strategy_label}</b>\n\n"
         strat_names = {
             "oi": "📈 OI", "scryptomera": "🔬 Scryptomera", "scalper": "⚡ Scalper",
             "elcaro": "💎 Elcaro", "fibonacci": "🔢 Fibonacci", "rsi_bb": "📉 RSI_BB",
@@ -18119,26 +18119,27 @@ async def _send_detailed_digest(query, uid: int, today, exchange: str = None, ac
             wins = row[2] or 0
             losses = row[3] or 0
             pnl = row[4] or 0
-            pnl_emoji = "🟢" if pnl >= 0 else "🔴"
-            message += f"├ {s_name}: {wins}W/{losses}L • {pnl_emoji} <code>${pnl:+,.2f}</code>\n"
-        message += "\n"
+            pnl_icon = "🟢" if pnl >= 0 else "🔴"
+            message += f"   {s_name}\n"
+            message += f"      {wins}W / {losses}L  •  {pnl_icon} <code>${pnl:+,.2f}</code>\n"
+        message += f"\n{'━' * 22}\n"
     
     # Top symbols
     top_symbols_label = t.get("digest_top_symbols", "Top Symbols")
     if top_symbols:
-        message += f"🪙 <b>{top_symbols_label}</b>\n"
-        for row in top_symbols:
-            sym = row[0] or "?"
+        message += f"\n🪙 <b>{top_symbols_label}</b>\n\n"
+        for i, row in enumerate(top_symbols, 1):
+            sym = (row[0] or "?").replace("USDT", "")
             pnl = row[1] or 0
             trades = row[2] or 0
-            pnl_emoji = "🟢" if pnl >= 0 else "🔴"
-            message += f"├ {sym}: {trades}t • {pnl_emoji} <code>${pnl:+,.2f}</code>\n"
+            pnl_icon = "🟢" if pnl >= 0 else "🔴"
+            message += f"   {i}. <b>{sym}</b>  •  {trades}t  •  {pnl_icon} <code>${pnl:+,.2f}</code>\n"
     
     # Back button
     exchange_raw = exchange or "all"
     account_raw = account_type or "all"
     back_text = t.get("digest_btn_back", "◀️ Back")
-    close_text = t.get("digest_btn_close", "❌ Close")
+    close_text = t.get("digest_btn_close", "❌")
     keyboard = InlineKeyboardMarkup([
         [
             InlineKeyboardButton(back_text, callback_data=f"digest:ex:{exchange_raw}:{account_raw}"),
