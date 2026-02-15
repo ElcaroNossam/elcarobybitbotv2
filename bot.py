@@ -8627,7 +8627,13 @@ async def place_order_for_targets(
             errors.append(f"[{target_key.upper()}] {str(e)}")
             logger.error(f"❌ [{target_key.upper()}] {orderType} order failed for {symbol}: {e}")
     
-    if errors and not any(r["success"] for r in results.values()):
+    # FIX: Don't count skipped targets (coin not available on exchange) as failures.
+    # Only raise RuntimeError if there were actual execution errors AND no successes.
+    has_any_success = any(r.get("success") for r in results.values())
+    has_only_skips_and_errors = all(r.get("skipped") or r.get("error") for r in results.values())
+    actual_error_targets = [k for k, r in results.items() if r.get("error") and not r.get("skipped")]
+    
+    if errors and not has_any_success and actual_error_targets:
         raise RuntimeError(f"All orders failed: {'; '.join(errors)}")
     
     return results
@@ -18910,15 +18916,44 @@ async def handle_trade_error(
     
     # Insufficient balance for this trade (margin locked in positions)
     if "INSUFFICIENT_BALANCE" in error_msg or "110007" in error_msg or "ab not enough" in error_msg.lower():
-        # Get open positions count and equity for context
+        # FIX: Extract the ACTUAL account_type from multi-exchange error messages.
+        # When routing_policy=all_enabled, errors from Bybit Demo could be misattributed
+        # to HL Testnet because ctx_account_type is always the primary exchange's context.
+        effective_account_type = account_type
+        effective_exchange = None
+        import re as _re
+        # Pattern: [BYBIT:DEMO] INSUFFICIENT_BALANCE or [HL:TESTNET] ...
+        target_match = _re.search(
+            r'\[(BYBIT|HL|HYPERLIQUID):(\w+)\].*?INSUFFICIENT_BALANCE',
+            error_msg, _re.IGNORECASE
+        )
+        if target_match:
+            matched_exchange = target_match.group(1).upper()
+            matched_acc = target_match.group(2).lower()
+            # Normalize: PAPER→demo, LIVE→real for Bybit
+            if matched_acc == "paper":
+                matched_acc = "demo"
+            elif matched_acc == "live":
+                matched_acc = "real"
+            effective_account_type = matched_acc
+            effective_exchange = "bybit" if matched_exchange == "BYBIT" else "hyperliquid"
+            logger.info(
+                f"[{user_id}] MARGIN_EXHAUSTED: Extracted target {effective_exchange}:{effective_account_type} "
+                f"from error (ctx was {account_type})"
+            )
+        
+        # Get open positions count and equity for the CORRECT exchange/account
         try:
-            positions = await fetch_open_positions(user_id, account_type=account_type)
+            positions = await fetch_open_positions(user_id, account_type=effective_account_type, exchange=effective_exchange)
             open_count = len(positions) if positions else 0
         except Exception:
             open_count = "?"
         
         try:
-            equity = await fetch_usdt_balance(user_id, account_type=account_type, use_equity=True)
+            equity = await fetch_usdt_balance(
+                user_id, account_type=effective_account_type, use_equity=True,
+                exchange=effective_exchange
+            )
             equity_str = f"${equity:,.2f}"
         except Exception:
             equity_str = "—"
@@ -18926,7 +18961,7 @@ async def handle_trade_error(
         await notify_user_daily_error(
             bot, user_id, 
             DailyErrorType.MARGIN_EXHAUSTED, 
-            account_type, t,
+            effective_account_type, t,  # FIX: Use effective_account_type, not ctx_account_type
             {
                 "open_count": open_count,
                 "symbol": symbol or "—",
