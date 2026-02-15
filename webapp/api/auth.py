@@ -732,51 +732,65 @@ async def check_2fa_status(data: TwoFACheckRequest, request: Request):
     Check 2FA confirmation status.
     Frontend should poll this endpoint.
     """
-    from webapp.services import telegram_auth
-    
-    status = telegram_auth.check_2fa_status(data.confirmation_id)
-    
-    if not status:
-        raise HTTPException(status_code=404, detail="Confirmation not found")
-    
-    if status['status'] == 'expired':
-        return {"success": False, "status": "expired", "message": "Confirmation expired"}
-    
-    if status['status'] == 'denied':
-        return {"success": False, "status": "denied", "message": "Login denied"}
-    
-    if status['status'] == 'pending':
-        return {"success": False, "status": "pending", "message": "Waiting for confirmation..."}
-    
-    if status['status'] == 'approved':
-        user_id = status['user_id']
+    logger = logging.getLogger(__name__)
+    try:
+        from webapp.services import telegram_auth
         
-        # Ensure user exists
-        db.ensure_user(user_id)
+        status = telegram_auth.check_2fa_status(data.confirmation_id)
         
-        # Get user info
-        db_user = db.get_all_user_credentials(user_id)
-        exchange_status = db.get_exchange_status(user_id)
+        if not status:
+            raise HTTPException(status_code=404, detail="Confirmation not found")
         
-        is_admin = user_id == ADMIN_ID
-        is_premium = db_user.get('license_type') == 'premium' or db_user.get('is_lifetime')
+        if status['status'] == 'expired':
+            return {"success": False, "status": "expired", "message": "Confirmation expired"}
         
-        # Create JWT token
-        jwt_token = create_access_token(user_id, is_admin)
+        if status['status'] == 'denied':
+            return {"success": False, "status": "denied", "message": "Login denied"}
         
-        return {
-            "success": True,
-            "status": "approved",
-            "token": jwt_token,
-            "user": {
-                "user_id": user_id,
-                "first_name": db_user.get("first_name", "User"),
-                "username": db_user.get("username"),
-                "is_admin": is_admin,
-                "is_premium": is_premium,
-                "exchange_type": exchange_status.get("active_exchange", "bybit"),
-                "language": db_user.get("lang", "en"),
+        if status['status'] == 'pending':
+            return {"success": False, "status": "pending", "message": "Waiting for confirmation..."}
+        
+        if status['status'] == 'approved':
+            user_id = status['user_id']
+            
+            # Ensure user exists
+            db.ensure_user(user_id)
+            
+            # Get user info
+            db_user = db.get_all_user_credentials(user_id)
+            
+            # Get exchange info safely
+            try:
+                exchange_status = db.get_exchange_status(user_id)
+                exchange_type = exchange_status.get("active_exchange", "bybit")
+            except Exception as e:
+                logger.warning(f"[2FA] get_exchange_status failed for {user_id}: {e}")
+                exchange_type = db.get_exchange_type(user_id) or "bybit"
+            
+            is_admin = user_id == ADMIN_ID
+            is_premium = db_user.get('license_type') == 'premium' or db_user.get('is_lifetime')
+            
+            # Create JWT token
+            jwt_token = create_access_token(user_id, is_admin)
+            
+            return {
+                "success": True,
+                "status": "approved",
+                "token": jwt_token,
+                "user": {
+                    "user_id": user_id,
+                    "first_name": db_user.get("first_name", "User"),
+                    "username": db_user.get("username"),
+                    "is_admin": is_admin,
+                    "is_premium": is_premium,
+                    "exchange_type": exchange_type,
+                    "language": db_user.get("lang", "en"),
+                }
             }
-        }
-    
-    return {"success": False, "status": status['status']}
+        
+        return {"success": False, "status": status['status']}
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.exception(f"[2FA] check_2fa_status error for confirmation_id={data.confirmation_id}: {e}")
+        raise HTTPException(status_code=500, detail="Internal server error during 2FA check")

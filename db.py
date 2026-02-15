@@ -5562,7 +5562,7 @@ def get_exchange_mode(user_id: int) -> str:
     """Get trading mode: 'bybit', 'hyperliquid', or 'both'."""
     with get_conn() as conn:
         row = conn.execute(
-            "SELECT exchange_mode FROM users WHERE user_id = ?", 
+            "SELECT exchange_type FROM users WHERE user_id = ?", 
             (user_id,)
         ).fetchone()
         return row[0] if row and row[0] else "bybit"
@@ -5576,7 +5576,7 @@ def set_exchange_mode(user_id: int, mode: str):
     
     with get_conn() as conn:
         conn.execute(
-            "UPDATE users SET exchange_mode = ? WHERE user_id = ?",
+            "UPDATE users SET exchange_type = ? WHERE user_id = ?",
             (mode, user_id)
         )
         conn.commit()

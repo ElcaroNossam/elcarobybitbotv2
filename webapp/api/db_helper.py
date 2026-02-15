@@ -89,6 +89,10 @@ class _DictCompatConnection:
     def close(self):
         """Close connection - returns to pool if pool reference exists."""
         if self._pool:
+            try:
+                self._conn.rollback()
+            except Exception:
+                pass
             self._pool.putconn(self._conn)
         else:
             self._conn.close()

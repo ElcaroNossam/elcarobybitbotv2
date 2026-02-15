@@ -231,16 +231,18 @@ def check_2fa_status(confirmation_id: str) -> Optional[dict]:
     Returns dict with status and user_id, or None if not found.
     """
     con = _db()
-    cur = con.cursor()
-    
-    cur.execute("""
-        SELECT id, user_id, status, expires_at, confirmed_at
-        FROM twofa_confirmations
-        WHERE id = %s
-    """, (confirmation_id,))
-    
-    row = cur.fetchone()
-    con.close()
+    try:
+        cur = con.cursor()
+        
+        cur.execute("""
+            SELECT id, user_id, status, expires_at, confirmed_at
+            FROM twofa_confirmations
+            WHERE id = %s
+        """, (confirmation_id,))
+        
+        row = cur.fetchone()
+    finally:
+        con.close()
     
     if not row:
         return None
