@@ -273,10 +273,13 @@ class NotificationService:
         }
 
     @staticmethod
-    def build_digest_message(stats: dict, today, exchange: str = None, account_type: str = None) -> Tuple[str, str]:
+    def build_digest_message(stats: dict, today, exchange: str = None, account_type: str = None, t: dict = None) -> Tuple[str, str]:
         """
         Build beautiful HTML digest message from stats dict.
+        t = translation dict (from get_texts). Falls back to English.
         """
+        if t is None:
+            t = {}
         trades_count = stats["trades_count"]
         total_pnl = stats["total_pnl"]
         avg_pnl = stats["avg_pnl"]
@@ -291,100 +294,134 @@ class NotificationService:
         # Choose emoji and vibe based on performance
         if total_pnl > 100:
             emoji = "🚀"
-            vibe = "Amazing day!"
+            vibe = t.get("digest_vibe_amazing", "Amazing day!")
         elif total_pnl > 0:
             emoji = "✅"
-            vibe = "Nice work!"
+            vibe = t.get("digest_vibe_nice", "Nice work!")
         elif total_pnl == 0:
             emoji = "➖"
-            vibe = "Breakeven day"
+            vibe = t.get("digest_vibe_breakeven", "Breakeven day")
         elif total_pnl > -100:
             emoji = "📉"
-            vibe = "Small loss"
+            vibe = t.get("digest_vibe_small_loss", "Small loss")
         else:
             emoji = "😔"
-            vibe = "Tough day"
+            vibe = t.get("digest_vibe_tough", "Tough day")
         
         # Filter label
         filter_parts = []
         if exchange:
-            ex_label = "🟠 Bybit" if exchange == "bybit" else "🔷 HyperLiquid"
+            ex_label = t.get("digest_filter_bybit", "🟠 Bybit") if exchange == "bybit" else t.get("digest_filter_hl", "🔷 HyperLiquid")
             filter_parts.append(ex_label)
         if account_type:
-            acc_labels = {"demo": "🧪 Demo", "real": "💼 Real", "testnet": "🧪 Testnet", "mainnet": "🌐 Mainnet"}
+            acc_labels = {
+                "demo": t.get("digest_filter_demo", "🧪 Demo"),
+                "real": t.get("digest_filter_real", "💼 Real"),
+                "testnet": t.get("digest_filter_testnet", "🧪 Testnet"),
+                "mainnet": t.get("digest_filter_mainnet", "🌐 Mainnet"),
+            }
             filter_parts.append(acc_labels.get(account_type, account_type))
-        filter_label = " • ".join(filter_parts) if filter_parts else "🌍 All Exchanges"
+        filter_label = " • ".join(filter_parts) if filter_parts else t.get("digest_filter_all", "🌍 All Exchanges")
+        
+        title = t.get("digest_title", "📊 Daily Trading Report")
+        date_fmt = t.get("digest_date_format", "%d %B %Y")
+        total_pnl_label = t.get("digest_total_pnl", "Total PnL")
+        stats_label = t.get("digest_statistics", "Statistics")
+        trades_label = t.get("digest_trades", "Trades")
+        wl_label = t.get("digest_wins_losses", "Wins/Losses")
+        wr_label = t.get("digest_win_rate", "Win Rate")
+        avg_label = t.get("digest_avg_pnl", "Avg PnL")
+        best_label = t.get("digest_best_trade", "Best Trade")
+        worst_label = t.get("digest_worst_trade", "Worst Trade")
+        keep_label = t.get("digest_keep_improving", "Keep improving! 💪")
+        
+        try:
+            date_str = today.strftime(date_fmt)
+        except Exception:
+            date_str = today.strftime("%d %B %Y")
         
         message = f"""
-{emoji} <b>Daily Trading Report</b>
+{emoji} <b>{title}</b>
 
-📅 {today.strftime('%d %B %Y')} • {vibe}
+📅 {date_str} • {vibe}
 🏷 {filter_label}
 ━━━━━━━━━━━━━━━━━━━━━━
 
-💰 <b>Total PnL: ${total_pnl:+,.2f}</b>
+💰 <b>{total_pnl_label}: ${total_pnl:+,.2f}</b>
 
-📊 <b>Statistics</b>
-├ Trades: <code>{trades_count}</code>
-├ Wins/Losses: <code>{wins}W / {losses}L</code>
-├ Win Rate: <code>{win_rate:.1f}%</code>
-└ Avg PnL: <code>${avg_pnl:+.2f}</code>
+📊 <b>{stats_label}</b>
+├ {trades_label}: <code>{trades_count}</code>
+├ {wl_label}: <code>{wins}W / {losses}L</code>
+├ {wr_label}: <code>{win_rate:.1f}%</code>
+└ {avg_label}: <code>${avg_pnl:+.2f}</code>
 
-🏆 <b>Best Trade</b>
+🏆 <b>{best_label}</b>
 └ {best_symbol}: <code>${best_pnl:+.2f}</code>
 """
         if worst_pnl < 0:
             message += f"""
-📉 <b>Worst Trade</b>
+📉 <b>{worst_label}</b>
 └ {worst_symbol}: <code>${worst_pnl:+.2f}</code>
 """
         
-        message += "\nKeep improving! 💪"
+        message += f"\n{keep_label}"
         return message, vibe
 
     @staticmethod
-    def build_digest_keyboard(user_id: int, current_exchange: str = None, current_account: str = None) -> InlineKeyboardMarkup:
+    def build_digest_keyboard(user_id: int, current_exchange: str = None, current_account: str = None, t: dict = None) -> InlineKeyboardMarkup:
         """
         Build inline keyboard for digest navigation.
         Buttons: Exchange filter, Account type filter, Detailed view.
+        t = translation dict (from get_texts). Falls back to English.
         """
+        if t is None:
+            t = {}
         buttons = []
         
         # Row 1: Exchange filter buttons
         ex_row = []
         # "All" button
-        all_label = "✅ All" if not current_exchange else "All"
+        all_text = t.get("digest_btn_all", "All")
+        all_label = f"✅ {all_text}" if not current_exchange else all_text
         ex_row.append(InlineKeyboardButton(all_label, callback_data="digest:ex:all:all"))
         # Bybit
-        bybit_label = "✅ 🟠 Bybit" if current_exchange == "bybit" else "🟠 Bybit"
+        bybit_text = t.get("digest_btn_bybit", "🟠 Bybit")
+        bybit_label = f"✅ {bybit_text}" if current_exchange == "bybit" else bybit_text
         ex_row.append(InlineKeyboardButton(bybit_label, callback_data=f"digest:ex:bybit:{current_account or 'all'}"))
         # HyperLiquid
-        hl_label = "✅ 🔷 HL" if current_exchange == "hyperliquid" else "🔷 HL"
+        hl_text = t.get("digest_btn_hl", "🔷 HL")
+        hl_label = f"✅ {hl_text}" if current_exchange == "hyperliquid" else hl_text
         ex_row.append(InlineKeyboardButton(hl_label, callback_data=f"digest:ex:hyperliquid:{current_account or 'all'}"))
         buttons.append(ex_row)
         
         # Row 2: Account type filter (dynamic based on selected exchange)
         acc_row = []
-        acc_all_label = "✅ All" if not current_account else "All"
+        acc_all_label = f"✅ {all_text}" if not current_account else all_text
         acc_row.append(InlineKeyboardButton(acc_all_label, callback_data=f"digest:acc:{current_exchange or 'all'}:all"))
         
         if current_exchange == "bybit" or not current_exchange:
-            demo_label = "✅ 🧪 Demo" if current_account == "demo" else "🧪 Demo"
-            real_label = "✅ 💼 Real" if current_account == "real" else "💼 Real"
+            demo_text = t.get("digest_btn_demo", "🧪 Demo")
+            real_text = t.get("digest_btn_real", "💼 Real")
+            demo_label = f"✅ {demo_text}" if current_account == "demo" else demo_text
+            real_label = f"✅ {real_text}" if current_account == "real" else real_text
             acc_row.append(InlineKeyboardButton(demo_label, callback_data=f"digest:acc:{current_exchange or 'all'}:demo"))
             acc_row.append(InlineKeyboardButton(real_label, callback_data=f"digest:acc:{current_exchange or 'all'}:real"))
         
         if current_exchange == "hyperliquid" or not current_exchange:
-            tn_label = "✅ 🧪 Testnet" if current_account == "testnet" else "🧪 Testnet"
-            mn_label = "✅ 🌐 Mainnet" if current_account == "mainnet" else "🌐 Mainnet"
+            tn_text = t.get("digest_btn_testnet", "🧪 Testnet")
+            mn_text = t.get("digest_btn_mainnet", "🌐 Mainnet")
+            tn_label = f"✅ {tn_text}" if current_account == "testnet" else tn_text
+            mn_label = f"✅ {mn_text}" if current_account == "mainnet" else mn_text
             acc_row.append(InlineKeyboardButton(tn_label, callback_data=f"digest:acc:{current_exchange or 'all'}:testnet"))
             acc_row.append(InlineKeyboardButton(mn_label, callback_data=f"digest:acc:{current_exchange or 'all'}:mainnet"))
         buttons.append(acc_row)
         
         # Row 3: Detailed breakdown + Close
+        detailed_text = t.get("digest_btn_detailed", "📋 Detailed")
+        close_text = t.get("digest_btn_close", "❌ Close")
         buttons.append([
-            InlineKeyboardButton("📋 Detailed", callback_data=f"digest:detail:{current_exchange or 'all'}:{current_account or 'all'}"),
-            InlineKeyboardButton("❌ Close", callback_data="digest:close"),
+            InlineKeyboardButton(detailed_text, callback_data=f"digest:detail:{current_exchange or 'all'}:{current_account or 'all'}"),
+            InlineKeyboardButton(close_text, callback_data="digest:close"),
         ])
         
         return InlineKeyboardMarkup(buttons)
@@ -413,8 +450,8 @@ class NotificationService:
             worst_pnl = stats["worst_pnl"]
             worst_symbol = stats["worst_symbol"]
             
-            message, vibe = self.build_digest_message(stats, today)
-            keyboard = self.build_digest_keyboard(user_id)
+            message, vibe = self.build_digest_message(stats, today, t=t)
+            keyboard = self.build_digest_keyboard(user_id, t=t)
             
             await self.bot.send_message(user_id, message, parse_mode='HTML', reply_markup=keyboard)
             
@@ -605,6 +642,9 @@ class NotificationService:
         Uses PostgreSQL via context manager
         """
         try:
+            # Import get_texts to load user-specific translations
+            from bot import get_texts
+            
             # Get all users using PostgreSQL
             with get_conn() as conn:
                 cur = conn.cursor()
@@ -614,7 +654,7 @@ class NotificationService:
             for row in users:
                 uid = row[0] if isinstance(row, (list, tuple)) else row.get('user_id')
                 try:
-                    t = {}  # Get translations
+                    t = get_texts(uid)  # Load per-user translations
                     await self.send_daily_pnl_report(uid, t)
                     await asyncio.sleep(0.1)  # Rate limiting
                 except Exception as e:

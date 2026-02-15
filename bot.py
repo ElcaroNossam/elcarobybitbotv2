@@ -17905,6 +17905,9 @@ async def on_digest_callback(update: Update, ctx: ContextTypes.DEFAULT_TYPE):
     uid = update.effective_user.id
     data = query.data
     
+    # Load user translations
+    t = get_texts(uid)
+    
     if data == "digest:close":
         await query.delete_message()
         return
@@ -17925,7 +17928,7 @@ async def on_digest_callback(update: Update, ctx: ContextTypes.DEFAULT_TYPE):
     
     if action == "detail":
         # Detailed breakdown: show per-strategy stats
-        await _send_detailed_digest(query, uid, today, exchange, account_type)
+        await _send_detailed_digest(query, uid, today, exchange, account_type, t=t)
         return
     
     # === Exchange or Account type switch ===
@@ -17941,27 +17944,43 @@ async def on_digest_callback(update: Update, ctx: ContextTypes.DEFAULT_TYPE):
         # No trades for this filter
         filter_parts = []
         if exchange:
-            filter_parts.append("🟠 Bybit" if exchange == "bybit" else "🔷 HyperLiquid")
+            filter_parts.append(t.get("digest_filter_bybit", "🟠 Bybit") if exchange == "bybit" else t.get("digest_filter_hl", "🔷 HyperLiquid"))
         if account_type:
-            acc_labels = {"demo": "🧪 Demo", "real": "💼 Real", "testnet": "🧪 Testnet", "mainnet": "🌐 Mainnet"}
+            acc_labels = {
+                "demo": t.get("digest_filter_demo", "🧪 Demo"),
+                "real": t.get("digest_filter_real", "💼 Real"),
+                "testnet": t.get("digest_filter_testnet", "🧪 Testnet"),
+                "mainnet": t.get("digest_filter_mainnet", "🌐 Mainnet"),
+            }
             filter_parts.append(acc_labels.get(account_type, account_type))
-        filter_label = " • ".join(filter_parts) if filter_parts else "🌍 All"
+        filter_label = " • ".join(filter_parts) if filter_parts else t.get("digest_filter_all", "🌍 All")
+        
+        title = t.get("digest_title", "📊 Daily Trading Report")
+        date_fmt = t.get("digest_date_format", "%d %B %Y")
+        no_trades = t.get("digest_no_trades", "📭 No trades found for this filter")
+        no_trades_hint = t.get("digest_no_trades_hint", "Try a different filter combination.")
+        
+        try:
+            date_str = today.strftime(date_fmt)
+        except Exception:
+            date_str = today.strftime("%d %B %Y")
         
         message = f"""
-📉 <b>Daily Trading Report</b>
+📉 <b>{title}</b>
 
-📅 {today.strftime('%d %B %Y')}
+📅 {date_str}
 🏷 {filter_label}
 ━━━━━━━━━━━━━━━━━━━━━━
 
-📭 <b>No trades found for this filter</b>
+<b>{no_trades}</b>
 
-Try a different filter combination.
+{no_trades_hint}
 """
         keyboard = NotificationService.build_digest_keyboard(
             uid, 
             current_exchange=exchange_raw if exchange_raw != "all" else None,
-            current_account=account_raw if account_raw != "all" else None
+            current_account=account_raw if account_raw != "all" else None,
+            t=t
         )
         try:
             await query.edit_message_text(message, parse_mode='HTML', reply_markup=keyboard)
@@ -17969,11 +17988,12 @@ Try a different filter combination.
             pass
         return
     
-    message, _ = NotificationService.build_digest_message(stats, today, exchange=exchange, account_type=account_type)
+    message, _ = NotificationService.build_digest_message(stats, today, exchange=exchange, account_type=account_type, t=t)
     keyboard = NotificationService.build_digest_keyboard(
         uid,
         current_exchange=exchange_raw if exchange_raw != "all" else None,
-        current_account=account_raw if account_raw != "all" else None
+        current_account=account_raw if account_raw != "all" else None,
+        t=t
     )
     
     try:
@@ -17982,10 +18002,13 @@ Try a different filter combination.
         pass
 
 
-async def _send_detailed_digest(query, uid: int, today, exchange: str = None, account_type: str = None):
+async def _send_detailed_digest(query, uid: int, today, exchange: str = None, account_type: str = None, t: dict = None):
     """Send detailed per-strategy breakdown in digest."""
     from services.notification_service import NotificationService
     from core.db_postgres import get_conn
+    
+    if t is None:
+        t = get_texts(uid)
     
     where_clauses = ["user_id = %s", "DATE(ts) = %s"]
     params: list = [uid, today.isoformat()]
@@ -18045,23 +18068,36 @@ async def _send_detailed_digest(query, uid: int, today, exchange: str = None, ac
     # Build filter label
     filter_parts = []
     if exchange:
-        filter_parts.append("🟠 Bybit" if exchange == "bybit" else "🔷 HyperLiquid")
+        filter_parts.append(t.get("digest_filter_bybit", "🟠 Bybit") if exchange == "bybit" else t.get("digest_filter_hl", "🔷 HyperLiquid"))
     if account_type:
-        acc_labels = {"demo": "🧪 Demo", "real": "💼 Real", "testnet": "🧪 Testnet", "mainnet": "🌐 Mainnet"}
+        acc_labels = {
+            "demo": t.get("digest_filter_demo", "🧪 Demo"),
+            "real": t.get("digest_filter_real", "💼 Real"),
+            "testnet": t.get("digest_filter_testnet", "🧪 Testnet"),
+            "mainnet": t.get("digest_filter_mainnet", "🌐 Mainnet"),
+        }
         filter_parts.append(acc_labels.get(account_type, account_type))
-    filter_label = " • ".join(filter_parts) if filter_parts else "🌍 All Exchanges"
+    filter_label = " • ".join(filter_parts) if filter_parts else t.get("digest_filter_all", "🌍 All Exchanges")
+    
+    title = t.get("digest_detailed_title", "📋 Detailed Daily Report")
+    date_fmt = t.get("digest_date_format", "%d %B %Y")
+    try:
+        date_str = today.strftime(date_fmt)
+    except Exception:
+        date_str = today.strftime("%d %B %Y")
     
     message = f"""
-📋 <b>Detailed Daily Report</b>
+{title}
 
-📅 {today.strftime('%d %B %Y')}
+📅 {date_str}
 🏷 {filter_label}
 ━━━━━━━━━━━━━━━━━━━━━━
 """
     
     # Exchange breakdown
+    by_exchange_label = t.get("digest_by_exchange", "By Exchange")
     if exchange_rows and len(exchange_rows) > 1:
-        message += "\n🏢 <b>By Exchange</b>\n"
+        message += f"\n🏢 <b>{by_exchange_label}</b>\n"
         for row in exchange_rows:
             ex_name = "🟠 Bybit" if row[0] == "bybit" else "🔷 HL"
             pnl = row[2] or 0
@@ -18070,8 +18106,9 @@ async def _send_detailed_digest(query, uid: int, today, exchange: str = None, ac
         message += "\n"
     
     # Strategy breakdown
+    by_strategy_label = t.get("digest_by_strategy", "By Strategy")
     if strat_rows:
-        message += "📊 <b>By Strategy</b>\n"
+        message += f"📊 <b>{by_strategy_label}</b>\n"
         strat_names = {
             "oi": "📈 OI", "scryptomera": "🔬 Scryptomera", "scalper": "⚡ Scalper",
             "elcaro": "💎 Elcaro", "fibonacci": "🔢 Fibonacci", "rsi_bb": "📉 RSI_BB",
@@ -18087,8 +18124,9 @@ async def _send_detailed_digest(query, uid: int, today, exchange: str = None, ac
         message += "\n"
     
     # Top symbols
+    top_symbols_label = t.get("digest_top_symbols", "Top Symbols")
     if top_symbols:
-        message += "🪙 <b>Top Symbols</b>\n"
+        message += f"🪙 <b>{top_symbols_label}</b>\n"
         for row in top_symbols:
             sym = row[0] or "?"
             pnl = row[1] or 0
@@ -18099,10 +18137,12 @@ async def _send_detailed_digest(query, uid: int, today, exchange: str = None, ac
     # Back button
     exchange_raw = exchange or "all"
     account_raw = account_type or "all"
+    back_text = t.get("digest_btn_back", "◀️ Back")
+    close_text = t.get("digest_btn_close", "❌ Close")
     keyboard = InlineKeyboardMarkup([
         [
-            InlineKeyboardButton("◀️ Back", callback_data=f"digest:ex:{exchange_raw}:{account_raw}"),
-            InlineKeyboardButton("❌ Close", callback_data="digest:close"),
+            InlineKeyboardButton(back_text, callback_data=f"digest:ex:{exchange_raw}:{account_raw}"),
+            InlineKeyboardButton(close_text, callback_data="digest:close"),
         ]
     ])
     
