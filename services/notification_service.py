@@ -19,8 +19,9 @@ import asyncio
 import aiohttp
 import json
 from datetime import datetime, timedelta
-from typing import Dict, List, Optional
+from typing import Dict, List, Optional, Tuple
 import logging
+from telegram import InlineKeyboardButton, InlineKeyboardMarkup
 
 # Import PostgreSQL connection from core
 from core.db_postgres import get_conn, execute, execute_one
@@ -205,85 +206,120 @@ class NotificationService:
         except Exception as e:
             logger.error(f"Error sending position opened notification: {e}")
             
-    async def send_daily_pnl_report(self, user_id: int, t: dict):
+    @staticmethod
+    def _query_digest_stats(user_id: int, today, exchange: str = None, account_type: str = None) -> Optional[dict]:
         """
-        Send beautiful daily PnL summary report with detailed stats.
-        Sends to: Telegram, iOS Push (APNs), WebSocket
+        Query trade_logs for daily digest stats with optional exchange/account_type filters.
+        Returns dict with stats or None if no trades.
         """
-        try:
-            today = datetime.now().date()
+        where_clauses = ["user_id = %s", "DATE(ts) = %s"]
+        params: list = [user_id, today.isoformat()]
+        
+        if exchange:
+            where_clauses.append("(exchange = %s OR exchange IS NULL)")
+            params.append(exchange)
+        if account_type:
+            where_clauses.append("(account_type = %s OR account_type IS NULL)")
+            params.append(account_type)
+        
+        where_sql = " AND ".join(where_clauses)
+        
+        with get_conn() as conn:
+            cur = conn.cursor()
             
-            # Get detailed stats using PostgreSQL
-            with get_conn() as conn:
-                cur = conn.cursor()
-                
-                # Get aggregated stats
-                cur.execute("""
-                    SELECT 
-                        COUNT(*) as trades_count,
-                        COALESCE(SUM(pnl), 0) as total_pnl,
-                        COALESCE(AVG(pnl), 0) as avg_pnl,
-                        COUNT(*) FILTER (WHERE pnl > 0) as wins,
-                        COUNT(*) FILTER (WHERE pnl < 0) as losses,
-                        MAX(pnl) as best_pnl,
-                        MIN(pnl) as worst_pnl
-                    FROM trade_logs
-                    WHERE user_id = %s AND DATE(ts) = %s
-                """, (user_id, today.isoformat()))
-                row = cur.fetchone()
-                
-                # Get best trade symbol
-                cur.execute("""
-                    SELECT symbol, pnl FROM trade_logs
-                    WHERE user_id = %s AND DATE(ts) = %s
-                    ORDER BY pnl DESC LIMIT 1
-                """, (user_id, today.isoformat()))
-                best_trade = cur.fetchone()
-                
-                # Get worst trade symbol
-                cur.execute("""
-                    SELECT symbol, pnl FROM trade_logs
-                    WHERE user_id = %s AND DATE(ts) = %s
-                    ORDER BY pnl ASC LIMIT 1
-                """, (user_id, today.isoformat()))
-                worst_trade = cur.fetchone()
+            cur.execute(f"""
+                SELECT 
+                    COUNT(*) as trades_count,
+                    COALESCE(SUM(pnl), 0) as total_pnl,
+                    COALESCE(AVG(pnl), 0) as avg_pnl,
+                    COUNT(*) FILTER (WHERE pnl > 0) as wins,
+                    COUNT(*) FILTER (WHERE pnl < 0) as losses,
+                    MAX(pnl) as best_pnl,
+                    MIN(pnl) as worst_pnl
+                FROM trade_logs
+                WHERE {where_sql}
+            """, tuple(params))
+            row = cur.fetchone()
             
             if not row or row[0] == 0:
-                return  # No trades today
-                
-            trades_count = row[0]
-            total_pnl = row[1] or 0
-            avg_pnl = row[2] or 0
-            wins = row[3] or 0
-            losses = row[4] or 0
-            best_pnl = row[5] or 0
-            worst_pnl = row[6] or 0
-            win_rate = (wins / trades_count * 100) if trades_count > 0 else 0
+                return None
             
-            best_symbol = best_trade[0] if best_trade else "N/A"
-            worst_symbol = worst_trade[0] if worst_trade else "N/A"
+            # Best trade
+            cur.execute(f"""
+                SELECT symbol, pnl FROM trade_logs
+                WHERE {where_sql}
+                ORDER BY pnl DESC LIMIT 1
+            """, tuple(params))
+            best_trade = cur.fetchone()
             
-            # Choose emoji and vibe based on performance
-            if total_pnl > 100:
-                emoji = "🚀"
-                vibe = "Amazing day!"
-            elif total_pnl > 0:
-                emoji = "✅"
-                vibe = "Nice work!"
-            elif total_pnl == 0:
-                emoji = "➖"
-                vibe = "Breakeven day"
-            elif total_pnl > -100:
-                emoji = "📉"
-                vibe = "Small loss"
-            else:
-                emoji = "😔"
-                vibe = "Tough day"
-            
-            message = f"""
+            # Worst trade
+            cur.execute(f"""
+                SELECT symbol, pnl FROM trade_logs
+                WHERE {where_sql}
+                ORDER BY pnl ASC LIMIT 1
+            """, tuple(params))
+            worst_trade = cur.fetchone()
+        
+        return {
+            "trades_count": row[0],
+            "total_pnl": row[1] or 0,
+            "avg_pnl": row[2] or 0,
+            "wins": row[3] or 0,
+            "losses": row[4] or 0,
+            "best_pnl": row[5] or 0,
+            "worst_pnl": row[6] or 0,
+            "best_symbol": best_trade[0] if best_trade else "N/A",
+            "worst_symbol": worst_trade[0] if worst_trade else "N/A",
+        }
+
+    @staticmethod
+    def build_digest_message(stats: dict, today, exchange: str = None, account_type: str = None) -> Tuple[str, str]:
+        """
+        Build beautiful HTML digest message from stats dict.
+        """
+        trades_count = stats["trades_count"]
+        total_pnl = stats["total_pnl"]
+        avg_pnl = stats["avg_pnl"]
+        wins = stats["wins"]
+        losses = stats["losses"]
+        best_pnl = stats["best_pnl"]
+        worst_pnl = stats["worst_pnl"]
+        best_symbol = stats["best_symbol"]
+        worst_symbol = stats["worst_symbol"]
+        win_rate = (wins / trades_count * 100) if trades_count > 0 else 0
+        
+        # Choose emoji and vibe based on performance
+        if total_pnl > 100:
+            emoji = "🚀"
+            vibe = "Amazing day!"
+        elif total_pnl > 0:
+            emoji = "✅"
+            vibe = "Nice work!"
+        elif total_pnl == 0:
+            emoji = "➖"
+            vibe = "Breakeven day"
+        elif total_pnl > -100:
+            emoji = "📉"
+            vibe = "Small loss"
+        else:
+            emoji = "😔"
+            vibe = "Tough day"
+        
+        # Filter label
+        filter_parts = []
+        if exchange:
+            ex_label = "🟠 Bybit" if exchange == "bybit" else "🔷 HyperLiquid"
+            filter_parts.append(ex_label)
+        if account_type:
+            acc_labels = {"demo": "🧪 Demo", "real": "💼 Real", "testnet": "🧪 Testnet", "mainnet": "🌐 Mainnet"}
+            filter_parts.append(acc_labels.get(account_type, account_type))
+        filter_label = " • ".join(filter_parts) if filter_parts else "🌍 All Exchanges"
+        
+        message = f"""
 {emoji} <b>Daily Trading Report</b>
 
 📅 {today.strftime('%d %B %Y')} • {vibe}
+🏷 {filter_label}
 ━━━━━━━━━━━━━━━━━━━━━━
 
 💰 <b>Total PnL: ${total_pnl:+,.2f}</b>
@@ -297,15 +333,90 @@ class NotificationService:
 🏆 <b>Best Trade</b>
 └ {best_symbol}: <code>${best_pnl:+.2f}</code>
 """
-            if worst_pnl < 0:
-                message += f"""
+        if worst_pnl < 0:
+            message += f"""
 📉 <b>Worst Trade</b>
 └ {worst_symbol}: <code>${worst_pnl:+.2f}</code>
 """
+        
+        message += "\nKeep improving! 💪"
+        return message, vibe
+
+    @staticmethod
+    def build_digest_keyboard(user_id: int, current_exchange: str = None, current_account: str = None) -> InlineKeyboardMarkup:
+        """
+        Build inline keyboard for digest navigation.
+        Buttons: Exchange filter, Account type filter, Detailed view.
+        """
+        buttons = []
+        
+        # Row 1: Exchange filter buttons
+        ex_row = []
+        # "All" button
+        all_label = "✅ All" if not current_exchange else "All"
+        ex_row.append(InlineKeyboardButton(all_label, callback_data="digest:ex:all:all"))
+        # Bybit
+        bybit_label = "✅ 🟠 Bybit" if current_exchange == "bybit" else "🟠 Bybit"
+        ex_row.append(InlineKeyboardButton(bybit_label, callback_data=f"digest:ex:bybit:{current_account or 'all'}"))
+        # HyperLiquid
+        hl_label = "✅ 🔷 HL" if current_exchange == "hyperliquid" else "🔷 HL"
+        ex_row.append(InlineKeyboardButton(hl_label, callback_data=f"digest:ex:hyperliquid:{current_account or 'all'}"))
+        buttons.append(ex_row)
+        
+        # Row 2: Account type filter (dynamic based on selected exchange)
+        acc_row = []
+        acc_all_label = "✅ All" if not current_account else "All"
+        acc_row.append(InlineKeyboardButton(acc_all_label, callback_data=f"digest:acc:{current_exchange or 'all'}:all"))
+        
+        if current_exchange == "bybit" or not current_exchange:
+            demo_label = "✅ 🧪 Demo" if current_account == "demo" else "🧪 Demo"
+            real_label = "✅ 💼 Real" if current_account == "real" else "💼 Real"
+            acc_row.append(InlineKeyboardButton(demo_label, callback_data=f"digest:acc:{current_exchange or 'all'}:demo"))
+            acc_row.append(InlineKeyboardButton(real_label, callback_data=f"digest:acc:{current_exchange or 'all'}:real"))
+        
+        if current_exchange == "hyperliquid" or not current_exchange:
+            tn_label = "✅ 🧪 Testnet" if current_account == "testnet" else "🧪 Testnet"
+            mn_label = "✅ 🌐 Mainnet" if current_account == "mainnet" else "🌐 Mainnet"
+            acc_row.append(InlineKeyboardButton(tn_label, callback_data=f"digest:acc:{current_exchange or 'all'}:testnet"))
+            acc_row.append(InlineKeyboardButton(mn_label, callback_data=f"digest:acc:{current_exchange or 'all'}:mainnet"))
+        buttons.append(acc_row)
+        
+        # Row 3: Detailed breakdown + Close
+        buttons.append([
+            InlineKeyboardButton("📋 Detailed", callback_data=f"digest:detail:{current_exchange or 'all'}:{current_account or 'all'}"),
+            InlineKeyboardButton("❌ Close", callback_data="digest:close"),
+        ])
+        
+        return InlineKeyboardMarkup(buttons)
+
+    async def send_daily_pnl_report(self, user_id: int, t: dict):
+        """
+        Send beautiful daily PnL summary report with detailed stats.
+        Sends to: Telegram (with interactive buttons), iOS Push (APNs), WebSocket
+        """
+        try:
+            today = datetime.now().date()
             
-            message += "\nKeep improving! 💪"
+            # Query ALL trades (no exchange/account filter) for the initial report
+            stats = self._query_digest_stats(user_id, today)
             
-            await self.bot.send_message(user_id, message, parse_mode='HTML')
+            if not stats:
+                return  # No trades today
+            
+            trades_count = stats["trades_count"]
+            total_pnl = stats["total_pnl"]
+            wins = stats["wins"]
+            losses = stats["losses"]
+            win_rate = (wins / trades_count * 100) if trades_count > 0 else 0
+            best_pnl = stats["best_pnl"]
+            best_symbol = stats["best_symbol"]
+            worst_pnl = stats["worst_pnl"]
+            worst_symbol = stats["worst_symbol"]
+            
+            message, vibe = self.build_digest_message(stats, today)
+            keyboard = self.build_digest_keyboard(user_id)
+            
+            await self.bot.send_message(user_id, message, parse_mode='HTML', reply_markup=keyboard)
             
             # Send iOS Push Notification with beautiful digest
             if APNS_AVAILABLE:

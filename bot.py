@@ -17883,6 +17883,235 @@ async def cmd_trade_stats(update: Update, ctx: ContextTypes.DEFAULT_TYPE):
     await update.message.reply_text(text, parse_mode="Markdown", reply_markup=keyboard)
 
 
+# ═══════════════════════════════════════════════════════════
+# DAILY DIGEST INTERACTIVE CALLBACKS
+# ═══════════════════════════════════════════════════════════
+
+@log_calls
+async def on_digest_callback(update: Update, ctx: ContextTypes.DEFAULT_TYPE):
+    """Handle daily digest navigation callbacks.
+    
+    Callback formats:
+        digest:ex:<exchange>:<account>     - Switch exchange filter
+        digest:acc:<exchange>:<account>    - Switch account type filter  
+        digest:detail:<exchange>:<account> - Show detailed breakdown
+        digest:close                       - Close the digest
+    """
+    from services.notification_service import NotificationService
+    
+    query = update.callback_query
+    await query.answer()
+    
+    uid = update.effective_user.id
+    data = query.data
+    
+    if data == "digest:close":
+        await query.delete_message()
+        return
+    
+    parts = data.split(":")
+    if len(parts) < 4:
+        return
+    
+    action = parts[1]
+    exchange_raw = parts[2]
+    account_raw = parts[3]
+    
+    # Normalize "all" to None for query
+    exchange = exchange_raw if exchange_raw != "all" else None
+    account_type = account_raw if account_raw != "all" else None
+    
+    today = __import__("datetime").datetime.now().date()
+    
+    if action == "detail":
+        # Detailed breakdown: show per-strategy stats
+        await _send_detailed_digest(query, uid, today, exchange, account_type)
+        return
+    
+    # === Exchange or Account type switch ===
+    if action == "ex":
+        # User switched exchange — reset account_type to "all"
+        account_type = None
+        account_raw = "all"
+    
+    # Query stats with filters
+    stats = NotificationService._query_digest_stats(uid, today, exchange=exchange, account_type=account_type)
+    
+    if not stats:
+        # No trades for this filter
+        filter_parts = []
+        if exchange:
+            filter_parts.append("🟠 Bybit" if exchange == "bybit" else "🔷 HyperLiquid")
+        if account_type:
+            acc_labels = {"demo": "🧪 Demo", "real": "💼 Real", "testnet": "🧪 Testnet", "mainnet": "🌐 Mainnet"}
+            filter_parts.append(acc_labels.get(account_type, account_type))
+        filter_label = " • ".join(filter_parts) if filter_parts else "🌍 All"
+        
+        message = f"""
+📉 <b>Daily Trading Report</b>
+
+📅 {today.strftime('%d %B %Y')}
+🏷 {filter_label}
+━━━━━━━━━━━━━━━━━━━━━━
+
+📭 <b>No trades found for this filter</b>
+
+Try a different filter combination.
+"""
+        keyboard = NotificationService.build_digest_keyboard(
+            uid, 
+            current_exchange=exchange_raw if exchange_raw != "all" else None,
+            current_account=account_raw if account_raw != "all" else None
+        )
+        try:
+            await query.edit_message_text(message, parse_mode='HTML', reply_markup=keyboard)
+        except Exception:
+            pass
+        return
+    
+    message, _ = NotificationService.build_digest_message(stats, today, exchange=exchange, account_type=account_type)
+    keyboard = NotificationService.build_digest_keyboard(
+        uid,
+        current_exchange=exchange_raw if exchange_raw != "all" else None,
+        current_account=account_raw if account_raw != "all" else None
+    )
+    
+    try:
+        await query.edit_message_text(message, parse_mode='HTML', reply_markup=keyboard)
+    except Exception:
+        pass
+
+
+async def _send_detailed_digest(query, uid: int, today, exchange: str = None, account_type: str = None):
+    """Send detailed per-strategy breakdown in digest."""
+    from services.notification_service import NotificationService
+    from core.db_postgres import get_conn
+    
+    where_clauses = ["user_id = %s", "DATE(ts) = %s"]
+    params: list = [uid, today.isoformat()]
+    
+    if exchange:
+        where_clauses.append("(exchange = %s OR exchange IS NULL)")
+        params.append(exchange)
+    if account_type:
+        where_clauses.append("(account_type = %s OR account_type IS NULL)")
+        params.append(account_type)
+    
+    where_sql = " AND ".join(where_clauses)
+    
+    with get_conn() as conn:
+        cur = conn.cursor()
+        
+        # Per-strategy breakdown
+        cur.execute(f"""
+            SELECT 
+                COALESCE(strategy, 'unknown') as strat,
+                COUNT(*) as total,
+                COUNT(*) FILTER (WHERE pnl > 0) as wins,
+                COUNT(*) FILTER (WHERE pnl < 0) as losses,
+                COALESCE(SUM(pnl), 0) as total_pnl
+            FROM trade_logs
+            WHERE {where_sql}
+            GROUP BY COALESCE(strategy, 'unknown')
+            ORDER BY total_pnl DESC
+        """, tuple(params))
+        strat_rows = cur.fetchall()
+        
+        # Per-exchange breakdown (only if no exchange filter)
+        exchange_rows = []
+        if not exchange:
+            cur.execute(f"""
+                SELECT 
+                    COALESCE(exchange, 'bybit') as ex,
+                    COUNT(*) as total,
+                    COALESCE(SUM(pnl), 0) as total_pnl
+                FROM trade_logs
+                WHERE user_id = %s AND DATE(ts) = %s
+                GROUP BY COALESCE(exchange, 'bybit')
+                ORDER BY total_pnl DESC
+            """, (uid, today.isoformat()))
+            exchange_rows = cur.fetchall()
+        
+        # Top profitable and losing symbols
+        cur.execute(f"""
+            SELECT symbol, SUM(pnl) as total_pnl, COUNT(*) as trades
+            FROM trade_logs
+            WHERE {where_sql}
+            GROUP BY symbol
+            ORDER BY total_pnl DESC LIMIT 5
+        """, tuple(params))
+        top_symbols = cur.fetchall()
+    
+    # Build filter label
+    filter_parts = []
+    if exchange:
+        filter_parts.append("🟠 Bybit" if exchange == "bybit" else "🔷 HyperLiquid")
+    if account_type:
+        acc_labels = {"demo": "🧪 Demo", "real": "💼 Real", "testnet": "🧪 Testnet", "mainnet": "🌐 Mainnet"}
+        filter_parts.append(acc_labels.get(account_type, account_type))
+    filter_label = " • ".join(filter_parts) if filter_parts else "🌍 All Exchanges"
+    
+    message = f"""
+📋 <b>Detailed Daily Report</b>
+
+📅 {today.strftime('%d %B %Y')}
+🏷 {filter_label}
+━━━━━━━━━━━━━━━━━━━━━━
+"""
+    
+    # Exchange breakdown
+    if exchange_rows and len(exchange_rows) > 1:
+        message += "\n🏢 <b>By Exchange</b>\n"
+        for row in exchange_rows:
+            ex_name = "🟠 Bybit" if row[0] == "bybit" else "🔷 HL"
+            pnl = row[2] or 0
+            pnl_emoji = "🟢" if pnl >= 0 else "🔴"
+            message += f"├ {ex_name}: {row[1]} trades • {pnl_emoji} <code>${pnl:+,.2f}</code>\n"
+        message += "\n"
+    
+    # Strategy breakdown
+    if strat_rows:
+        message += "📊 <b>By Strategy</b>\n"
+        strat_names = {
+            "oi": "📈 OI", "scryptomera": "🔬 Scryptomera", "scalper": "⚡ Scalper",
+            "elcaro": "💎 Elcaro", "fibonacci": "🔢 Fibonacci", "rsi_bb": "📉 RSI_BB",
+            "manual": "✋ Manual", "unknown": "❓ Unknown"
+        }
+        for row in strat_rows:
+            s_name = strat_names.get(row[0], row[0])
+            wins = row[2] or 0
+            losses = row[3] or 0
+            pnl = row[4] or 0
+            pnl_emoji = "🟢" if pnl >= 0 else "🔴"
+            message += f"├ {s_name}: {wins}W/{losses}L • {pnl_emoji} <code>${pnl:+,.2f}</code>\n"
+        message += "\n"
+    
+    # Top symbols
+    if top_symbols:
+        message += "🪙 <b>Top Symbols</b>\n"
+        for row in top_symbols:
+            sym = row[0] or "?"
+            pnl = row[1] or 0
+            trades = row[2] or 0
+            pnl_emoji = "🟢" if pnl >= 0 else "🔴"
+            message += f"├ {sym}: {trades}t • {pnl_emoji} <code>${pnl:+,.2f}</code>\n"
+    
+    # Back button
+    exchange_raw = exchange or "all"
+    account_raw = account_type or "all"
+    keyboard = InlineKeyboardMarkup([
+        [
+            InlineKeyboardButton("◀️ Back", callback_data=f"digest:ex:{exchange_raw}:{account_raw}"),
+            InlineKeyboardButton("❌ Close", callback_data="digest:close"),
+        ]
+    ])
+    
+    try:
+        await query.edit_message_text(message, parse_mode='HTML', reply_markup=keyboard)
+    except Exception:
+        pass
+
+
 @with_texts
 @log_calls
 async def on_stats_callback(update: Update, ctx: ContextTypes.DEFAULT_TYPE):
@@ -32621,6 +32850,7 @@ def main():
     app.add_handler(CallbackQueryHandler(on_coin_group_cb, pattern=r"^coins:"))
     app.add_handler(CallbackQueryHandler(on_positions_cb, pattern=r"^pos:"))
     app.add_handler(CallbackQueryHandler(on_stats_callback, pattern=r"^stats:"))
+    app.add_handler(CallbackQueryHandler(on_digest_callback, pattern=r"^digest:"))
     app.add_handler(CallbackQueryHandler(on_trades_callback, pattern=r"^trades:"))
     app.add_handler(CallbackQueryHandler(handle_balance_callback, pattern=r"^balance:"))
     app.add_handler(CallbackQueryHandler(handle_positions_callback, pattern=r"^positions:"))
