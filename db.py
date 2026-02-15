@@ -2340,7 +2340,7 @@ def get_recent_signal_for_position(symbol: str, side: str, within_seconds: int =
             SELECT id, raw_data, ts, timeframe, side, symbol, price 
             FROM signals 
             WHERE symbol = %s
-            AND ts > NOW() - INTERVAL '%s seconds'
+            AND ts > NOW() - make_interval(secs => %s)
             ORDER BY ts DESC LIMIT 1
             """,
             (symbol, within_seconds),

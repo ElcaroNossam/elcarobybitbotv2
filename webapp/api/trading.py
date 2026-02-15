@@ -2390,6 +2390,7 @@ async def _set_leverage_for_symbol(user_id: int, symbol: str, leverage: int, exc
         if private_key:
             adapter = HLAdapter(private_key=private_key, testnet=is_testnet)
             try:
+                await adapter.initialize()
                 await adapter.set_leverage(symbol.replace("USDT", "").replace("USDC", ""), leverage)
             finally:
                 await adapter.close()
@@ -2442,6 +2443,7 @@ async def _place_single_order_hl(user_id: int, symbol: str, side: str, order_typ
     side_formatted = "Buy" if side.lower() in ["buy", "long"] else "Sell"
     adapter = HLAdapter(private_key=private_key, testnet=is_testnet)
     try:
+        await adapter.initialize()
         result = await adapter.place_order(symbol=symbol, side=side_formatted, qty=size, order_type=order_type, price=price)
         return {"success": result.get("retCode") == 0, "order_id": result.get("result", {}).get("orderId")}
     finally:
@@ -3226,7 +3228,7 @@ async def get_chart_markers(
                 sl_price, tp_price, entry_ts, exit_ts, exit_order_type
             FROM trade_logs
             WHERE user_id = %s AND symbol = %s
-            AND exit_ts >= EXTRACT(EPOCH FROM (NOW() - INTERVAL '%s days')) * 1000
+            AND exit_ts >= EXTRACT(EPOCH FROM (NOW() - make_interval(days => %s))) * 1000
             ORDER BY exit_ts DESC
             LIMIT 500
         """

@@ -284,6 +284,7 @@ def create_access_token(user_id: int, is_admin: bool = False) -> str:
     expire = datetime.utcnow() + timedelta(hours=JWT_EXPIRATION_HOURS)
     payload = {
         "sub": str(user_id),
+        "type": "access",
         "is_admin": is_admin,
         "exp": expire,
         "iat": datetime.utcnow()
@@ -352,6 +353,12 @@ async def get_current_user(credentials: Optional[HTTPAuthorizationCredentials] =
     
     try:
         payload = jwt.decode(credentials.credentials, JWT_SECRET, algorithms=[JWT_ALGORITHM])
+        
+        # Reject refresh tokens used as access tokens
+        token_type = payload.get("type")
+        if token_type == "refresh":
+            raise HTTPException(status_code=401, detail="Refresh token cannot be used for API access")
+        
         # Support both "sub" (standard JWT) and "user_id" (legacy) fields
         user_id = payload.get("sub") or payload.get("user_id")
         if not user_id:

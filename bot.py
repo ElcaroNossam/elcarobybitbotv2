@@ -7386,10 +7386,14 @@ async def split_market_plus_one_limit(
         cfg = get_user_config(uid) or {}
         global_use_atr = bool(cfg.get("use_atr", 1))  # Default to ATR enabled
         
+        # Determine side prefix for side-specific settings
+        _side_prefix = "long" if _side in ("Buy", "LONG", "Long") else "short"
+        
         # Get strategy-specific use_atr if strategy is set
         if strategy:
             strat_settings = db.get_strategy_settings(uid, strategy, exchange="bybit", account_type=account_type)
-            strat_use_atr = strat_settings.get("use_atr")
+            # FIXED: Use side-specific key (long_use_atr / short_use_atr) instead of generic "use_atr"
+            strat_use_atr = strat_settings.get(f"{_side_prefix}_use_atr")
             use_atr = bool(strat_use_atr) if strat_use_atr is not None else global_use_atr
         else:
             use_atr = global_use_atr
@@ -7518,7 +7522,8 @@ async def split_market_plus_one_limit(
                     if p2:
                         entry2 = float(p2.get("avgPrice") or entry)
                         size2  = float(p2.get("size") or (size + leg2))
-                        await strict_set_sl_tp(side_s, entry2, tp_pct, sl_pct)
+                        # FIXED: Respect ATR mode — pass None for tp when ATR enabled
+                        await strict_set_sl_tp(side_s, entry2, None if use_atr else tp_pct, sl_pct)
                         try:
                             await ctx.bot.send_message(
                                 uid,
@@ -7581,7 +7586,8 @@ async def split_market_plus_one_limit(
                         await asyncio.sleep(0.25)
                     if p3:
                         entry3 = float(p3.get("avgPrice") or entry)
-                        await strict_set_sl_tp(side_s, entry3, tp_pct, sl_pct)
+                        # FIXED: Respect ATR mode — pass None for tp when ATR enabled
+                        await strict_set_sl_tp(side_s, entry3, None if use_atr else tp_pct, sl_pct)
                         try:
                             await ctx.bot.send_message(
                                 uid,
@@ -19686,8 +19692,9 @@ async def on_channel_post(update: Update, ctx: ContextTypes.DEFAULT_TYPE):
             
             # Check if user has API keys configured - skip silently if not
             api_key, api_secret = get_user_credentials(uid)
-            if not api_key or not api_secret:
-                # User doesn't have API keys - skip without spamming logs
+            hl_enabled = db.is_hl_enabled(uid)
+            if (not api_key or not api_secret) and not hl_enabled:
+                # User doesn't have any exchange API keys - skip without spamming logs
                 continue
 
             # Check trading limits silently - no spam, just skip if at max
@@ -20112,9 +20119,9 @@ async def on_channel_post(update: Update, ctx: ContextTypes.DEFAULT_TYPE):
                             )
                 else:
                     try:
-                        rv = float(rsi_val)
-                        hi = float(bb_hi)
-                        lo = float(bb_lo)
+                        rv = float(rsi_val) if rsi_val is not None else 0.0
+                        hi = float(bb_hi) if bb_hi is not None else 0.0
+                        lo = float(bb_lo) if bb_lo is not None else 0.0
                         rsi_zone = (
                             t.get('rsi_zone_oversold', 'oversold') if rv < 23 else
                             t.get('rsi_zone_overbought', 'overbought') if rv > 77 else
@@ -20539,11 +20546,11 @@ async def on_channel_post(update: Update, ctx: ContextTypes.DEFAULT_TYPE):
                 elcaro_leverage = params.get("leverage")  # FIX: use side-specific from params
                 logger.info(f"[{uid}] ⚙️ Elcaro {elcaro_side_display} settings: entry%={risk_pct}, SL%={sl_pct}, TP%={tp_pct}, leverage={elcaro_leverage}, exchange={ctx_exchange}")
                 
-                # ATR from user settings
-                pos_use_atr = elcaro_strat_settings.get("use_atr", False)
-                elcaro_atr_periods = elcaro_strat_settings.get("atr_periods") if pos_use_atr else None
-                elcaro_atr_mult = elcaro_strat_settings.get("atr_multiplier_sl") if pos_use_atr else None
-                elcaro_atr_trigger = elcaro_strat_settings.get("atr_trigger_pct") if pos_use_atr else None
+                # ATR from user settings (FIXED: use resolved params, not raw strat_settings)
+                pos_use_atr = params.get("use_atr", False)
+                elcaro_atr_periods = params.get("atr_periods") if pos_use_atr else None
+                elcaro_atr_mult = params.get("atr_multiplier_sl") if pos_use_atr else None
+                elcaro_atr_trigger = params.get("atr_trigger_pct") if pos_use_atr else None
 
                 try:
                     qty = await calc_qty(uid, symbol, spot_price, risk_pct, sl_pct=sl_pct, account_type=ctx_account_type, exchange=ctx_exchange)
@@ -20722,11 +20729,11 @@ async def on_channel_post(update: Update, ctx: ContextTypes.DEFAULT_TYPE):
                 fibo_tp_pct = params["tp_pct"]  # From user settings!
                 logger.info(f"[{uid}] ⚙️ Fibonacci {fibo_side_display} settings: entry%={risk_pct}, SL%={fibo_sl_pct}, TP%={fibo_tp_pct}, leverage={user_leverage}, exchange={ctx_exchange}")
                 
-                # ATR from user settings
-                pos_use_atr = strat_settings.get("use_atr", False)
-                fibo_atr_periods = strat_settings.get("atr_periods") if pos_use_atr else None
-                fibo_atr_mult = strat_settings.get("atr_multiplier_sl") if pos_use_atr else None
-                fibo_atr_trigger = strat_settings.get("atr_trigger_pct") if pos_use_atr else None
+                # ATR from user settings (use params which has side-resolved values)
+                pos_use_atr = params.get("use_atr", False)
+                fibo_atr_periods = params.get("atr_periods") if pos_use_atr else None
+                fibo_atr_mult = params.get("atr_multiplier_sl") if pos_use_atr else None
+                fibo_atr_trigger = params.get("atr_trigger_pct") if pos_use_atr else None
                 
                 logger.debug(f"[{uid}] Fibonacci using USER settings: Entry%={risk_pct}%, SL={fibo_sl_pct}%, TP={fibo_tp_pct}%, "
                             f"Leverage={user_leverage}, ATR={'ON' if pos_use_atr else 'OFF'}")
@@ -20852,11 +20859,16 @@ async def on_channel_post(update: Update, ctx: ContextTypes.DEFAULT_TYPE):
                             if pos_use_atr and fibo_atr_periods:
                                 atr_info = f"\n📉 ATR: {fibo_atr_periods} | ×{fibo_atr_mult} | Trigger: {fibo_atr_trigger}%"
                             
+                            # Format entry zone (may be None if not in signal)
+                            zone_str = ""
+                            if fibo_entry_low is not None and fibo_entry_high is not None:
+                                zone_str = f"🎯 Zone: {fibo_entry_low:.6g} – {fibo_entry_high:.6g}\n"
+                            
                             signal_info = (
                                 f"📐 *Fibonacci* {'📈 LONG' if side=='Buy' else '📉 SHORT'}\n"
                                 f"🪙 {symbol}\n"
                                 f"💰 Entry: {spot_price:.6g}\n"
-                                f"🎯 Zone: {fibo_entry_low:.6g} – {fibo_entry_high:.6g}\n"
+                                f"{zone_str}"
                                 f"🛑 SL: {actual_sl:.6g} ({fibo_sl_pct:.2f}%)\n"
                                 f"✅ TP: {actual_tp:.6g} ({fibo_tp_pct:.2f}%)\n"
                                 f"🟢 Quality: {quality_grade} ({quality_score}/100){atr_info}\n\n"
@@ -21250,7 +21262,8 @@ async def monitor_positions_loop(app: Application):
                                             cfg_pending = get_user_config(uid) or {}
                                             trade_params_pending = get_strategy_trade_params(
                                                 uid, cfg_pending, sym, strat_name,
-                                                side=po["side"], account_type=current_account_type
+                                                side=po["side"], account_type=current_account_type,
+                                                exchange=current_exchange
                                             )
                                             pos_use_atr_pending = trade_params_pending.get("use_atr", False)
                                             # Get leverage from position (Bybit returns it)
@@ -22156,11 +22169,10 @@ async def monitor_positions_loop(app: Application):
                         
                             # Get SL/TP from strategy settings if available, otherwise use global
                             if pos_strategy:
-                                # Get context for this position
-                                pos_context = get_user_trading_context(uid)
-                                pos_acct = account_type_map.get(sym, pos_context["account_type"])
+                                # Use current_exchange (the exchange we're monitoring), not user's default exchange
+                                pos_acct = account_type_map.get(sym, current_account_type)
                                 strat_params = get_strategy_trade_params(uid, cfg, sym, pos_strategy, side=side,
-                                                                         exchange=pos_context["exchange"], account_type=pos_acct)
+                                                                         exchange=current_exchange, account_type=pos_acct)
                                 sl_pct = strat_params["sl_pct"]
                                 tp_pct = strat_params["tp_pct"]
                                 risk_pct_for_dca = strat_params["percent"]

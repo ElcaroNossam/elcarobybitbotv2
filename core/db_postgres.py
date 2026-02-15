@@ -530,7 +530,6 @@ def pg_init_db():
                 leverage     INTEGER,
                 sl_price     REAL,
                 tp_price     REAL,
-                exchange     TEXT DEFAULT 'bybit',
                 env          TEXT,
                 source       TEXT DEFAULT 'bot',
                 opened_by    TEXT DEFAULT 'bot',
@@ -635,7 +634,7 @@ def pg_init_db():
                 created_at      TIMESTAMP DEFAULT NOW(),
                 updated_at      TIMESTAMP DEFAULT NOW(),
                 
-                PRIMARY KEY(user_id, strategy, side)
+                PRIMARY KEY(user_id, strategy, side, exchange)
             )
         """)
         cur.execute("CREATE INDEX IF NOT EXISTS idx_uss_user ON user_strategy_settings(user_id)")
@@ -1429,7 +1428,7 @@ def pg_get_trade_logs(
         params.append(strategy)
     
     if days:
-        conditions.append("ts > NOW() - INTERVAL '%s days'")
+        conditions.append("ts > NOW() - make_interval(days => %s)")
         params.append(days)
     
     if exchange:
@@ -1462,7 +1461,7 @@ def pg_get_pnl_stats(
         params.append(account_type)
     
     if days:
-        conditions.append("ts > NOW() - INTERVAL '%s days'")
+        conditions.append("ts > NOW() - make_interval(days => %s)")
         params.append(days)
     
     if exchange:

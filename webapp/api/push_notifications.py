@@ -303,7 +303,7 @@ async def clear_notifications(
     
     execute_one("""
         DELETE FROM notification_queue 
-        WHERE user_id = %s AND created_at < NOW() - INTERVAL '%s days'
+        WHERE user_id = %s AND created_at < NOW() - make_interval(days => %s)
     """, (user_id, older_than_days))
     
     return {"status": "success"}

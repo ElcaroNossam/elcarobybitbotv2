@@ -336,7 +336,7 @@ class StrategySyncService:
                     AVG(pnl_pct) as avg_pnl_pct
                 FROM trade_logs
                 WHERE strategy = %s
-                AND ts >= NOW() - INTERVAL '%s days'
+                AND ts >= NOW() - make_interval(days => %s)
                 GROUP BY user_id, strategy
                 HAVING COUNT(*) >= 5
                 ORDER BY total_pnl DESC
@@ -352,7 +352,7 @@ class StrategySyncService:
                     SUM(pnl) as total_pnl,
                     AVG(pnl_pct) as avg_pnl_pct
                 FROM trade_logs
-                WHERE ts >= NOW() - INTERVAL '%s days'
+                WHERE ts >= NOW() - make_interval(days => %s)
                 GROUP BY user_id
                 HAVING COUNT(*) >= 10
                 ORDER BY total_pnl DESC

@@ -771,7 +771,11 @@ class HLAdapter:
         is_buy = side.lower() == "buy"
         try:
             if order_type.lower() == "market" or price is None:
-                result = await self._client.market_open(coin=coin, is_buy=is_buy, sz=qty)
+                if reduce_only:
+                    # Use market_close for reduce_only market orders to prevent opening counter-position
+                    result = await self._client.market_close(coin=coin, sz=qty)
+                else:
+                    result = await self._client.market_open(coin=coin, is_buy=is_buy, sz=qty)
             else:
                 result = await self._client.order(coin=coin, is_buy=is_buy, sz=qty, limit_px=price, reduce_only=reduce_only)
 
