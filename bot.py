@@ -5749,11 +5749,17 @@ async def detect_exit_reason(
     sl_pct: float = None,
     tp_pct: float = None,
     atr_activated: bool = False,
-    account_type: str = "demo"
+    account_type: str = "demo",
+    exchange: str = "bybit",
+    sl_price: float = None,
+    tp_price: float = None,
 ) -> tuple[str, str]:
     """
     Detect exit reason by checking execution list and order history.
     If Bybit API doesn't provide clear reason, uses price comparison as fallback.
+    For HyperLiquid, uses stored SL/TP prices from DB for comparison since HL API
+    doesn't provide exit reason metadata like Bybit does.
+    
     Returns tuple of (reason, order_type) where reason is one of:
     - "TP" - Take Profit triggered
     - "SL" - Stop Loss triggered (fixed %)
@@ -5767,10 +5773,48 @@ async def detect_exit_reason(
     Args:
         atr_activated: If True and SL detected, will return "ATR_SL" instead of "SL"
         account_type: For logging purposes
+        exchange: 'bybit' or 'hyperliquid'
+        sl_price: Actual SL price from DB (for HL price-based detection)
+        tp_price: Actual TP price from DB (for HL price-based detection)
     """
     reason = "UNKNOWN"
     order_type = ""
     
+    # ===== HyperLiquid exit detection (price-based since HL API lacks exit reason metadata) =====
+    if exchange == "hyperliquid" and entry_price and exit_price and entry_price > 0 and exit_price > 0:
+        # Step HL-1: Compare exit price with stored SL/TP prices (most reliable for HL)
+        if sl_price and sl_price > 0:
+            sl_diff_pct = abs(exit_price - sl_price) / sl_price * 100
+            if sl_diff_pct < 2.0:  # Exit within 2% of SL price → SL triggered
+                sl_reason = "ATR_SL" if atr_activated else "SL"
+                logger.info(f"[{user_id}] {symbol} HL exit: price {exit_price:.6f} matches SL {sl_price:.6f} (diff {sl_diff_pct:.2f}%)")
+                return sl_reason, "Market"
+        
+        if tp_price and tp_price > 0:
+            tp_diff_pct = abs(exit_price - tp_price) / tp_price * 100
+            if tp_diff_pct < 2.0:  # Exit within 2% of TP price → TP triggered
+                logger.info(f"[{user_id}] {symbol} HL exit: price {exit_price:.6f} matches TP {tp_price:.6f} (diff {tp_diff_pct:.2f}%)")
+                return "TP", "Market"
+        
+        # Step HL-2: Use PnL percentage comparison with SL/TP thresholds
+        pnl_pct = ((exit_price / entry_price) - 1.0) * 100 if side == "Buy" else ((entry_price / exit_price) - 1.0) * 100
+        sl_threshold = sl_pct or 30.0
+        tp_threshold = tp_pct or 25.0
+        
+        if pnl_pct >= tp_threshold * 0.7:  # Within 70% of TP threshold
+            logger.info(f"[{user_id}] {symbol} HL exit: pnl {pnl_pct:.2f}% matches TP threshold {tp_threshold}%")
+            return "TP", "Market"
+        elif pnl_pct <= -sl_threshold * 0.7:  # Within 70% of SL threshold
+            sl_reason = "ATR_SL" if atr_activated else "SL"
+            logger.info(f"[{user_id}] {symbol} HL exit: pnl {pnl_pct:.2f}% matches SL threshold -{sl_threshold}%")
+            return sl_reason, "Market"
+        
+        # Step HL-3: For HL, if we can't determine → use UNKNOWN instead of MANUAL
+        # (Bybit API can distinguish manual close via createType; HL cannot)
+        logger.info(f"[{user_id}] {symbol} HL exit: pnl {pnl_pct:.2f}%, no SL/TP match → UNKNOWN")
+        return "UNKNOWN", "Market"
+    
+    # ===== Bybit exit detection (uses API metadata) =====
     # Step 1: Check execution list for position closes (closedSize > 0)
     # Note: /v5/execution/list returns createType and stopOrderType which tell us WHY position was closed
     try:
@@ -5904,32 +5948,46 @@ async def detect_exit_reason(
         except Exception as e:
             logger.debug(f"Could not fetch closed-pnl for detect_exit_reason: {e}")
     
-    # Step 5: Fallback - determine by comparing exit_price with entry_price and expected TP/SL levels
+    # Step 5: Fallback (Bybit only) - determine by comparing exit_price with entry_price and expected TP/SL levels
     if reason == "UNKNOWN" and entry_price and exit_price and side and entry_price > 0 and exit_price > 0:
+        # Step 5a: Check actual SL/TP prices from DB (most accurate)
+        if sl_price and sl_price > 0:
+            sl_diff_pct = abs(exit_price - sl_price) / sl_price * 100
+            if sl_diff_pct < 2.0:  # Exit within 2% of SL price
+                sl_reason = "ATR_SL" if atr_activated else "SL"
+                return sl_reason, order_type or "Market"
+        
+        if tp_price and tp_price > 0:
+            tp_diff_pct = abs(exit_price - tp_price) / tp_price * 100
+            if tp_diff_pct < 2.0:  # Exit within 2% of TP price
+                return "TP", order_type or "Market"
+        
+        # Step 5b: PnL percentage comparison
         pnl_pct = ((exit_price / entry_price) - 1.0) * 100 if side == "Buy" else ((entry_price / exit_price) - 1.0) * 100
         
         # Use provided SL/TP or defaults
-        sl_threshold = sl_pct or 3.0  # Default SL ~3%
-        tp_threshold = tp_pct or 8.0  # Default TP ~8%
+        sl_threshold = sl_pct or 30.0  # Default SL ~30%
+        tp_threshold = tp_pct or 25.0  # Default TP ~25%
         
         if side == "Buy":
             # For LONG: profit if exit > entry
-            if pnl_pct >= tp_threshold * 0.8:  # At least 80% of TP target
+            if pnl_pct >= tp_threshold * 0.7:  # At least 70% of TP target
                 return "TP", order_type or "Market"
-            elif pnl_pct <= -sl_threshold * 0.8:  # At least 80% of SL target
+            elif pnl_pct <= -sl_threshold * 0.7:  # At least 70% of SL target
                 # Check if ATR trailing was activated - means dynamic SL was used
                 sl_reason = "ATR_SL" if atr_activated else "SL"
                 return sl_reason, order_type or "Market"
         else:
             # For SHORT: profit if exit < entry
-            if pnl_pct >= tp_threshold * 0.8:
+            if pnl_pct >= tp_threshold * 0.7:
                 return "TP", order_type or "Market"
-            elif pnl_pct <= -sl_threshold * 0.8:
+            elif pnl_pct <= -sl_threshold * 0.7:
                 sl_reason = "ATR_SL" if atr_activated else "SL"
                 return sl_reason, order_type or "Market"
         
-        # If small profit/loss, likely manual
-        return "MANUAL", order_type or "Market"
+        # If small profit/loss and Bybit API didn't identify reason, mark as UNKNOWN
+        # (MANUAL should only be set when we KNOW user manually closed, e.g. from createType=CreateByUser)
+        return "UNKNOWN", order_type or "Market"
     
     # Final step: If we detected SL from API and ATR was activated, upgrade to ATR_SL
     if reason == "SL" and atr_activated:
@@ -21853,7 +21911,10 @@ async def monitor_positions_loop(app: Application):
                                     sl_pct=strat_sl,
                                     tp_pct=strat_tp,
                                     atr_activated=atr_was_activated,
-                                    account_type=ap_account_type
+                                    account_type=ap_account_type,
+                                    exchange=current_exchange,
+                                    sl_price=float(ap.get("sl_price") or 0),
+                                    tp_price=float(ap.get("tp_price") or 0),
                                 )
                                 logger.info(f"[{uid}] Exit reason for {sym}: {exit_reason} (order_type={exit_order_type}, atr_activated={atr_was_activated})")
                                 reason_text = format_exit_reason(exit_reason)  # Use formatted label with emoji

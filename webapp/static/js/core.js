@@ -107,6 +107,9 @@ function isAuthenticated() {
     return !!getAuthToken();
 }
 
+// Track 401 redirect to prevent infinite loops
+let _authRedirectPending = false;
+
 // ===== API HELPERS =====
 async function apiRequest(endpoint, options = {}) {
     const token = getAuthToken();
@@ -136,7 +139,13 @@ async function apiRequest(endpoint, options = {}) {
         
         if (response.status === 401) {
             clearAuth();
-            window.location.href = '/auth/login';
+            // Only redirect ONCE — prevents infinite 401 loop when multiple
+            // API calls are in-flight simultaneously  
+            if (!_authRedirectPending) {
+                _authRedirectPending = true;
+                console.warn('Auth expired, redirecting to login...');
+                window.location.href = '/auth/login';
+            }
             return null;
         }
         

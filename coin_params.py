@@ -13,7 +13,7 @@ from typing import Callable
 DEFAULT_PERCENT = float(os.getenv("DEFAULT_PERCENT", "1.0"))        # Entry % (risk per trade, max 3%)
 MAX_ENTRY_PERCENT = 3.0  # Maximum allowed entry percentage
 DEFAULT_SL_PCT = float(os.getenv("DEFAULT_SL_PCT", "30.0"))         # Stop-Loss % (default 30%)
-DEFAULT_TP_PCT = float(os.getenv("DEFAULT_TP_PCT", "10.0"))         # Take-Profit % (default 10%)
+DEFAULT_TP_PCT = float(os.getenv("DEFAULT_TP_PCT", "25.0"))         # Take-Profit % (default 25%)
 DEFAULT_LEVERAGE = int(os.getenv("DEFAULT_LEVERAGE", "10"))         # Leverage
 
 # ATR Trailing defaults - ENABLED by default with 3% trigger
