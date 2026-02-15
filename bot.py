@@ -5028,6 +5028,29 @@ def resolve_sl_tp_pct(cfg: dict, symbol: str, strategy: str | None = None, user_
         if strat_tp is None:
             strat_tp = strat_settings.get("tp_percent")
 
+        # FIX (Feb 15, 2026): For "manual" strategy (externally opened positions),
+        # if no manual-specific settings exist, inherit SL/TP from the user's
+        # configured auto-strategy settings instead of falling back to global settings.
+        # This prevents manual positions from getting outdated global sl_percent
+        # (e.g., 3%) when the user has all strategies configured with sl=24%.
+        if strategy == "manual" and (strat_sl is None or strat_tp is None):
+            from core.db_postgres import execute_one
+            side_db = "long" if side in ("Buy", "LONG", "long") else "short" if side else "long"
+            fallback_row = execute_one(
+                "SELECT sl_percent, tp_percent FROM user_strategy_settings "
+                "WHERE user_id = %s AND exchange = %s AND side = %s "
+                "AND sl_percent IS NOT NULL AND sl_percent > 0 "
+                "ORDER BY strategy LIMIT 1",
+                (user_id, target_exchange or "bybit", side_db)
+            )
+            if fallback_row:
+                if strat_sl is None and fallback_row.get("sl_percent") and float(fallback_row["sl_percent"]) > 0:
+                    strat_sl = float(fallback_row["sl_percent"])
+                    logger.info(f"[RESOLVE-SL-TP] Manual strategy: inherited SL={strat_sl}% from configured strategies (global SL would be {cfg.get('sl_percent')}%)")
+                if strat_tp is None and fallback_row.get("tp_percent") and float(fallback_row["tp_percent"]) > 0:
+                    strat_tp = float(fallback_row["tp_percent"])
+                    logger.info(f"[RESOLVE-SL-TP] Manual strategy: inherited TP={strat_tp}% from configured strategies (global TP would be {cfg.get('tp_percent')}%)")
+
     # Priority: strategy settings > user global settings > coin defaults
     # SL
     user_sl = cfg.get("sl_percent") or 0
