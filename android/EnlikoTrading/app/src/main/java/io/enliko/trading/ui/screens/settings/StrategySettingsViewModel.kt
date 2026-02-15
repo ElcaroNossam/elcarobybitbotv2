@@ -47,16 +47,16 @@ class StrategySettingsViewModel @Inject constructor() : ViewModel() {
                 _longSettings.value = SideSettings(
                     enabled = true,
                     percent = 1.0,
-                    tpPercent = 8.0,
-                    slPercent = 3.0,
+                    tpPercent = 25.0,
+                    slPercent = 30.0,
                     leverage = 10
                 )
                 
                 _shortSettings.value = SideSettings(
                     enabled = true,
                     percent = 1.0,
-                    tpPercent = 8.0,
-                    slPercent = 3.0,
+                    tpPercent = 25.0,
+                    slPercent = 30.0,
                     leverage = 10
                 )
                 

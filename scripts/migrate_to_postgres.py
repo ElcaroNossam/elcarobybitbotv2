@@ -63,8 +63,8 @@ CREATE TABLE IF NOT EXISTS users (
     hl_enabled BOOLEAN DEFAULT FALSE,
     -- Trading Settings
     percent REAL DEFAULT 1.0,
-    tp_percent REAL DEFAULT 8.0,
-    sl_percent REAL DEFAULT 3.0,
+    tp_percent REAL DEFAULT 25.0,
+    sl_percent REAL DEFAULT 30.0,
     use_atr INTEGER DEFAULT 1,
     coins TEXT DEFAULT 'ALL',
     -- Strategies

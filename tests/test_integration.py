@@ -299,7 +299,7 @@ class TestStrategySettings:
         # Use valid fields only
         db.set_user_field(test_user_id, "leverage", 10)
         db.set_user_field(test_user_id, "percent", 1.0)
-        db.set_user_field(test_user_id, "tp_percent", 8.0)
+        db.set_user_field(test_user_id, "tp_percent", 25.0)
         
         user = db.get_user_config(test_user_id)
         assert user.get("leverage") == 10
@@ -311,8 +311,8 @@ class TestStrategySettings:
         # Use only valid fields
         settings = {
             "percent": 5.0,
-            "tp_percent": 8.0,
-            "sl_percent": 3.0,
+            "tp_percent": 25.0,
+            "sl_percent": 30.0,
             "leverage": 15
         }
         
@@ -535,8 +535,8 @@ class TestFeatureFlags:
         features = {
             "leverage": 10,
             "percent": 1.0,
-            "tp_percent": 8.0,
-            "sl_percent": 3.0
+            "tp_percent": 25.0,
+            "sl_percent": 30.0
         }
         
         for feature, enabled in features.items():
@@ -595,8 +595,8 @@ class TestCacheConsistency:
         updates = {
             "leverage": 20,
             "percent": 5.0,
-            "tp_percent": 10.0,
-            "sl_percent": 3.0
+            "tp_percent": 25.0,
+            "sl_percent": 30.0
         }
         
         for key, value in updates.items():

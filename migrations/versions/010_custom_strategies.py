@@ -25,8 +25,8 @@ def upgrade(cur):
             -- Settings
             timeframe     TEXT DEFAULT '15m',
             symbols       TEXT DEFAULT 'ALL',
-            tp_percent    REAL DEFAULT 8.0,
-            sl_percent    REAL DEFAULT 3.0,
+            tp_percent    REAL DEFAULT 25.0,
+            sl_percent    REAL DEFAULT 30.0,
             leverage      INTEGER DEFAULT 10,
             
             -- Status

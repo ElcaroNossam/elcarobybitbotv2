@@ -57,8 +57,8 @@ data class StrategyInfo(
 data class SideSettings(
     var enabled: Boolean = true,
     var percent: Double = 1.0,
-    var tpPercent: Double = 8.0,
-    var slPercent: Double = 3.0,
+    var tpPercent: Double = 25.0,
+    var slPercent: Double = 30.0,
     var leverage: Int = 10,
     var useAtr: Boolean = false,
     var atrTriggerPct: Double = 0.5,

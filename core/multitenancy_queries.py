@@ -576,8 +576,8 @@ async def get_effective_settings(
     if not global_settings:
         global_settings = {
             'percent': 1.0,
-            'tp_percent': 8.0,
-            'sl_percent': 3.0,
+            'tp_percent': 25.0,
+            'sl_percent': 30.0,
             'leverage': 10.0,
             'use_atr': 1,
         }
@@ -585,8 +585,8 @@ async def get_effective_settings(
     # Start with global settings as base
     result = {
         'percent': global_settings.get('percent', 1.0),
-        'sl_percent': global_settings.get('sl_percent', 3.0),
-        'tp_percent': global_settings.get('tp_percent', 8.0),
+        'sl_percent': global_settings.get('sl_percent', 30.0),
+        'tp_percent': global_settings.get('tp_percent', 25.0),
         'leverage': global_settings.get('leverage', 10.0),
         'use_atr': global_settings.get('use_atr', 1),
     }

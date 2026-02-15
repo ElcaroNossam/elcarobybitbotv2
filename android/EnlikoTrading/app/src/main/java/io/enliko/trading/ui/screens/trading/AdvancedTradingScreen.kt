@@ -58,10 +58,10 @@ data class OrderFormState(
     val reduceOnly: Boolean = false,
     val postOnly: Boolean = false,
     val tpEnabled: Boolean = true,
-    val tpPercent: String = "8.0",
+    val tpPercent: String = "25.0",
     val tpPrice: String = "",
     val slEnabled: Boolean = true,
-    val slPercent: String = "3.0",
+    val slPercent: String = "30.0",
     val slPrice: String = "",
     val trailingPercent: String = "1.0"
 )

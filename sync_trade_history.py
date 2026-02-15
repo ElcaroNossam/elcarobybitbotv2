@@ -246,8 +246,8 @@ async def sync_user_trades(
             
             # Determine exit reason from PnL and price movement
             cfg = get_user_config(user_id) or {}
-            default_sl = float(cfg.get("sl_percent", 3.0))
-            default_tp = float(cfg.get("tp_percent", 8.0))
+            default_sl = float(cfg.get("sl_percent", 30.0))
+            default_tp = float(cfg.get("tp_percent", 25.0))
             
             if closed_pnl > 0:
                 exit_reason = "TP" if pnl_pct >= default_tp * 0.8 else "TRAILING"

@@ -2834,13 +2834,13 @@ STRATEGY_NAMES = ["oi", "scryptomera", "scalper", "elcaro", "fibonacci", "rsi_bb
 
 # Default strategy settings
 DEFAULT_STRATEGY_SETTINGS = {
-    "oi": {"enabled": False, "percent": 3.0, "sl_percent": 30.0, "tp_percent": 10.0, "leverage": 10, "use_atr": 0},
-    "scryptomera": {"enabled": False, "percent": 3.0, "sl_percent": 30.0, "tp_percent": 10.0, "leverage": 10, "use_atr": 0},
-    "scalper": {"enabled": False, "percent": 3.0, "sl_percent": 30.0, "tp_percent": 10.0, "leverage": 10, "use_atr": 0},
-    "elcaro": {"enabled": False, "percent": 3.0, "sl_percent": 30.0, "tp_percent": 10.0, "leverage": 10, "use_atr": 0},
-    "fibonacci": {"enabled": False, "percent": 3.0, "sl_percent": 30.0, "tp_percent": 10.0, "leverage": 10, "use_atr": 0},
-    "rsi_bb": {"enabled": False, "percent": 3.0, "sl_percent": 30.0, "tp_percent": 10.0, "leverage": 10, "use_atr": 0},
-    "manual": {"enabled": True, "percent": 3.0, "sl_percent": 30.0, "tp_percent": 10.0, "leverage": 10, "use_atr": 0},
+    "oi": {"enabled": False, "percent": 1.0, "sl_percent": 30.0, "tp_percent": 25.0, "leverage": 10, "use_atr": 0},
+    "scryptomera": {"enabled": False, "percent": 1.0, "sl_percent": 30.0, "tp_percent": 25.0, "leverage": 10, "use_atr": 0},
+    "scalper": {"enabled": False, "percent": 1.0, "sl_percent": 30.0, "tp_percent": 25.0, "leverage": 10, "use_atr": 0},
+    "elcaro": {"enabled": False, "percent": 1.0, "sl_percent": 30.0, "tp_percent": 25.0, "leverage": 10, "use_atr": 0},
+    "fibonacci": {"enabled": False, "percent": 1.0, "sl_percent": 30.0, "tp_percent": 25.0, "leverage": 10, "use_atr": 0},
+    "rsi_bb": {"enabled": False, "percent": 1.0, "sl_percent": 30.0, "tp_percent": 25.0, "leverage": 10, "use_atr": 0},
+    "manual": {"enabled": True, "percent": 1.0, "sl_percent": 30.0, "tp_percent": 25.0, "leverage": 10, "use_atr": 0},
 }
 
 
@@ -2863,8 +2863,8 @@ async def get_all_strategy_settings(
     try:
         # Get global user config for defaults
         user_cfg = db.get_user_config(user_id)
-        global_sl = user_cfg.get("sl_percent", 3.0)
-        global_tp = user_cfg.get("tp_percent", 8.0)
+        global_sl = user_cfg.get("sl_percent", 30.0)
+        global_tp = user_cfg.get("tp_percent", 25.0)
         global_leverage = user_cfg.get("leverage", 10)
         global_percent = user_cfg.get("percent", 1.0)
         global_use_atr = user_cfg.get("position_use_atr", 0)
@@ -2908,7 +2908,7 @@ async def get_all_strategy_settings(
     except Exception as e:
         logger.error(f"Failed to get strategy settings: {e}")
         return {
-            "global": {"sl_percent": 3.0, "tp_percent": 8.0, "leverage": 10, "percent": 1.0, "use_atr": False},
+            "global": {"sl_percent": 30.0, "tp_percent": 25.0, "leverage": 10, "percent": 1.0, "use_atr": False},
             "strategies": {s: DEFAULT_STRATEGY_SETTINGS.get(s, {}).copy() for s in STRATEGY_NAMES}
         }
 
@@ -2938,8 +2938,8 @@ async def get_single_strategy_settings(
             "strategy": strategy,
             "enabled": bool(settings.get("enabled", defaults.get("enabled", False))),
             "percent": settings.get("percent") if settings.get("percent") is not None else defaults.get("percent", user_cfg.get("percent", 1.0)),
-            "sl_percent": settings.get("sl_percent") if settings.get("sl_percent") is not None else defaults.get("sl_percent", user_cfg.get("sl_percent", 3.0)),
-            "tp_percent": settings.get("tp_percent") if settings.get("tp_percent") is not None else defaults.get("tp_percent", user_cfg.get("tp_percent", 8.0)),
+            "sl_percent": settings.get("sl_percent") if settings.get("sl_percent") is not None else defaults.get("sl_percent", user_cfg.get("sl_percent", 30.0)),
+            "tp_percent": settings.get("tp_percent") if settings.get("tp_percent") is not None else defaults.get("tp_percent", user_cfg.get("tp_percent", 25.0)),
             "leverage": settings.get("leverage") if settings.get("leverage") is not None else defaults.get("leverage", user_cfg.get("leverage", 10)),
             "use_atr": bool(settings.get("use_atr", 0)),
             "atr_periods": settings.get("atr_periods") or 14,

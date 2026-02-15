@@ -211,6 +211,7 @@ from coin_params import (
     COIN_PARAMS,
     DEFAULT_SL_PCT,
     DEFAULT_TP_PCT,
+    DEFAULT_PERCENT,
     DEFAULT_ATR_TRIGGER_PCT,
     DEFAULT_ATR_STEP_PCT,
     POSITIVE_KEYWORDS,
@@ -1337,7 +1338,7 @@ def once_per(key: tuple[int, str, str], seconds: int) -> bool:
 def is_db_full_error(e: Exception) -> bool:
     return "database or disk is full" in str(e).lower()
 
-async def set_fixed_sl_tp_percent(uid: int, symbol: str, side: str, *, sl_pct: float = 1.0, tp_pct: float = 3.0, account_type: str | None = None, exchange: str | None = None):
+async def set_fixed_sl_tp_percent(uid: int, symbol: str, side: str, *, sl_pct: float = 30.0, tp_pct: float = 25.0, account_type: str | None = None, exchange: str | None = None):
     positions = await fetch_open_positions(uid, account_type=account_type)
     pos_candidates = [p for p in positions if p.get("symbol") == symbol]
     if not pos_candidates:
@@ -8389,7 +8390,7 @@ async def place_order_for_targets(
                 )
                 
                 risk_pct = trade_params.get("percent", 1.0)
-                sl_pct = trade_params.get("sl_pct", 3.0)
+                sl_pct = trade_params.get("sl_pct", DEFAULT_SL_PCT)
                 
                 # Get leverage from trade_params (side-specific) if not explicitly passed
                 if target_leverage is None:
@@ -8830,7 +8831,7 @@ async def place_order_bybit_if_needed(
                 )
                 
                 risk_pct = params.get("percent", 1.0)
-                sl_pct = params.get("sl_pct", sl_percent or 3.0)
+                sl_pct = params.get("sl_pct", sl_percent or DEFAULT_SL_PCT)
                 
                 # Calculate qty for this account
                 if entry_price:
@@ -9564,8 +9565,8 @@ def get_strategy_param_keyboard(strategy: str, t: dict, strat_settings: dict = N
     # ─── LONG SETTINGS ───
     long_defaults = STRATEGY_DEFAULTS.get("long", {})
     l_pct = strat_settings.get("long_percent") or long_defaults.get("percent", 1)
-    l_sl = strat_settings.get("long_sl_percent") or long_defaults.get("sl_percent", 3)
-    l_tp = strat_settings.get("long_tp_percent") or long_defaults.get("tp_percent", 8)
+    l_sl = strat_settings.get("long_sl_percent") or long_defaults.get("sl_percent", DEFAULT_SL_PCT)
+    l_tp = strat_settings.get("long_tp_percent") or long_defaults.get("tp_percent", DEFAULT_TP_PCT)
     l_lev = strat_settings.get("long_leverage") or long_defaults.get("leverage", 10)
     l_atr = strat_settings.get("long_use_atr")
     if l_atr is None:
@@ -9587,8 +9588,8 @@ def get_strategy_param_keyboard(strategy: str, t: dict, strat_settings: dict = N
     # ─── SHORT SETTINGS ───
     short_defaults = STRATEGY_DEFAULTS.get("short", {})
     s_pct = strat_settings.get("short_percent") or short_defaults.get("percent", 1)
-    s_sl = strat_settings.get("short_sl_percent") or short_defaults.get("sl_percent", 3)
-    s_tp = strat_settings.get("short_tp_percent") or short_defaults.get("tp_percent", 8)
+    s_sl = strat_settings.get("short_sl_percent") or short_defaults.get("sl_percent", DEFAULT_SL_PCT)
+    s_tp = strat_settings.get("short_tp_percent") or short_defaults.get("tp_percent", DEFAULT_TP_PCT)
     s_lev = strat_settings.get("short_leverage") or short_defaults.get("leverage", 10)
     s_atr = strat_settings.get("short_use_atr")
     if s_atr is None:
@@ -9645,9 +9646,9 @@ def _build_side_settings_header(strategy: str, side: str, strat_settings: dict) 
         val = strat_settings.get(f"{side}_{key}")
         return val if val is not None else defaults.get(key, default)
     
-    entry_pct = _get_val("percent", 3.0)
-    sl_pct = _get_val("sl_percent", 30.0)
-    tp_pct = _get_val("tp_percent", 10.0)
+    entry_pct = _get_val("percent", DEFAULT_PERCENT)
+    sl_pct = _get_val("sl_percent", DEFAULT_SL_PCT)
+    tp_pct = _get_val("tp_percent", DEFAULT_TP_PCT)
     use_atr = bool(strat_settings.get(f"{side}_use_atr") or defaults.get("use_atr", False))
     
     atr_indicator = "📊 ATR" if use_atr else "🎯 TP"
@@ -9710,9 +9711,9 @@ def get_strategy_side_keyboard(strategy: str, side: str, t: dict, settings: dict
     buttons = []
     
     # Get current values
-    entry = _get_val("percent", 3.0)
-    sl = _get_val("sl_percent", 30.0)
-    tp = _get_val("tp_percent", 10.0)
+    entry = _get_val("percent", DEFAULT_PERCENT)
+    sl = _get_val("sl_percent", DEFAULT_SL_PCT)
+    tp = _get_val("tp_percent", DEFAULT_TP_PCT)
     
     # ATR settings
     use_atr = settings.get(f"{side}_use_atr")
@@ -10985,9 +10986,9 @@ async def callback_strategy_settings(update: Update, ctx: ContextTypes.DEFAULT_T
             val = strat_settings.get(f"{side}_{key}")
             return val if val is not None else defaults.get(key, default)
         
-        entry_pct = _get_side_val("percent", 3.0)
-        sl_pct = _get_side_val("sl_percent", 30.0)
-        tp_pct = _get_side_val("tp_percent", 10.0)
+        entry_pct = _get_side_val("percent", DEFAULT_PERCENT)
+        sl_pct = _get_side_val("sl_percent", DEFAULT_SL_PCT)
+        tp_pct = _get_side_val("tp_percent", DEFAULT_TP_PCT)
         use_atr = bool(strat_settings.get(f"{side}_use_atr") or defaults.get("use_atr", False))
         
         atr_indicator = "📊 ATR" if use_atr else "🎯 TP"

@@ -1077,8 +1077,8 @@ struct StrategySettings: Codable, Identifiable {
         exchange = try container.decodeIfPresent(String.self, forKey: .exchange) ?? "bybit"
         accountType = try container.decodeIfPresent(String.self, forKey: .accountType) ?? "demo"
         percent = try container.decodeIfPresent(Double.self, forKey: .percent) ?? 1.0
-        tpPercent = try container.decodeIfPresent(Double.self, forKey: .tpPercent) ?? 8.0
-        slPercent = try container.decodeIfPresent(Double.self, forKey: .slPercent) ?? 3.0
+        tpPercent = try container.decodeIfPresent(Double.self, forKey: .tpPercent) ?? 25.0
+        slPercent = try container.decodeIfPresent(Double.self, forKey: .slPercent) ?? 30.0
         leverage = try container.decodeIfPresent(Int.self, forKey: .leverage) ?? 10
         useAtr = try container.decodeIfPresent(Bool.self, forKey: .useAtr) ?? false
         atrTriggerPct = try container.decodeIfPresent(Double.self, forKey: .atrTriggerPct)

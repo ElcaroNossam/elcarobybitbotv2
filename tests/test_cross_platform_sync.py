@@ -199,7 +199,7 @@ class TestActivityLogging:
             "source": "android",
             "entity_type": "strategy_settings",
             "old_value": {"tp_percent": 5.0},
-            "new_value": {"tp_percent": 8.0},
+            "new_value": {"tp_percent": 25.0},
             "telegram_notified": False,
             "webapp_notified": False,
             "ios_notified": False,
@@ -317,8 +317,8 @@ class TestDataConsistency:
             "language": "en",
             "strategies": {
                 "oi": {
-                    "long": {"tp_percent": 8.0, "sl_percent": 3.0},
-                    "short": {"tp_percent": 8.0, "sl_percent": 3.0}
+                    "long": {"tp_percent": 25.0, "sl_percent": 30.0},
+                    "short": {"tp_percent": 25.0, "sl_percent": 30.0}
                 }
             }
         }

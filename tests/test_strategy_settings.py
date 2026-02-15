@@ -74,8 +74,8 @@ def test_set_and_get_basic_settings():
     
     # Define unique settings for each strategy
     strategy_configs = {
-        "oi": {"percent": 2.0, "sl_percent": 3.0, "tp_percent": 6.0},
-        "rsi_bb": {"percent": 3.0, "sl_percent": 4.0, "tp_percent": 8.0},
+        "oi": {"percent": 2.0, "sl_percent": 30.0, "tp_percent": 6.0},
+        "rsi_bb": {"percent": 3.0, "sl_percent": 4.0, "tp_percent": 25.0},
         "scryptomera": {"percent": 4.0, "sl_percent": 5.0, "tp_percent": 10.0},
         "scalper": {"percent": 5.0, "sl_percent": 6.0, "tp_percent": 12.0},
         "elcaro": {"percent": 6.0, "sl_percent": 7.0, "tp_percent": 14.0},
@@ -127,15 +127,15 @@ def test_side_specific_settings():
         },
         "rsi_bb": {
             "long_percent": 1.5, "long_sl_percent": 2.0, "long_tp_percent": 4.0,
-            "short_percent": 2.5, "short_sl_percent": 3.0, "short_tp_percent": 6.0,
+            "short_percent": 2.5, "short_sl_percent": 30.0, "short_tp_percent": 6.0,
         },
         "scryptomera": {
             "long_percent": 4.0, "long_sl_percent": 4.5, "long_tp_percent": 9.0,
             "short_percent": 5.0, "short_sl_percent": 5.5, "short_tp_percent": 11.0,
         },
         "scalper": {
-            "long_percent": 3.5, "long_sl_percent": 3.0, "long_tp_percent": 6.0,
-            "short_percent": 4.5, "short_sl_percent": 4.0, "short_tp_percent": 8.0,
+            "long_percent": 3.5, "long_sl_percent": 30.0, "long_tp_percent": 6.0,
+            "short_percent": 4.5, "short_sl_percent": 4.0, "short_tp_percent": 25.0,
         },
     }
     
@@ -302,8 +302,8 @@ def test_resolve_sl_tp_with_strategy():
     # Set up distinct settings for each strategy
     configs = {
         "oi": {"sl_percent": 2.5, "tp_percent": 5.0},
-        "rsi_bb": {"sl_percent": 3.0, "tp_percent": 6.0},
-        "elcaro": {"sl_percent": 4.0, "tp_percent": 8.0},
+        "rsi_bb": {"sl_percent": 30.0, "tp_percent": 6.0},
+        "elcaro": {"sl_percent": 4.0, "tp_percent": 25.0},
     }
     
     for strategy, settings in configs.items():
@@ -348,7 +348,7 @@ def test_side_specific_in_trade_params():
     
     # General settings
     db.set_strategy_setting(uid, strategy, "percent", 2.0, "bybit", "demo")
-    db.set_strategy_setting(uid, strategy, "sl_percent", 3.0, "bybit", "demo")
+    db.set_strategy_setting(uid, strategy, "sl_percent", 30.0, "bybit", "demo")
     db.set_strategy_setting(uid, strategy, "tp_percent", 6.0, "bybit", "demo")
     
     # Side-specific overrides
@@ -358,13 +358,13 @@ def test_side_specific_in_trade_params():
     
     db.set_strategy_setting(uid, strategy, "short_percent", 2.5, "bybit", "demo")
     db.set_strategy_setting(uid, strategy, "short_sl_percent", 4.0, "bybit", "demo")
-    db.set_strategy_setting(uid, strategy, "short_tp_percent", 8.0, "bybit", "demo")
+    db.set_strategy_setting(uid, strategy, "short_tp_percent", 25.0, "bybit", "demo")
     
     # Verify
     strat_settings = db.get_strategy_settings(uid, strategy, "bybit", "demo")
     
     # Check general
-    expected_general = {"percent": 2.0, "sl_percent": 3.0, "tp_percent": 6.0}
+    expected_general = {"percent": 2.0, "sl_percent": 30.0, "tp_percent": 6.0}
     for field, expected_val in expected_general.items():
         actual = strat_settings.get(field)
         if actual != expected_val:
@@ -382,7 +382,7 @@ def test_side_specific_in_trade_params():
             print(f"  ✅ {field} = {actual}")
     
     # Check short
-    expected_short = {"short_percent": 2.5, "short_sl_percent": 4.0, "short_tp_percent": 8.0}
+    expected_short = {"short_percent": 2.5, "short_sl_percent": 4.0, "short_tp_percent": 25.0}
     for field, expected_val in expected_short.items():
         actual = strat_settings.get(field)
         if actual != expected_val:
@@ -626,7 +626,7 @@ def test_get_strategy_trade_params_simulation():
     # Setup: scalper with side-specific settings
     strategy = "scalper"
     db.set_strategy_setting(uid, strategy, "percent", 2.0, "bybit", "demo")
-    db.set_strategy_setting(uid, strategy, "sl_percent", 3.0, "bybit", "demo")
+    db.set_strategy_setting(uid, strategy, "sl_percent", 30.0, "bybit", "demo")
     db.set_strategy_setting(uid, strategy, "tp_percent", 6.0, "bybit", "demo")
     db.set_strategy_setting(uid, strategy, "long_percent", 1.0, "bybit", "demo")
     db.set_strategy_setting(uid, strategy, "long_sl_percent", 1.5, "bybit", "demo")
@@ -649,7 +649,7 @@ def test_get_strategy_trade_params_simulation():
     if side_sl is not None and side_sl > 0:
         long_sl = float(side_sl)
     else:
-        long_sl = float(strat_settings.get("sl_percent", 3.0))
+        long_sl = float(strat_settings.get("sl_percent", 30.0))
     
     print(f"  LONG trade params: percent={long_percent}, SL={long_sl}")
     
@@ -677,7 +677,7 @@ def test_get_strategy_trade_params_simulation():
     if side_sl is not None and side_sl > 0:
         short_sl = float(side_sl)
     else:
-        short_sl = float(strat_settings.get("sl_percent", 3.0))
+        short_sl = float(strat_settings.get("sl_percent", 30.0))
     
     print(f"  SHORT trade params: percent={short_percent}, SL={short_sl}")
     

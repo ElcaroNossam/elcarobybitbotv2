@@ -1356,8 +1356,8 @@ def _build_strategy_params(strategy: str, db_settings: dict, features: dict) -> 
     
     # SL/TP (if strategy supports it)
     if features.get("sl_tp"):
-        params["sl_percent"] = db_settings.get("sl_percent") if db_settings.get("sl_percent") is not None else 3.0
-        params["tp_percent"] = db_settings.get("tp_percent") if db_settings.get("tp_percent") is not None else 8.0
+        params["sl_percent"] = db_settings.get("sl_percent") if db_settings.get("sl_percent") is not None else 30.0
+        params["tp_percent"] = db_settings.get("tp_percent") if db_settings.get("tp_percent") is not None else 25.0
     
     # DCA settings (if strategy supports it)
     if features.get("dca"):
@@ -1633,8 +1633,8 @@ async def get_strategy_settings_mobile(
                 "account_type": account_type,
                 "enabled": bool(db_settings.get(f"{prefix}enabled", True)),
                 "percent": _val(db_settings.get(f"{prefix}percent"), "percent", 1.0),
-                "tp_percent": _val(db_settings.get(f"{prefix}tp_percent"), "tp_percent", 8.0),
-                "sl_percent": _val(db_settings.get(f"{prefix}sl_percent"), "sl_percent", 3.0),
+                "tp_percent": _val(db_settings.get(f"{prefix}tp_percent"), "tp_percent", 25.0),
+                "sl_percent": _val(db_settings.get(f"{prefix}sl_percent"), "sl_percent", 30.0),
                 "leverage": _val(db_settings.get(f"{prefix}leverage"), "leverage", 10),
                 "use_atr": _bool_val(db_settings.get(f"{prefix}use_atr"), "use_atr", False),
                 "atr_trigger_pct": db_settings.get(f"{prefix}atr_trigger_pct"),
@@ -1753,7 +1753,7 @@ async def update_strategy_settings_mobile(
             "exchange": "bybit",
             "account_type": "demo",
             "percent": 1.5,
-            "sl_percent": 3.0,
+            "sl_percent": 30.0,
             ...
         }
     """

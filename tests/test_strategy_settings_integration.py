@@ -233,11 +233,11 @@ def test_full_trade_params_flow():
     print("\n  📊 RSI_BB strategy with side-specific SHORT settings:")
     db.set_strategy_setting(uid, "rsi_bb", "short_percent", 3.5, "bybit", "demo")
     db.set_strategy_setting(uid, "rsi_bb", "short_sl_percent", 4.0, "bybit", "demo")
-    db.set_strategy_setting(uid, "rsi_bb", "short_tp_percent", 8.0, "bybit", "demo")
+    db.set_strategy_setting(uid, "rsi_bb", "short_tp_percent", 25.0, "bybit", "demo")
     
     params = get_strategy_trade_params(uid, cfg, "ETHUSDT", "rsi_bb", side="Sell")
     
-    expected = {"percent": 3.5, "sl_pct": 4.0, "tp_pct": 8.0}
+    expected = {"percent": 3.5, "sl_pct": 4.0, "tp_pct": 25.0}
     for key, exp_val in expected.items():
         if params[key] != exp_val:
             errors.append(f"RSI_BB SHORT {key}: expected {exp_val}, got {params[key]}")
@@ -285,7 +285,7 @@ def test_mixed_side_specific_and_general():
     
     # Setup
     db.set_user_field(uid, "percent", 1.0)
-    db.set_user_field(uid, "sl_percent", 3.0)
+    db.set_user_field(uid, "sl_percent", 30.0)
     db.set_user_field(uid, "tp_percent", 6.0)
     db.set_user_field(uid, "exchange_type", "bybit")
     db.set_user_field(uid, "trading_mode", "demo")
@@ -347,8 +347,8 @@ def test_multiple_strategies_different_configs():
     # Configure each strategy differently
     configs = {
         "oi": {
-            "percent": 5.0, "sl_percent": 3.0, "tp_percent": 6.0, "use_atr": 1,
-            "expected": {"percent": 5.0, "sl_pct": 3.0, "tp_pct": 6.0, "use_atr": True}
+            "percent": 5.0, "sl_percent": 30.0, "tp_percent": 6.0, "use_atr": 1,
+            "expected": {"percent": 5.0, "sl_pct": 30.0, "tp_pct": 6.0, "use_atr": True}
         },
         "rsi_bb": {
             "percent": 3.0, "sl_percent": 2.5, "tp_percent": 5.0, "use_atr": 0,
@@ -359,8 +359,8 @@ def test_multiple_strategies_different_configs():
             "expected": {"percent": 10.0, "sl_pct": 1.0, "tp_pct": 2.0, "use_atr": False}
         },
         "elcaro": {
-            "percent": 2.0, "sl_percent": 4.0, "tp_percent": 8.0, "use_atr": 1,
-            "expected": {"percent": 2.0, "sl_pct": 4.0, "tp_pct": 8.0, "use_atr": True}
+            "percent": 2.0, "sl_percent": 4.0, "tp_percent": 25.0, "use_atr": 1,
+            "expected": {"percent": 2.0, "sl_pct": 4.0, "tp_pct": 25.0, "use_atr": True}
         },
     }
     
@@ -412,7 +412,7 @@ def test_long_vs_short_same_strategy():
     
     # General (fallback)
     db.set_strategy_setting(uid, strategy, "percent", 5.0, "bybit", "demo")
-    db.set_strategy_setting(uid, strategy, "sl_percent", 3.0, "bybit", "demo")
+    db.set_strategy_setting(uid, strategy, "sl_percent", 30.0, "bybit", "demo")
     db.set_strategy_setting(uid, strategy, "tp_percent", 6.0, "bybit", "demo")
     
     # LONG-specific (conservative)
@@ -448,7 +448,7 @@ def test_long_vs_short_same_strategy():
     # Test no side (general)
     params_general = get_strategy_trade_params(uid, cfg, "BTCUSDT", strategy)
     print(f"\n  🔄 General (no side):")
-    expected_general = {"percent": 5.0, "sl_pct": 3.0, "tp_pct": 6.0}
+    expected_general = {"percent": 5.0, "sl_pct": 30.0, "tp_pct": 6.0}
     for key, exp in expected_general.items():
         if params_general[key] != exp:
             errors.append(f"General {key}: expected {exp}, got {params_general[key]}")

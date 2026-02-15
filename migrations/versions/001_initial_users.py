@@ -34,7 +34,7 @@ def upgrade(cur):
             limit_enabled      INTEGER NOT NULL DEFAULT 1,
             trade_oi           INTEGER NOT NULL DEFAULT 1,
             trade_rsi_bb       INTEGER NOT NULL DEFAULT 1,
-            tp_percent         REAL NOT NULL DEFAULT 10.0,
+            tp_percent         REAL NOT NULL DEFAULT 25.0,
             sl_percent         REAL NOT NULL DEFAULT 30.0,
             use_atr            INTEGER NOT NULL DEFAULT 1,
             lang               TEXT NOT NULL DEFAULT 'en',

@@ -68,19 +68,19 @@ class TestPositionMonitoring:
         
         # Test LONG position SL/TP calculation
         entry_price = 100.0
-        sl_pct = 3.0
-        tp_pct = 8.0
+        sl_pct = 30.0
+        tp_pct = 25.0
         
         # LONG: SL below entry, TP above entry
-        sl_long = entry_price * (1 - sl_pct / 100)  # 97.0
-        tp_long = entry_price * (1 + tp_pct / 100)  # 108.0
+        sl_long = entry_price * (1 - sl_pct / 100)  # 70.0
+        tp_long = entry_price * (1 + tp_pct / 100)  # 125.0
         
         assert sl_long < entry_price, "LONG SL must be below entry"
         assert tp_long > entry_price, "LONG TP must be above entry"
         
         # SHORT: SL above entry, TP below entry
-        sl_short = entry_price * (1 + sl_pct / 100)  # 103.0
-        tp_short = entry_price * (1 - tp_pct / 100)  # 92.0
+        sl_short = entry_price * (1 + sl_pct / 100)  # 130.0
+        tp_short = entry_price * (1 - tp_pct / 100)  # 75.0
         
         assert sl_short > entry_price, "SHORT SL must be above entry"
         assert tp_short < entry_price, "SHORT TP must be below entry"
@@ -212,22 +212,22 @@ class TestSLTPLogic:
     def test_sl_tp_percent_calculation(self):
         """Test SL/TP percentage calculations."""
         entry = 100.0
-        sl_pct = 3.0
-        tp_pct = 8.0
+        sl_pct = 30.0
+        tp_pct = 25.0
         
         # LONG
         sl_long = entry * (1 - sl_pct / 100)
         tp_long = entry * (1 + tp_pct / 100)
         
-        assert abs(sl_long - 97.0) < 0.001, "LONG SL should be 97.0"
-        assert abs(tp_long - 108.0) < 0.001, "LONG TP should be 108.0"
+        assert abs(sl_long - 70.0) < 0.001, "LONG SL should be 70.0"
+        assert abs(tp_long - 125.0) < 0.001, "LONG TP should be 125.0"
         
         # SHORT
         sl_short = entry * (1 + sl_pct / 100)
         tp_short = entry * (1 - tp_pct / 100)
         
-        assert abs(sl_short - 103.0) < 0.001, "SHORT SL should be 103.0"
-        assert abs(tp_short - 92.0) < 0.001, "SHORT TP should be 92.0"
+        assert abs(sl_short - 130.0) < 0.001, "SHORT SL should be 130.0"
+        assert abs(tp_short - 75.0) < 0.001, "SHORT TP should be 75.0"
     
     def test_sl_below_current_price_validation(self):
         """Test that SL is validated against current price."""
@@ -269,14 +269,14 @@ class TestATRLogic:
     def test_atr_initial_sl_setting(self):
         """Test ATR initial SL setting before trigger threshold."""
         entry = 100.0
-        sl_pct = 3.0
+        sl_pct = 30.0
         side = "Buy"
         
         # Calculate base SL
-        base_sl = entry * (1 - sl_pct / 100)  # 97.0
+        base_sl = entry * (1 - sl_pct / 100)  # 70.0
         
         # Initial SL should be set to base_sl
-        assert abs(base_sl - 97.0) < 0.001, "Initial SL should be at base_sl"
+        assert abs(base_sl - 70.0) < 0.001, "Initial SL should be at base_sl"
     
     def test_atr_trailing_activation(self):
         """Test ATR trailing activation after move threshold."""

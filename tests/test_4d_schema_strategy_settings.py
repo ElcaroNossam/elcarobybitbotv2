@@ -482,11 +482,11 @@ class TestStrategyDefaultsFallback:
             assert 0.1 <= percent <= 10.0, f"Unreasonable percent: {percent}"
             
             # SL should be 0.5-50% (wide range for different strategies)
-            sl = defaults.get('sl_percent', 3.0)
+            sl = defaults.get('sl_percent', 30.0)
             assert 0.1 <= sl <= 50.0, f"Unreasonable SL: {sl}"
             
             # TP should be 1-30%
-            tp = defaults.get('tp_percent', 8.0)
+            tp = defaults.get('tp_percent', 25.0)
             assert 0.1 <= tp <= 50.0, f"Unreasonable TP: {tp}"
             
             # Leverage 1-100

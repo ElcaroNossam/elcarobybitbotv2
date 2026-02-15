@@ -41,8 +41,8 @@ data class Strategy(
 
 data class StrategySettings(
     val entryPercent: Double = 1.0,
-    val tpPercent: Double = 8.0,
-    val slPercent: Double = 3.0,
+    val tpPercent: Double = 25.0,
+    val slPercent: Double = 30.0,
     val leverage: Int = 10,
     val useAtr: Boolean = false,
     val atrPeriods: Int = 14,
@@ -627,7 +627,7 @@ private fun generateMockStrategies(): List<Strategy> {
             trades = 156,
             pnl = 4250.0,
             winRate = 68.5,
-            settings = StrategySettings(entryPercent = 1.0, tpPercent = 8.0, slPercent = 3.0, leverage = 10)
+            settings = StrategySettings(entryPercent = 1.0, tpPercent = 25.0, slPercent = 30.0, leverage = 10)
         ),
         Strategy(
             id = "scryptomera",
@@ -683,7 +683,7 @@ private fun generateMockStrategies(): List<Strategy> {
             trades = 112,
             pnl = -350.0,
             winRate = 48.2,
-            settings = StrategySettings(entryPercent = 1.0, tpPercent = 6.0, slPercent = 3.0, leverage = 10)
+            settings = StrategySettings(entryPercent = 1.0, tpPercent = 25.0, slPercent = 30.0, leverage = 10)
         ),
         Strategy(
             id = "elcaro",

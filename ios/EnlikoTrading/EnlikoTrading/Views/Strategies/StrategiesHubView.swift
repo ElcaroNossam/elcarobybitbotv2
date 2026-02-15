@@ -439,12 +439,12 @@ struct StrategyConfig: Identifiable {
     var leverage: Int
     
     static let all: [StrategyConfig] = [
-        StrategyConfig(name: "oi", displayName: "Open Interest", emoji: "📊", longEnabled: true, shortEnabled: true, percent: 1.0, tpPercent: 8.0, slPercent: 3.0, leverage: 10),
-        StrategyConfig(name: "rsi_bb", displayName: "RSI + Bollinger", emoji: "📈", longEnabled: true, shortEnabled: true, percent: 1.0, tpPercent: 8.0, slPercent: 3.0, leverage: 10),
-        StrategyConfig(name: "scryptomera", displayName: "Scryptomera", emoji: "🔮", longEnabled: true, shortEnabled: true, percent: 1.0, tpPercent: 8.0, slPercent: 3.0, leverage: 10),
-        StrategyConfig(name: "scalper", displayName: "Scalper", emoji: "⚡", longEnabled: true, shortEnabled: true, percent: 1.0, tpPercent: 8.0, slPercent: 3.0, leverage: 10),
-        StrategyConfig(name: "fibonacci", displayName: "Fibonacci", emoji: "🌀", longEnabled: true, shortEnabled: true, percent: 1.0, tpPercent: 8.0, slPercent: 3.0, leverage: 10),
-        StrategyConfig(name: "elcaro", displayName: "Elcaro", emoji: "💎", longEnabled: true, shortEnabled: true, percent: 1.0, tpPercent: 8.0, slPercent: 3.0, leverage: 10),
+        StrategyConfig(name: "oi", displayName: "Open Interest", emoji: "📊", longEnabled: true, shortEnabled: true, percent: 1.0, tpPercent: 25.0, slPercent: 30.0, leverage: 10),
+        StrategyConfig(name: "rsi_bb", displayName: "RSI + Bollinger", emoji: "📈", longEnabled: true, shortEnabled: true, percent: 1.0, tpPercent: 25.0, slPercent: 30.0, leverage: 10),
+        StrategyConfig(name: "scryptomera", displayName: "Scryptomera", emoji: "🔮", longEnabled: true, shortEnabled: true, percent: 1.0, tpPercent: 25.0, slPercent: 30.0, leverage: 10),
+        StrategyConfig(name: "scalper", displayName: "Scalper", emoji: "⚡", longEnabled: true, shortEnabled: true, percent: 1.0, tpPercent: 25.0, slPercent: 30.0, leverage: 10),
+        StrategyConfig(name: "fibonacci", displayName: "Fibonacci", emoji: "🌀", longEnabled: true, shortEnabled: true, percent: 1.0, tpPercent: 25.0, slPercent: 30.0, leverage: 10),
+        StrategyConfig(name: "elcaro", displayName: "Elcaro", emoji: "💎", longEnabled: true, shortEnabled: true, percent: 1.0, tpPercent: 25.0, slPercent: 30.0, leverage: 10),
     ]
 }
 
@@ -490,8 +490,8 @@ class StrategiesHubViewModel: ObservableObject {
                     strategies[index].shortEnabled = shortSettings?.enabled ?? true
                     // Use long settings for display (or short as fallback)
                     strategies[index].percent = longSettings?.percent ?? shortSettings?.percent ?? 1.0
-                    strategies[index].tpPercent = longSettings?.tp_percent ?? shortSettings?.tp_percent ?? 8.0
-                    strategies[index].slPercent = longSettings?.sl_percent ?? shortSettings?.sl_percent ?? 3.0
+                    strategies[index].tpPercent = longSettings?.tp_percent ?? shortSettings?.tp_percent ?? 25.0
+                    strategies[index].slPercent = longSettings?.sl_percent ?? shortSettings?.sl_percent ?? 30.0
                     strategies[index].leverage = longSettings?.leverage ?? shortSettings?.leverage ?? 10
                 }
             }

@@ -15,8 +15,8 @@ data class TradingUiState(
     val orders: List<OrderData> = emptyList(),
     val selectedSymbol: String = "BTCUSDT",
     val leverage: Int = 10,
-    val slPercent: Double = 3.0,
-    val tpPercent: Double = 8.0,
+    val slPercent: Double = 30.0,
+    val tpPercent: Double = 25.0,
     val orderType: String = "market",
     val error: String? = null,
     val accountType: String = "demo"

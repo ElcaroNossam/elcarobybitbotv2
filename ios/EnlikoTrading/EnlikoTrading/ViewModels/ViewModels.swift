@@ -210,8 +210,8 @@ class BacktestViewModel: ObservableObject {
     @Published var days = 30
     @Published var initialBalance = 10000.0
     @Published var riskPerTrade = 1.0
-    @Published var slPercent = 3.0
-    @Published var tpPercent = 8.0
+    @Published var slPercent = 30.0
+    @Published var tpPercent = 25.0
     @Published var result: BacktestResult?
     @Published var isRunning = false
     @Published var error: String?

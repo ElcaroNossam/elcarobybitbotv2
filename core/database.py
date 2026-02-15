@@ -197,8 +197,8 @@ class DatabaseManager:
                     -- TP/SL settings
                     auto_tp INTEGER DEFAULT 1,
                     auto_sl INTEGER DEFAULT 1,
-                    tp_percent REAL DEFAULT 3.0,
-                    sl_percent REAL DEFAULT 2.0,
+                    tp_percent REAL DEFAULT 25.0,
+                    sl_percent REAL DEFAULT 30.0,
                     trailing_stop INTEGER DEFAULT 0,
                     trailing_percent REAL DEFAULT 1.0,
                     

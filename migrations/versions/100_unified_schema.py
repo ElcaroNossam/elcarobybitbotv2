@@ -52,8 +52,8 @@ def upgrade(cur):
             routing_policy     TEXT,
             live_enabled       BOOLEAN DEFAULT FALSE,
             
-            percent            REAL DEFAULT 3.0,
-            tp_percent         REAL DEFAULT 10.0,
+            percent            REAL DEFAULT 1.0,
+            tp_percent         REAL DEFAULT 25.0,
             sl_percent         REAL DEFAULT 30.0,
             leverage           INTEGER DEFAULT 10,
             direction          TEXT DEFAULT 'all',

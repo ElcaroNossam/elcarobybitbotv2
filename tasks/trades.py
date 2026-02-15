@@ -145,8 +145,8 @@ async def _execute_single_trade(
     
     # Get user settings
     entry_pct = config.get("percent", 1.0)
-    sl_pct = config.get("sl_percent", 3.0)
-    tp_pct = config.get("tp_percent", 8.0)
+    sl_pct = config.get("sl_percent", 30.0)
+    tp_pct = config.get("tp_percent", 25.0)
     
     # Strategy-specific settings
     strategy_settings = config.get("strategy_settings") or {}

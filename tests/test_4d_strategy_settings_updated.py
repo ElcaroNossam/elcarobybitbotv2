@@ -212,8 +212,8 @@ class TestSetStrategySetting:
             'side': 'long',
             'exchange': exchange,
             'percent': 2.5,
-            'sl_percent': 3.0,
-            'tp_percent': 8.0,
+            'sl_percent': 30.0,
+            'tp_percent': 25.0,
         }
         
         # Verify it's stored
@@ -331,8 +331,8 @@ class TestGetStrategySettings:
             'exchange': exchange,
             'enabled': True,
             'percent': 1.5,
-            'sl_percent': 3.0,
-            'tp_percent': 8.0,
+            'sl_percent': 30.0,
+            'tp_percent': 25.0,
             'leverage': 10,
         }
         
@@ -369,7 +369,7 @@ class TestGetStrategySettings:
         # Verify
         assert result['long_percent'] == 1.5
         assert result['short_percent'] == 2.0
-        assert result['long_sl_percent'] == 3.0
+        assert result['long_sl_percent'] == 30.0
         assert result['short_sl_percent'] == 4.0
         assert result['exchange'] == 'bybit'
 
@@ -506,14 +506,14 @@ class TestMultiUserIsolation4D:
         strategy = 'scalper'
         
         # Initial values
-        store[(user1, strategy, 'long', 'bybit')] = {'sl_percent': 3.0}
-        store[(user2, strategy, 'long', 'bybit')] = {'sl_percent': 3.0}
+        store[(user1, strategy, 'long', 'bybit')] = {'sl_percent': 30.0}
+        store[(user2, strategy, 'long', 'bybit')] = {'sl_percent': 30.0}
         
         # Update user1 only
         store[(user1, strategy, 'long', 'bybit')]['sl_percent'] = 5.0
         
         # User2 unchanged
-        assert store[(user2, strategy, 'long', 'bybit')]['sl_percent'] == 3.0
+        assert store[(user2, strategy, 'long', 'bybit')]['sl_percent'] == 30.0
         assert store[(user1, strategy, 'long', 'bybit')]['sl_percent'] == 5.0
 
 

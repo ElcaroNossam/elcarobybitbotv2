@@ -575,8 +575,8 @@ def _get_english_content():
                 "description": "Moderate risk/reward:",
                 "settings": [
                     "Entry: 2%",
-                    "SL: 3%",
-                    "TP: 6%",
+                    "SL: 30%",
+                    "TP: 25%",
                     "ATR: ON",
                     "DCA: ON (10%, 25%)",
                     "Strategies: All except Scalper",
@@ -869,8 +869,8 @@ def _get_russian_content():
                 "description": "Умеренный риск/доходность:",
                 "settings": [
                     "Entry: 2%",
-                    "SL: 3%",
-                    "TP: 6%",
+                    "SL: 30%",
+                    "TP: 25%",
                     "ATR: ВКЛ",
                     "DCA: ВКЛ (10%, 25%)",
                     "Стратегии: Все кроме Scalper",
@@ -1163,8 +1163,8 @@ def _get_ukrainian_content():
                 "description": "Помірний ризик/доходність:",
                 "settings": [
                     "Entry: 2%",
-                    "SL: 3%",
-                    "TP: 6%",
+                    "SL: 30%",
+                    "TP: 25%",
                     "ATR: УВІМК",
                     "DCA: УВІМК (10%, 25%)",
                     "Стратегії: Всі крім Scalper",

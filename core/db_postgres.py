@@ -380,7 +380,7 @@ def pg_init_db():
                 limit_enabled      INTEGER NOT NULL DEFAULT 1,
                 trade_oi           INTEGER NOT NULL DEFAULT 1,
                 trade_rsi_bb       INTEGER NOT NULL DEFAULT 1,
-                tp_percent         REAL NOT NULL DEFAULT 10.0,
+                tp_percent         REAL NOT NULL DEFAULT 25.0,
                 sl_percent         REAL NOT NULL DEFAULT 30.0,
                 use_atr            INTEGER NOT NULL DEFAULT 1,
                 lang               TEXT NOT NULL DEFAULT 'en',
@@ -1534,8 +1534,8 @@ def pg_get_user_config(user_id: int) -> Dict:
             "limit_enabled": False,
             "trade_oi": 1,
             "trade_rsi_bb": 1,
-            "tp_percent": 8.0,
-            "sl_percent": 3.0,
+            "tp_percent": 25.0,
+            "sl_percent": 30.0,
             "use_atr": 1,
             "lang": "en",
             "is_allowed": 0,
@@ -1818,16 +1818,16 @@ def pg_get_strategy_account_types(user_id: int, strategy: str) -> List[str]:
 
 # Default strategy settings (fallback values)
 DEFAULT_STRATEGY_SETTINGS = {
-    "oi": {"percent": 1.0, "sl_percent": 3.0, "tp_percent": 8.0, "leverage": 10, "use_atr": 1},
-    "scalper": {"percent": 1.0, "sl_percent": 2.0, "tp_percent": 4.0, "leverage": 10, "use_atr": 1},
-    "scryptomera": {"percent": 1.0, "sl_percent": 3.0, "tp_percent": 6.0, "leverage": 10, "use_atr": 1},
-    "elcaro": {"percent": 1.0, "sl_percent": 3.0, "tp_percent": 8.0, "leverage": 10, "use_atr": 1},
-    "fibonacci": {"percent": 1.0, "sl_percent": 2.5, "tp_percent": 5.0, "leverage": 10, "use_atr": 1},
-    "rsi_bb": {"percent": 1.0, "sl_percent": 3.0, "tp_percent": 8.0, "leverage": 10, "use_atr": 1},
+    "oi": {"percent": 1.0, "sl_percent": 30.0, "tp_percent": 25.0, "leverage": 10, "use_atr": 1},
+    "scalper": {"percent": 1.0, "sl_percent": 30.0, "tp_percent": 25.0, "leverage": 10, "use_atr": 1},
+    "scryptomera": {"percent": 1.0, "sl_percent": 30.0, "tp_percent": 25.0, "leverage": 10, "use_atr": 1},
+    "elcaro": {"percent": 1.0, "sl_percent": 30.0, "tp_percent": 25.0, "leverage": 10, "use_atr": 1},
+    "fibonacci": {"percent": 1.0, "sl_percent": 30.0, "tp_percent": 25.0, "leverage": 10, "use_atr": 1},
+    "rsi_bb": {"percent": 1.0, "sl_percent": 30.0, "tp_percent": 25.0, "leverage": 10, "use_atr": 1},
 }
 
 DEFAULT_HL_STRATEGY_SETTINGS = {
-    "oi": {"hl_enabled": False, "hl_percent": 1.0, "hl_sl_percent": 3.0, "hl_tp_percent": 8.0, "hl_leverage": 5},
+    "oi": {"hl_enabled": False, "hl_percent": 1.0, "hl_sl_percent": 30.0, "hl_tp_percent": 25.0, "hl_leverage": 5},
 }
 
 
@@ -2329,8 +2329,8 @@ def pg_get_hl_effective_settings(user_id: int, strategy: str) -> Dict:
     return {
         "hl_enabled": hl_settings.get("hl_enabled", False),
         "hl_percent": hl_settings.get("hl_percent") or config.get("percent") or 1.0,
-        "hl_sl_percent": hl_settings.get("hl_sl_percent") or config.get("sl_percent") or 3.0,
-        "hl_tp_percent": hl_settings.get("hl_tp_percent") or config.get("tp_percent") or 8.0,
+        "hl_sl_percent": hl_settings.get("hl_sl_percent") or config.get("sl_percent") or 30.0,
+        "hl_tp_percent": hl_settings.get("hl_tp_percent") or config.get("tp_percent") or 25.0,
         "hl_leverage": hl_settings.get("hl_leverage") or 5,
     }
 

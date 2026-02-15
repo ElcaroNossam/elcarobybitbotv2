@@ -141,8 +141,8 @@ data class StrategySettingsEntity(
     val exchange: String, // "bybit" or "hyperliquid"
     val enabled: Boolean = true,
     val percent: Double = 1.0,
-    val tpPercent: Double = 8.0,
-    val slPercent: Double = 3.0,
+    val tpPercent: Double = 25.0,
+    val slPercent: Double = 30.0,
     val leverage: Int = 10,
     val useAtr: Boolean = false,
     val atrPeriods: Int = 14,
