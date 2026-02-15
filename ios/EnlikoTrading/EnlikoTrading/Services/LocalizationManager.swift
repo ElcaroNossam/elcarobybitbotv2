@@ -603,6 +603,10 @@ class LocalizationManager: ObservableObject {
         "spot_rebalance": "Rebalance",
         "spot_no_holdings": "No Spot Holdings",
         "spot_start_dca": "Start building your portfolio with DCA",
+        "futures": "Futures",
+        "spot": "Spot",
+        "spot_balance": "Spot Balance",
+        "spot_buy_sell": "Buy / Sell",
         
         // Common
         "common_loading": "Loading...",
@@ -1280,6 +1284,10 @@ class LocalizationManager: ObservableObject {
         "spot_rebalance": "Ребаланс",
         "spot_no_holdings": "Нет спот активов",
         "spot_start_dca": "Начните строить портфель с DCA",
+        "futures": "Фьючерсы",
+        "spot": "Спот",
+        "spot_balance": "Спот баланс",
+        "spot_buy_sell": "Купить / Продать",
         
         // Common
         "common_loading": "Загрузка...",

@@ -93,6 +93,36 @@ struct MainTabView: View {
         .onReceive(NotificationCenter.default.publisher(for: .profitMilestoneReached)) { _ in
             triggerCelebration()
         }
+        // Push notification navigation handlers
+        .onReceive(NotificationCenter.default.publisher(for: .navigateToPositions)) { _ in
+            selectedTab = 2 // Trading tab
+        }
+        .onReceive(NotificationCenter.default.publisher(for: .navigateToSignals)) { _ in
+            selectedTab = 1 // Strategies tab (signals)
+        }
+        .onReceive(NotificationCenter.default.publisher(for: .navigateToHistory)) { _ in
+            selectedTab = 0 // Dashboard (has recent trades)
+        }
+        .onReceive(NotificationCenter.default.publisher(for: .navigateToStats)) { _ in
+            selectedTab = 0 // Dashboard (has stats)
+        }
+        // Cross-platform sync: exchange switched from bot/webapp
+        .onReceive(NotificationCenter.default.publisher(for: .exchangeSwitched)) { notification in
+            if let exchangeRaw = notification.userInfo?["exchange"] as? String,
+               let exchange = Exchange(rawValue: exchangeRaw) {
+                appState.currentExchange = exchange
+                appState.savePreferences()
+                Task { await tradingService.refreshAll() }
+            }
+        }
+        // Cross-platform sync: settings changed from bot/webapp
+        .onReceive(NotificationCenter.default.publisher(for: .settingsChanged)) { _ in
+            // Refresh all data when settings change remotely
+            Task {
+                await appState.syncFromServer()
+                await tradingService.refreshAll()
+            }
+        }
     }
     
     // Celebration function

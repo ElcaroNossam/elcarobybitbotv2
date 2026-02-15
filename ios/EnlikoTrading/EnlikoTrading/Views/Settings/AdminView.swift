@@ -128,20 +128,26 @@ struct AdminView: View {
                 .foregroundColor(.white)
             
             HStack(spacing: 12) {
+                NavigationLink(destination: AdminSupportView()) {
+                    QuickActionButton(title: "support_chats".localized, icon: "bubble.left.and.bubble.right", color: .purple)
+                }
                 NavigationLink(destination: AdminUsersView()) {
                     QuickActionButton(title: "manage_users".localized, icon: "person.2", color: .blue)
                 }
+            }
+            HStack(spacing: 12) {
                 NavigationLink(destination: AdminPaymentsView()) {
                     QuickActionButton(title: "payments".localized, icon: "creditcard", color: .green)
                 }
-            }
-            HStack(spacing: 12) {
                 NavigationLink(destination: AdminLicensesView()) {
                     QuickActionButton(title: "licenses".localized, icon: "key", color: .orange)
                 }
+            }
+            HStack(spacing: 12) {
                 NavigationLink(destination: AdminErrorsView()) {
                     QuickActionButton(title: "errors".localized, icon: "exclamationmark.triangle", color: .red)
                 }
+                Spacer()
             }
         }
     }

@@ -9,11 +9,22 @@
 
 import SwiftUI
 
-// MARK: - App Delegate for UIKit Appearance
+// MARK: - App Delegate for UIKit Appearance + Push Notifications
 class AppDelegate: NSObject, UIApplicationDelegate {
     func application(_ application: UIApplication, didFinishLaunchingWithOptions launchOptions: [UIApplication.LaunchOptionsKey : Any]? = nil) -> Bool {
         configureAppearance()
+        // Set push notification delegate early
+        UNUserNotificationCenter.current().delegate = PushNotificationService.shared
         return true
+    }
+    
+    // MARK: - APNs Token Registration
+    func application(_ application: UIApplication, didRegisterForRemoteNotificationsWithDeviceToken deviceToken: Data) {
+        PushNotificationService.shared.registerDeviceToken(deviceToken)
+    }
+    
+    func application(_ application: UIApplication, didFailToRegisterForRemoteNotificationsWithDeviceToken error: Error) {
+        AppLogger.shared.error("Failed to register for APNs: \(error.localizedDescription)", category: .general)
     }
     
     private func configureAppearance() {
@@ -94,6 +105,12 @@ struct RootView: View {
                 } else if authManager.isAuthenticated {
                     MainTabView()
                         .transition(.opacity)
+                        .task {
+                            // Setup push notifications when authenticated
+                            await notificationService.requestPermission()
+                            await notificationService.connectWebSocket()
+                            await notificationService.loadPreferences()
+                        }
                 } else {
                     LoginView()
                         .transition(.opacity)

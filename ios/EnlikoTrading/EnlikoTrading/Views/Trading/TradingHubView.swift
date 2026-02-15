@@ -2,10 +2,10 @@
 //  TradingHubView.swift
 //  EnlikoTrading
 //
-//  Trading Hub - Combined view like Telegram bot:
-//  - Positions list with quick actions
-//  - Pending orders
-//  - Manual trading button
+//  Trading Hub - Futures & Spot separated:
+//  - Market type picker (Futures / Spot)
+//  - Futures: Positions + Orders + Manual Trade
+//  - Spot: Portfolio + DCA + Holdings
 //
 
 import SwiftUI
@@ -14,30 +14,40 @@ struct TradingHubView: View {
     @EnvironmentObject var appState: AppState
     @EnvironmentObject var tradingService: TradingService
     @ObservedObject var localization = LocalizationManager.shared
+    @StateObject private var spotService = SpotService.shared
+    
+    @State private var marketType = 0  // 0 = Futures, 1 = Spot
     @State private var selectedSegment = 0
     @State private var showManualTrade = false
     
     var body: some View {
         VStack(spacing: 0) {
-            // Exchange/Account Switcher at top
+            // Market Type Picker (Futures / Spot)
+            marketTypePicker
+            
+            // Exchange/Account Switcher
             exchangeAccountBar
             
-            // Segment Control
-            segmentPicker
-            
-            // Content based on segment
-            ScrollView {
-                VStack(spacing: 16) {
-                    if selectedSegment == 0 {
-                        positionsContent
-                    } else {
-                        ordersContent
+            if marketType == 0 {
+                // FUTURES content
+                segmentPicker
+                
+                ScrollView {
+                    VStack(spacing: 16) {
+                        if selectedSegment == 0 {
+                            positionsContent
+                        } else {
+                            ordersContent
+                        }
                     }
+                    .padding()
                 }
-                .padding()
-            }
-            .refreshable {
-                await tradingService.refreshAll()
+                .refreshable {
+                    await tradingService.refreshAll()
+                }
+            } else {
+                // SPOT content
+                spotContent
             }
         }
         .background(Color.enlikoBackground)
@@ -45,17 +55,252 @@ struct TradingHubView: View {
         .navigationBarTitleDisplayMode(.large)
         .toolbar {
             ToolbarItem(placement: .navigationBarTrailing) {
-                Button {
-                    showManualTrade = true
-                } label: {
-                    Image(systemName: "plus.circle.fill")
-                        .foregroundColor(.enlikoPrimary)
-                        .font(.title3)
+                if marketType == 0 {
+                    Button {
+                        showManualTrade = true
+                    } label: {
+                        Image(systemName: "plus.circle.fill")
+                            .foregroundColor(.enlikoPrimary)
+                            .font(.title3)
+                    }
+                } else {
+                    Button {
+                        Task {
+                            await spotService.fetchPerformance(accountType: appState.currentAccountType.rawValue)
+                            await spotService.fetchBalance(accountType: appState.currentAccountType.rawValue)
+                        }
+                    } label: {
+                        Image(systemName: "arrow.clockwise")
+                            .foregroundColor(.enlikoPrimary)
+                            .font(.title3)
+                    }
                 }
             }
         }
         .sheet(isPresented: $showManualTrade) {
             ManualTradeView()
+        }
+        .onChange(of: marketType) { _, newValue in
+            HapticManager.shared.perform(.selection)
+            if newValue == 1 {
+                Task {
+                    await spotService.fetchPerformance(accountType: appState.currentAccountType.rawValue)
+                    await spotService.fetchBalance(accountType: appState.currentAccountType.rawValue)
+                    await spotService.fetchFearGreed()
+                }
+            }
+        }
+    }
+    
+    // MARK: - Market Type Picker (Futures / Spot)
+    private var marketTypePicker: some View {
+        HStack(spacing: 0) {
+            marketTypeButton(title: "futures".localized, icon: "chart.line.uptrend.xyaxis", index: 0)
+            marketTypeButton(title: "spot".localized, icon: "dollarsign.circle.fill", index: 1)
+        }
+        .padding(.horizontal, 16)
+        .padding(.top, 8)
+        .padding(.bottom, 4)
+    }
+    
+    private func marketTypeButton(title: String, icon: String, index: Int) -> some View {
+        Button {
+            withAnimation(.spring(response: 0.3, dampingFraction: 0.8)) {
+                marketType = index
+            }
+        } label: {
+            HStack(spacing: 6) {
+                Image(systemName: icon)
+                    .font(.caption.bold())
+                Text(title)
+                    .font(.subheadline.bold())
+            }
+            .foregroundColor(marketType == index ? .white : .secondary)
+            .frame(maxWidth: .infinity)
+            .padding(.vertical, 10)
+            .background(
+                Group {
+                    if marketType == index {
+                        LinearGradient(
+                            colors: [Color.enlikoPrimary, Color.enlikoPrimary.opacity(0.7)],
+                            startPoint: .topLeading,
+                            endPoint: .bottomTrailing
+                        )
+                    } else {
+                        Color.enlikoSurface.opacity(0.5)
+                    }
+                }
+            )
+            .cornerRadius(12)
+        }
+        .padding(.horizontal, 4)
+    }
+    
+    // MARK: - Spot Content (Embedded)
+    private var spotContent: some View {
+        ScrollView {
+            VStack(spacing: 16) {
+                // Spot Balance Card
+                spotBalanceCard
+                
+                // Holdings
+                spotHoldingsSection
+                
+                // Quick Actions
+                spotQuickActions
+                
+                // Fear & Greed
+                if let fg = spotService.fearGreed, fg.success {
+                    FearGreedCard(fearGreed: fg)
+                }
+            }
+            .padding()
+        }
+        .refreshable {
+            await spotService.fetchPerformance(accountType: appState.currentAccountType.rawValue)
+            await spotService.fetchBalance(accountType: appState.currentAccountType.rawValue)
+            await spotService.fetchFearGreed()
+        }
+    }
+    
+    private var spotBalanceCard: some View {
+        VStack(spacing: 12) {
+            HStack {
+                VStack(alignment: .leading, spacing: 4) {
+                    Text("spot_balance".localized)
+                        .font(.caption)
+                        .foregroundColor(.secondary)
+                    
+                    if let perf = spotService.performance {
+                        Text("$\(perf.totalCurrentValue, specifier: "%.2f")")
+                            .font(.system(size: 28, weight: .bold, design: .rounded))
+                            .foregroundColor(.white)
+                        
+                        HStack(spacing: 4) {
+                            Image(systemName: perf.roiPct >= 0 ? "arrow.up.right" : "arrow.down.right")
+                                .font(.caption2)
+                            Text("\(perf.roiPct >= 0 ? "+" : "")\(perf.roiPct, specifier: "%.2f")%")
+                                .font(.caption.bold())
+                            Text("ROI")
+                                .font(.caption2)
+                                .foregroundColor(.secondary)
+                        }
+                        .foregroundColor(perf.roiPct >= 0 ? .green : .red)
+                    } else if spotService.isLoading {
+                        ProgressView()
+                            .tint(.enlikoPrimary)
+                    } else {
+                        Text("$0.00")
+                            .font(.system(size: 28, weight: .bold, design: .rounded))
+                            .foregroundColor(.secondary)
+                    }
+                }
+                
+                Spacer()
+                
+                // Spot icon
+                Image(systemName: "dollarsign.circle.fill")
+                    .font(.system(size: 40))
+                    .foregroundStyle(
+                        LinearGradient(
+                            colors: [.orange, .yellow],
+                            startPoint: .topLeading,
+                            endPoint: .bottomTrailing
+                        )
+                    )
+            }
+        }
+        .padding(16)
+        .background(Color.enlikoCard)
+        .cornerRadius(16)
+        .overlay(
+            RoundedRectangle(cornerRadius: 16)
+                .stroke(Color.orange.opacity(0.3), lineWidth: 1)
+        )
+    }
+    
+    private var spotHoldingsSection: some View {
+        VStack(alignment: .leading, spacing: 12) {
+            HStack {
+                Image(systemName: "cube.fill")
+                    .foregroundColor(.orange)
+                Text("spot_holdings".localized)
+                    .font(.headline)
+                    .foregroundColor(.white)
+                Spacer()
+                
+                Text("\(spotService.performance?.holdings.count ?? 0)")
+                    .font(.caption.bold())
+                    .foregroundColor(.white)
+                    .padding(.horizontal, 8)
+                    .padding(.vertical, 4)
+                    .background(Color.orange.opacity(0.3))
+                    .cornerRadius(8)
+            }
+            
+            if let holdings = spotService.performance?.holdings, !holdings.isEmpty {
+                ForEach(holdings) { holding in
+                    SpotHoldingRow(holding: holding)
+                }
+            } else {
+                VStack(spacing: 12) {
+                    Image(systemName: "tray")
+                        .font(.system(size: 36))
+                        .foregroundColor(.secondary.opacity(0.5))
+                    Text("spot_no_holdings".localized)
+                        .font(.subheadline)
+                        .foregroundColor(.secondary)
+                }
+                .frame(maxWidth: .infinity)
+                .padding(.vertical, 24)
+            }
+        }
+        .padding(16)
+        .background(Color.enlikoCard)
+        .cornerRadius(16)
+    }
+    
+    private var spotQuickActions: some View {
+        HStack(spacing: 12) {
+            NavigationLink(destination: SpotTradingView()) {
+                HStack(spacing: 8) {
+                    Image(systemName: "cart.fill")
+                        .font(.subheadline)
+                    Text("spot_buy_sell".localized)
+                        .font(.subheadline.bold())
+                }
+                .foregroundColor(.white)
+                .frame(maxWidth: .infinity)
+                .padding(.vertical, 14)
+                .background(
+                    LinearGradient(
+                        colors: [.green, .green.opacity(0.7)],
+                        startPoint: .leading,
+                        endPoint: .trailing
+                    )
+                )
+                .cornerRadius(12)
+            }
+            
+            NavigationLink(destination: SpotTradingView()) {
+                HStack(spacing: 8) {
+                    Image(systemName: "arrow.triangle.2.circlepath")
+                        .font(.subheadline)
+                    Text("DCA")
+                        .font(.subheadline.bold())
+                }
+                .foregroundColor(.white)
+                .frame(maxWidth: .infinity)
+                .padding(.vertical, 14)
+                .background(
+                    LinearGradient(
+                        colors: [.enlikoPrimary, .enlikoPrimary.opacity(0.7)],
+                        startPoint: .leading,
+                        endPoint: .trailing
+                    )
+                )
+                .cornerRadius(12)
+            }
         }
     }
     
@@ -588,6 +833,60 @@ struct PositionCardEnhanced: View {
                     }
                 }
             }
+        }
+    }
+}
+
+// MARK: - Spot Holding Row (Compact for embedded view)
+struct SpotHoldingRow: View {
+    let holding: SpotHolding
+    
+    var body: some View {
+        HStack(spacing: 12) {
+            // Coin icon
+            Text(coinEmoji(for: holding.coin))
+                .font(.title2)
+                .frame(width: 36, height: 36)
+                .background(Color.enlikoSurface)
+                .cornerRadius(10)
+            
+            // Coin name & balance
+            VStack(alignment: .leading, spacing: 2) {
+                Text(holding.coin)
+                    .font(.subheadline.bold())
+                    .foregroundColor(.white)
+                Text("\(holding.balance, specifier: "%.4f")")
+                    .font(.caption)
+                    .foregroundColor(.secondary)
+            }
+            
+            Spacer()
+            
+            // Value & PnL
+            VStack(alignment: .trailing, spacing: 2) {
+                Text("$\(holding.usdValue, specifier: "%.2f")")
+                    .font(.subheadline.bold())
+                    .foregroundColor(.white)
+                
+                HStack(spacing: 2) {
+                    Image(systemName: holding.pnlPct >= 0 ? "arrow.up.right" : "arrow.down.right")
+                        .font(.system(size: 8))
+                    Text("\(holding.pnlPct >= 0 ? "+" : "")\(holding.pnlPct, specifier: "%.1f")%")
+                        .font(.caption2.bold())
+                }
+                .foregroundColor(holding.pnlPct >= 0 ? .green : .red)
+            }
+        }
+        .padding(.vertical, 4)
+    }
+    
+    private func coinEmoji(for coin: String) -> String {
+        switch coin.uppercased() {
+        case "BTC": return "₿"
+        case "ETH": return "Ξ"
+        case "SOL": return "◎"
+        case "USDT", "USDC": return "$"
+        default: return "🪙"
         }
     }
 }
