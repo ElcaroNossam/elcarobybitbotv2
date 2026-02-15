@@ -526,7 +526,7 @@ async def email_register(request: Request, data: EmailRegisterRequest, backgroun
     # Send verification email
     html = f"""
     <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
-        <h2 style="color: #dc2626;">🚀 Welcome to Enliko!</h2>
+        <h2 style="color: #2563eb;">🚀 Welcome to Enliko!</h2>
         <p>Your verification code is:</p>
         <div style="background: #1a1a1a; color: #22c55e; font-size: 32px; font-weight: bold; 
                     padding: 20px; text-align: center; border-radius: 8px; letter-spacing: 8px;">
@@ -696,7 +696,7 @@ async def forgot_password(data: PasswordResetRequest, background_tasks: Backgrou
     
     html = f"""
     <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
-        <h2 style="color: #dc2626;">🔐 Password Reset</h2>
+        <h2 style="color: #2563eb;">🔐 Password Reset</h2>
         <p>Your password reset code is:</p>
         <div style="background: #1a1a1a; color: #f59e0b; font-size: 32px; font-weight: bold; 
                     padding: 20px; text-align: center; border-radius: 8px; letter-spacing: 8px;">

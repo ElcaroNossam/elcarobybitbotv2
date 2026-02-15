@@ -31,13 +31,13 @@ html {
     --bg-active: #2a2a2a;
     --bg-graphite: #2a2a2a;
     
-    /* === Primary Accent (Red) === */
-    --accent: #dc2626;
-    --accent-primary: #dc2626;
+    /* === Primary Accent (Blue) === */
+    --accent: #2563eb;
+    --accent-primary: #2563eb;
     --accent-red: #ef4444;
-    --accent-crimson: #b91c1c;
-    --accent-dark: #991b1b;
-    --accent-darker: #7f1d1d;
+    --accent-crimson: #1d4ed8;
+    --accent-dark: #1e40af;
+    --accent-darker: #1e3a8a;
     
     /* === Secondary Accent (Gold) === */
     --accent-gold: #d4a017;
@@ -47,8 +47,8 @@ html {
     /* === Utility Accent === */
     --accent-arc: #00d4ff;
     --accent-cyan: #00d4ff;
-    --accent-purple: #dc2626;
-    --accent-blue: #dc2626;
+    --accent-purple: #2563eb;
+    --accent-blue: #2563eb;
     
     /* === Semantic Colors === */
     --green: #22c55e;
@@ -76,18 +76,18 @@ html {
     --border-color: rgba(255, 255, 255, 0.06);
     --border-primary: #27272a;
     --border-secondary: #3f3f46;
-    --border-hover: rgba(220, 38, 38, 0.4);
+    --border-hover: rgba(37, 99, 235, 0.4);
     --border-gold: rgba(212, 160, 23, 0.3);
-    --border-accent: #dc2626;
+    --border-accent: #2563eb;
     
     /* === Fonts === */
     --font-sans: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
     --font-mono: 'JetBrains Mono', 'Fira Code', monospace;
     
     /* === Gradients === */
-    --gradient-primary: linear-gradient(135deg, #dc2626 0%, #991b1b 100%);
-    --gradient-stark: linear-gradient(135deg, #dc2626 0%, #7f1d1d 50%, #450a0a 100%);
-    --gradient-iron: linear-gradient(135deg, #dc2626 0%, #d4a017 100%);
+    --gradient-primary: linear-gradient(135deg, #2563eb 0%, #1e40af 100%);
+    --gradient-stark: linear-gradient(135deg, #2563eb 0%, #1e3a8a 50%, #172554 100%);
+    --gradient-iron: linear-gradient(135deg, #2563eb 0%, #d4a017 100%);
     --gradient-gold: linear-gradient(135deg, #d4a017 0%, #b8860b 100%);
     --gradient-graphite: linear-gradient(135deg, #2a2a2a 0%, #1a1a1a 100%);
     --gradient-arc: linear-gradient(135deg, #00d4ff 0%, #0099cc 100%);
@@ -99,7 +99,8 @@ html {
     --gradient-shine: linear-gradient(90deg, transparent 0%, rgba(255,255,255,0.05) 50%, transparent 100%);
     
     /* === Glow Effects === */
-    --glow-red: 0 0 40px rgba(220, 38, 38, 0.4), 0 0 80px rgba(220, 38, 38, 0.2);
+    --glow-blue: 0 0 40px rgba(37, 99, 235, 0.4), 0 0 80px rgba(37, 99, 235, 0.2);
+    --glow-red: 0 0 40px rgba(239, 68, 68, 0.4), 0 0 80px rgba(239, 68, 68, 0.2);
     --glow-gold: 0 0 30px rgba(212, 160, 23, 0.3);
     --glow-arc: 0 0 40px rgba(0, 212, 255, 0.4), 0 0 80px rgba(0, 212, 255, 0.2);
     --glow-green: 0 0 30px rgba(34, 197, 94, 0.3);
@@ -109,7 +110,7 @@ html {
     --shadow-sm: 0 1px 2px rgba(0, 0, 0, 0.4);
     --shadow-md: 0 4px 6px rgba(0, 0, 0, 0.5);
     --shadow-lg: 0 10px 15px rgba(0, 0, 0, 0.6);
-    --shadow-glow: 0 0 20px rgba(220, 38, 38, 0.4);
+    --shadow-glow: 0 0 20px rgba(37, 99, 235, 0.4);
     
     /* === Exchange-Specific Colors === */
     --bybit-color: #f7a600;
@@ -162,7 +163,7 @@ body {
     position: fixed;
     inset: 0;
     background: 
-        radial-gradient(ellipse at 10% 20%, rgba(220, 38, 38, 0.08) 0%, transparent 40%),
+        radial-gradient(ellipse at 10% 20%, rgba(37, 99, 235, 0.08) 0%, transparent 40%),
         radial-gradient(ellipse at 90% 80%, rgba(34, 197, 94, 0.06) 0%, transparent 40%),
         radial-gradient(ellipse at 50% 50%, rgba(153, 27, 27, 0.04) 0%, transparent 60%);
     pointer-events: none;
@@ -190,7 +191,7 @@ body {
 
 /* ===== SELECTION ===== */
 ::selection {
-    background: rgba(220, 38, 38, 0.3);
+    background: rgba(37, 99, 235, 0.3);
     color: var(--text-primary);
 }
 
@@ -306,7 +307,7 @@ a:hover {
 .input:focus {
     outline: none;
     border-color: var(--accent);
-    box-shadow: 0 0 0 3px rgba(220, 38, 38, 0.1);
+    box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.1);
 }
 
 .input::placeholder {
@@ -341,7 +342,7 @@ a:hover {
 }
 
 .badge-primary {
-    background: rgba(220, 38, 38, 0.12);
+    background: rgba(37, 99, 235, 0.12);
     color: var(--accent);
 }
 

@@ -282,7 +282,7 @@ What would you like to know?`
 
             // Add analysis lines
             if (chartData.entry) {
-                candleSeries.createPriceLine({ price: chartData.entry, color: '#dc2626', lineWidth: 2, title: 'Entry' });
+                candleSeries.createPriceLine({ price: chartData.entry, color: '#2563eb', lineWidth: 2, title: 'Entry' });
             }
             if (chartData.takeProfit) {
                 candleSeries.createPriceLine({ price: chartData.takeProfit, color: '#10b981', lineWidth: 2, title: 'TP' });

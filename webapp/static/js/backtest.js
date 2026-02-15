@@ -367,9 +367,9 @@ class BacktestEngine {
         });
 
         const areaSeries = chart.addAreaSeries({
-            topColor: 'rgba(220, 38, 38, 0.4)',
-            bottomColor: 'rgba(220, 38, 38, 0.0)',
-            lineColor: '#dc2626',
+            topColor: 'rgba(37, 99, 235, 0.4)',
+            bottomColor: 'rgba(37, 99, 235, 0.0)',
+            lineColor: '#2563eb',
             lineWidth: 2
         });
 
@@ -530,7 +530,7 @@ class BacktestEngine {
         // Add price lines
         candleSeries.createPriceLine({
             price: trade.entryPrice,
-            color: '#dc2626',
+            color: '#2563eb',
             lineWidth: 2,
             lineStyle: 0,
             title: 'Entry'
@@ -569,7 +569,7 @@ class BacktestEngine {
             {
                 time: trade.entryTime,
                 position: trade.side === 'Long' ? 'belowBar' : 'aboveBar',
-                color: '#dc2626',
+                color: '#2563eb',
                 shape: trade.side === 'Long' ? 'arrowUp' : 'arrowDown',
                 text: 'Entry'
             },

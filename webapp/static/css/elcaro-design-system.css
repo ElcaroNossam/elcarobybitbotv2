@@ -16,15 +16,15 @@
     --bg-graphite: #2a2a2a;
     
     /* === STARK Accent Colors === */
-    --accent: #dc2626;
-    --accent-primary: #dc2626;
+    --accent: #2563eb;
+    --accent-primary: #2563eb;
     --accent-red: #ef4444;
-    --accent-crimson: #b91c1c;
+    --accent-crimson: #1d4ed8;
     --accent-gold: #d4a017;
     --accent-platinum: #a8a8a8;
     --accent-arc: #00d4ff;
-    --accent-purple: #dc2626;
-    --accent-blue: #dc2626;
+    --accent-purple: #2563eb;
+    --accent-blue: #2563eb;
     --accent-cyan: #00d4ff;
     --accent-orange: #d4a017;
     
@@ -49,7 +49,7 @@
     /* === Border Colors === */
     --border: rgba(255, 255, 255, 0.06);
     --border-color: rgba(255, 255, 255, 0.06);
-    --border-hover: rgba(220, 38, 38, 0.4);
+    --border-hover: rgba(37, 99, 235, 0.4);
     --border-gold: rgba(212, 160, 23, 0.3);
     
     /* === Fonts === */
@@ -57,26 +57,27 @@
     --font-mono: 'JetBrains Mono', 'Fira Code', monospace;
     
     /* === STARK Gradients === */
-    --gradient-primary: linear-gradient(135deg, #dc2626 0%, #991b1b 100%);
-    --gradient-purple: linear-gradient(135deg, #dc2626 0%, #7f1d1d 100%);
-    --gradient-stark: linear-gradient(135deg, #dc2626 0%, #7f1d1d 50%, #450a0a 100%);
-    --gradient-iron: linear-gradient(135deg, #dc2626 0%, #d4a017 100%);
+    --gradient-primary: linear-gradient(135deg, #2563eb 0%, #1e40af 100%);
+    --gradient-purple: linear-gradient(135deg, #2563eb 0%, #1e3a8a 100%);
+    --gradient-stark: linear-gradient(135deg, #2563eb 0%, #1e3a8a 50%, #172554 100%);
+    --gradient-iron: linear-gradient(135deg, #2563eb 0%, #d4a017 100%);
     --gradient-gold: linear-gradient(135deg, #d4a017 0%, #b8860b 100%);
     --gradient-graphite: linear-gradient(135deg, #2a2a2a 0%, #1a1a1a 100%);
     --gradient-arc: linear-gradient(135deg, #00d4ff 0%, #0099cc 100%);
     --gradient-green: linear-gradient(135deg, #22c55e 0%, #16a34a 100%);
     --gradient-red: linear-gradient(135deg, #ef4444 0%, #dc2626 100%);
-    --gradient-blue: linear-gradient(135deg, #dc2626 0%, #991b1b 100%);
+    --gradient-blue: linear-gradient(135deg, #2563eb 0%, #1e40af 100%);
     --gradient-metal: linear-gradient(180deg, #2a2a2a 0%, #1a1a1a 50%, #0a0a0a 100%);
     --gradient-shine: linear-gradient(90deg, transparent 0%, rgba(255,255,255,0.05) 50%, transparent 100%);
     
     /* === STARK Glow Effects === */
-    --glow-red: 0 0 40px rgba(220, 38, 38, 0.4), 0 0 80px rgba(220, 38, 38, 0.2);
+    --glow-blue: 0 0 40px rgba(37, 99, 235, 0.4), 0 0 80px rgba(37, 99, 235, 0.2);
+    --glow-red: 0 0 40px rgba(239, 68, 68, 0.4), 0 0 80px rgba(239, 68, 68, 0.2);
     --glow-gold: 0 0 30px rgba(212, 160, 23, 0.3);
     --glow-arc: 0 0 40px rgba(0, 212, 255, 0.4), 0 0 80px rgba(0, 212, 255, 0.2);
     --glow-green: 0 0 30px rgba(34, 197, 94, 0.3);
-    --glow-purple: 0 0 30px rgba(220, 38, 38, 0.3);
-    --glow-blue: 0 0 30px rgba(220, 38, 38, 0.3);
+    --glow-purple: 0 0 30px rgba(37, 99, 235, 0.3);
+    --glow-blue: 0 0 30px rgba(37, 99, 235, 0.3);
     --glow-graphite: 0 4px 20px rgba(0, 0, 0, 0.6);
     
     /* === Exchange-Specific Colors === */
@@ -103,7 +104,7 @@
     --shadow-sm: 0 2px 8px rgba(0, 0, 0, 0.4);
     --shadow-md: 0 4px 20px rgba(0, 0, 0, 0.5);
     --shadow-lg: 0 8px 40px rgba(0, 0, 0, 0.6);
-    --shadow-red: 0 4px 30px rgba(220, 38, 38, 0.2);
+    --shadow-red: 0 4px 30px rgba(37, 99, 235, 0.2);
     --shadow-inner: inset 0 2px 4px rgba(0, 0, 0, 0.3);
     
     /* === Transitions === */
@@ -138,10 +139,10 @@ body {
     inset: 0;
     background: 
         /* Arc reactor glow center */
-        radial-gradient(ellipse at 50% 0%, rgba(220, 38, 38, 0.08) 0%, transparent 50%),
+        radial-gradient(ellipse at 50% 0%, rgba(37, 99, 235, 0.08) 0%, transparent 50%),
         /* Red accent corners */
-        radial-gradient(circle at 0% 0%, rgba(220, 38, 38, 0.06) 0%, transparent 30%),
-        radial-gradient(circle at 100% 100%, rgba(220, 38, 38, 0.04) 0%, transparent 30%),
+        radial-gradient(circle at 0% 0%, rgba(37, 99, 235, 0.06) 0%, transparent 30%),
+        radial-gradient(circle at 100% 100%, rgba(37, 99, 235, 0.04) 0%, transparent 30%),
         /* Subtle grid pattern */
         linear-gradient(rgba(255,255,255,0.01) 1px, transparent 1px),
         linear-gradient(90deg, rgba(255,255,255,0.01) 1px, transparent 1px);
@@ -232,9 +233,9 @@ body {
 }
 
 .badge-stark {
-    background: linear-gradient(135deg, rgba(220, 38, 38, 0.2), rgba(220, 38, 38, 0.1));
+    background: linear-gradient(135deg, rgba(37, 99, 235, 0.2), rgba(37, 99, 235, 0.1));
     color: var(--accent-red);
-    border-color: rgba(220, 38, 38, 0.3);
+    border-color: rgba(37, 99, 235, 0.3);
 }
 
 .badge-premium {
@@ -340,7 +341,7 @@ body {
 
 .btn-secondary:hover {
     border-color: var(--accent);
-    box-shadow: 0 0 20px rgba(220, 38, 38, 0.15);
+    box-shadow: 0 0 20px rgba(37, 99, 235, 0.15);
 }
 
 .btn-ghost {
@@ -352,7 +353,7 @@ body {
 .btn-ghost:hover {
     color: var(--accent);
     border-color: var(--accent);
-    background: rgba(220, 38, 38, 0.05);
+    background: rgba(37, 99, 235, 0.05);
 }
 
 /* === STARK Form Elements === */
@@ -370,7 +371,7 @@ body {
 .form-input:focus {
     outline: none;
     border-color: var(--accent);
-    box-shadow: 0 0 0 3px rgba(220, 38, 38, 0.1);
+    box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.1);
 }
 
 .form-input::placeholder {
@@ -392,7 +393,7 @@ body {
 .form-select:focus {
     outline: none;
     border-color: var(--accent);
-    box-shadow: 0 0 0 3px rgba(220, 38, 38, 0.1);
+    box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.1);
 }
 
 .form-label {
@@ -421,11 +422,11 @@ body {
     left: 0;
     right: 0;
     height: 1px;
-    background: linear-gradient(90deg, transparent, rgba(220, 38, 38, 0.3), transparent);
+    background: linear-gradient(90deg, transparent, rgba(37, 99, 235, 0.3), transparent);
 }
 
 .card:hover {
-    border-color: rgba(220, 38, 38, 0.2);
+    border-color: rgba(37, 99, 235, 0.2);
 }
 
 .card-premium {
@@ -483,7 +484,7 @@ body {
 }
 
 .table tr:hover td {
-    border-color: rgba(220, 38, 38, 0.1);
+    border-color: rgba(37, 99, 235, 0.1);
 }
 
 /* === STARK Scrollbar === */
@@ -522,8 +523,8 @@ body {
 }
 
 @keyframes glow {
-    0%, 100% { box-shadow: 0 0 20px rgba(220, 38, 38, 0.3); }
-    50% { box-shadow: 0 0 40px rgba(220, 38, 38, 0.5); }
+    0%, 100% { box-shadow: 0 0 20px rgba(37, 99, 235, 0.3); }
+    50% { box-shadow: 0 0 40px rgba(37, 99, 235, 0.5); }
 }
 
 @keyframes scanline {
@@ -594,7 +595,7 @@ body {
 }
 
 .notification-info {
-    background: linear-gradient(135deg, #dc2626, #b91c1c);
+    background: linear-gradient(135deg, #2563eb, #1d4ed8);
 }
 
 .notification-warning {
@@ -694,7 +695,7 @@ body {
 
 .dropdown-item.active {
     color: var(--accent);
-    background: rgba(220, 38, 38, 0.1);
+    background: rgba(37, 99, 235, 0.1);
 }
 
 .dropdown-item i {
@@ -741,7 +742,7 @@ body {
 .lang-btn:hover {
     border-color: var(--accent);
     background: var(--bg-hover);
-    box-shadow: 0 0 15px rgba(220, 38, 38, 0.15);
+    box-shadow: 0 0 15px rgba(37, 99, 235, 0.15);
 }
 
 .lang-menu {
@@ -782,7 +783,7 @@ body {
 }
 
 .lang-item.active {
-    background: rgba(220, 38, 38, 0.1);
+    background: rgba(37, 99, 235, 0.1);
     color: var(--accent);
 }
 
@@ -869,7 +870,7 @@ body {
 }
 
 .theme-option.active {
-    background: rgba(220, 38, 38, 0.1);
+    background: rgba(37, 99, 235, 0.1);
     color: var(--accent);
 }
 
@@ -900,7 +901,7 @@ body {
 .custom-select select:focus {
     outline: none;
     border-color: var(--accent);
-    box-shadow: 0 0 0 3px rgba(220, 38, 38, 0.1);
+    box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.1);
 }
 
 .custom-select select option {
@@ -958,7 +959,7 @@ body {
     background: var(--accent);
     border-radius: 50%;
     border: 2px solid var(--bg-secondary);
-    box-shadow: 0 0 8px rgba(220, 38, 38, 0.5);
+    box-shadow: 0 0 8px rgba(37, 99, 235, 0.5);
 }
 
 /* === STARK Logo === */
@@ -1331,7 +1332,7 @@ body {
 
 .stark-border {
     border-color: var(--accent) !important;
-    box-shadow: 0 0 20px rgba(220, 38, 38, 0.15);
+    box-shadow: 0 0 20px rgba(37, 99, 235, 0.15);
 }
 
 .gold-accent {

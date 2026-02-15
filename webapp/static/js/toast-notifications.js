@@ -167,9 +167,9 @@ class ToastNotifications {
             }
             
             .toast.info {
-                color: var(--accent, #dc2626);
-                border-color: rgba(220, 38, 38, 0.2);
-                background: linear-gradient(135deg, rgba(220, 38, 38, 0.05) 0%, var(--bg-secondary, #111111) 100%);
+                color: var(--accent, #2563eb);
+                border-color: rgba(37, 99, 235, 0.2);
+                background: linear-gradient(135deg, rgba(37, 99, 235, 0.05) 0%, var(--bg-secondary, #111111) 100%);
             }
             
             /* Mobile */
