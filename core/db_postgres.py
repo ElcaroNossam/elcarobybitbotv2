@@ -1881,27 +1881,34 @@ def pg_get_strategy_settings(user_id: int, strategy: str, exchange: str = None, 
             """, (user_id, strategy, exchange))
             rows = cur.fetchall()
             
-            # If no rows found for this exchange, try to copy from default exchange
-            if not rows and exchange != "bybit":
-                # Try to get settings from bybit as fallback
+            # If no rows found for this exchange, try ANY other exchange as fallback
+            # CRITICAL FIX (Feb 15, 2026): Was one-directional (only non-bybit→bybit).
+            # Now bidirectional: if user has settings only for HL, they work on bybit targets too.
+            if not rows:
                 cur.execute("""
                     SELECT * FROM user_strategy_settings 
-                    WHERE user_id = %s AND strategy = %s AND exchange = 'bybit'
-                """, (user_id, strategy))
-                bybit_rows = cur.fetchall()
+                    WHERE user_id = %s AND strategy = %s AND exchange != %s
+                    ORDER BY updated_at DESC
+                """, (user_id, strategy, exchange))
+                fallback_rows = cur.fetchall()
                 
-                # Copy bybit settings to this exchange
-                if bybit_rows:
-                    for row in bybit_rows:
+                if fallback_rows:
+                    # Deduplicate by side — keep only the most recent row per side
+                    seen_sides = set()
+                    deduplicated = []
+                    for row in fallback_rows:
                         side = row.get('side', 'long')
-                        _pg_copy_settings_to_exchange(cur, user_id, strategy, side, row, exchange)
+                        if side not in seen_sides:
+                            seen_sides.add(side)
+                            deduplicated.append(row)
                     
-                    # Re-fetch for this exchange
-                    cur.execute("""
-                        SELECT * FROM user_strategy_settings 
-                        WHERE user_id = %s AND strategy = %s AND exchange = %s
-                    """, (user_id, strategy, exchange))
-                    rows = cur.fetchall()
+                    fallback_exchange = fallback_rows[0].get('exchange', '?')
+                    logger.info(
+                        f"[pg_get_strategy_settings] uid={user_id} strategy={strategy}: "
+                        f"No rows for exchange={exchange}, using fallback from {fallback_exchange} "
+                        f"({len(deduplicated)} rows)"
+                    )
+                    rows = deduplicated
             
             # Group rows by side
             rows_by_side = {}

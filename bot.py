@@ -4978,14 +4978,15 @@ def _decimals_from_step(step: float) -> int:
         return len(s.split(".")[1])
     return 0
 
-def resolve_sl_tp_pct(cfg: dict, symbol: str, strategy: str | None = None, user_id: int | None = None, side: str | None = None) -> tuple[float, float]:
+def resolve_sl_tp_pct(cfg: dict, symbol: str, strategy: str | None = None, user_id: int | None = None, side: str | None = None, exchange: str | None = None) -> tuple[float, float]:
     """
     Resolve SL/TP percentages for a trade.
     If strategy is provided and user has per-strategy settings, use those.
     For ALL strategies, side-specific settings (long_sl_percent, short_sl_percent) take priority if side is provided.
     Otherwise fallback to global user settings, then coin-specific defaults.
     
-    Uses user's current exchange/account context for strategy settings lookup.
+    Args:
+        exchange: Target exchange ('bybit' or 'hyperliquid'). If None, uses user's current exchange context.
     """
     coin_cfg = COIN_PARAMS.get(symbol, COIN_PARAMS["DEFAULT"])
 
@@ -4993,12 +4994,19 @@ def resolve_sl_tp_pct(cfg: dict, symbol: str, strategy: str | None = None, user_
     strat_sl = None
     strat_tp = None
     if strategy and user_id:
-        # Get user's current exchange/account context
-        context = get_user_trading_context(user_id)
+        # CRITICAL FIX (Feb 15, 2026): Use target exchange if provided, not user's default exchange.
+        # This prevents cross-exchange leak where bybit targets use HL settings from wrong context.
+        if exchange:
+            target_exchange = exchange
+            # account_type not critical here, just use default
+            target_account_type = None
+        else:
+            context = get_user_trading_context(user_id)
+            target_exchange = context["exchange"]
+            target_account_type = context["account_type"]
         strat_settings = db.get_strategy_settings(
             user_id, strategy, 
-            context["exchange"], 
-            context["account_type"]
+            target_exchange
         )
         
         # For ALL strategies, check side-specific settings first if side is provided
@@ -5124,14 +5132,14 @@ def get_strategy_trade_params(uid: int, cfg: dict, symbol: str, strategy: str, s
         if side_sl is not None and side_sl > 0:
             sl_pct = float(side_sl)
         else:
-            sl_pct, _ = resolve_sl_tp_pct(cfg, symbol, strategy=strategy, user_id=uid, side=side)
+            sl_pct, _ = resolve_sl_tp_pct(cfg, symbol, strategy=strategy, user_id=uid, side=side, exchange=exchange)
         
         # Get side-specific TP
         side_tp = strat_settings.get(f"{side_prefix}_tp_percent")
         if side_tp is not None and side_tp > 0:
             tp_pct = float(side_tp)
         else:
-            _, tp_pct = resolve_sl_tp_pct(cfg, symbol, strategy=strategy, user_id=uid, side=side)
+            _, tp_pct = resolve_sl_tp_pct(cfg, symbol, strategy=strategy, user_id=uid, side=side, exchange=exchange)
         
         # Get side-specific BE settings
         side_be_enabled = strat_settings.get(f"{side_prefix}_be_enabled")
@@ -5264,7 +5272,7 @@ def get_strategy_trade_params(uid: int, cfg: dict, symbol: str, strategy: str, s
         percent = float(cfg.get("percent", 1))
     
     # Get SL/TP using resolve function with strategy awareness
-    sl_pct, tp_pct = resolve_sl_tp_pct(cfg, symbol, strategy=strategy, user_id=uid)
+    sl_pct, tp_pct = resolve_sl_tp_pct(cfg, symbol, strategy=strategy, user_id=uid, exchange=exchange)
     
     # Get leverage (no side-specific when side not provided)
     strat_leverage = strat_settings.get("long_leverage") or strat_settings.get("short_leverage")
@@ -7391,7 +7399,7 @@ async def split_market_plus_one_limit(
             use_atr = True
         
         # Use strategy-specific SL/TP if available
-        sl_pct, tp_pct = resolve_sl_tp_pct(cfg, symbol, strategy=strategy, user_id=uid, side=_side)
+        sl_pct, tp_pct = resolve_sl_tp_pct(cfg, symbol, strategy=strategy, user_id=uid, side=_side, exchange="bybit")
         sl_pct = hint_sl_pct or sl_pct
         tp_pct = hint_tp_pct or tp_pct
 
@@ -12256,7 +12264,7 @@ async def fetch_account_balance(user_id: int, account_type: str = None) -> dict:
 
 
 @log_calls
-async def fetch_usdt_balance(user_id: int, account_type: str = None, use_equity: bool = True) -> float:
+async def fetch_usdt_balance(user_id: int, account_type: str = None, use_equity: bool = True, exchange: str = None) -> float:
     """Fetch USDT balance for position sizing.
     
     Supports both Bybit and HyperLiquid exchanges.
@@ -12265,12 +12273,14 @@ async def fetch_usdt_balance(user_id: int, account_type: str = None, use_equity:
         use_equity: If True (default), returns total equity (walletBalance) for consistent
                     position sizing regardless of open positions.
                     If False, returns available margin (free funds).
+        exchange: Target exchange ('bybit' or 'hyperliquid'). If None, uses user's default.
     
     Using equity ensures entry% is always calculated from total capital,
     making position sizes consistent and predictable.
     """
-    # Check exchange type
-    user_exchange = db.get_exchange_type(user_id) or "bybit"
+    # CRITICAL FIX (Feb 15, 2026): Use explicit exchange param if provided.
+    # This prevents using HL balance for Bybit orders (and vice versa).
+    user_exchange = exchange or db.get_exchange_type(user_id) or "bybit"
     
     # ═══════════════════════════════════════════════════════════════
     # HYPERLIQUID BALANCE
@@ -18729,8 +18739,9 @@ async def calc_qty(
     # Check exchange type — use explicit param first, then DB fallback
     user_exchange = exchange or db.get_exchange_type(user_id) or "bybit"
     
-    # Use equity (total capital) for consistent position sizing
-    equity = await fetch_usdt_balance(user_id, account_type=account_type, use_equity=True)
+    # CRITICAL FIX (Feb 15, 2026): Pass exchange to fetch_usdt_balance so it uses
+    # the correct exchange's balance, not the user's default exchange balance.
+    equity = await fetch_usdt_balance(user_id, account_type=account_type, use_equity=True, exchange=user_exchange)
     
     if equity <= 0:
         # Record error for admin reporting
@@ -21071,14 +21082,14 @@ def log_exit_and_remove_position(
     if applied_sl_pct is not None:
         sl_pct = applied_sl_pct
     elif strategy:
-        sl_pct, _ = resolve_sl_tp_pct(cfg, symbol, strategy=strategy, user_id=user_id, side=side)
+        sl_pct, _ = resolve_sl_tp_pct(cfg, symbol, strategy=strategy, user_id=user_id, side=side, exchange=exchange)
     else:
         sl_pct = float(cfg.get("sl_percent") or DEFAULT_SL_PCT)
     
     if applied_tp_pct is not None:
         tp_pct = applied_tp_pct
     elif strategy:
-        _, tp_pct = resolve_sl_tp_pct(cfg, symbol, strategy=strategy, user_id=user_id, side=side)
+        _, tp_pct = resolve_sl_tp_pct(cfg, symbol, strategy=strategy, user_id=user_id, side=side, exchange=exchange)
     else:
         tp_pct = float(cfg.get("tp_percent") or DEFAULT_TP_PCT)
 
@@ -21534,7 +21545,7 @@ async def monitor_positions_loop(app: Application):
                                     pos_use_atr = use_atr
                             
                                 # Use strategy-aware SL/TP resolution WITH side for Scryptomera/Scalper
-                                sl_pct, tp_pct = resolve_sl_tp_pct(cfg, sym, strategy=strategy, user_id=uid, side=side)
+                                sl_pct, tp_pct = resolve_sl_tp_pct(cfg, sym, strategy=strategy, user_id=uid, side=side, exchange=current_exchange)
                                 sl_price = round(
                                     entry * (1 - sl_pct/100) if side == "Buy" else entry * (1 + sl_pct/100), 6
                                 )
@@ -21755,7 +21766,7 @@ async def monitor_positions_loop(app: Application):
                                 # Get strategy-specific SL/TP percentages for better detection
                                 position_strategy = ap.get("strategy")
                                 if position_strategy:
-                                    strat_sl, strat_tp = resolve_sl_tp_pct(cfg, sym, strategy=position_strategy, user_id=uid, side=pos_side)
+                                    strat_sl, strat_tp = resolve_sl_tp_pct(cfg, sym, strategy=position_strategy, user_id=uid, side=pos_side, exchange=current_exchange)
                                 else:
                                     strat_sl = float(cfg.get("sl_percent") or DEFAULT_SL_PCT)
                                     strat_tp = float(cfg.get("tp_percent") or DEFAULT_TP_PCT)
@@ -22697,7 +22708,7 @@ async def monitor_positions_loop(app: Application):
                                         if applied_tp is not None and applied_tp > 0:
                                             tp_pct = float(applied_tp)
                                     else:
-                                        sl_pct, tp_pct = resolve_sl_tp_pct(cfg, sym, strategy=pos_strategy, user_id=uid, side=side)
+                                        sl_pct, tp_pct = resolve_sl_tp_pct(cfg, sym, strategy=pos_strategy, user_id=uid, side=side, exchange=current_exchange)
                                     
                                     # Calculate correct SL and TP positions
                                     sl_restore = round(
@@ -22752,7 +22763,7 @@ async def monitor_positions_loop(app: Application):
                                         tp_pct = float(applied_tp)
                                 else:
                                     # Fallback to current strategy settings if no applied values saved
-                                    sl_pct, tp_pct = resolve_sl_tp_pct(cfg, sym, strategy=pos_strategy, user_id=uid, side=side)
+                                    sl_pct, tp_pct = resolve_sl_tp_pct(cfg, sym, strategy=pos_strategy, user_id=uid, side=side, exchange=current_exchange)
                                 
                                 sl0 = round(
                                     entry * (1 - sl_pct/100) if side == "Buy"
