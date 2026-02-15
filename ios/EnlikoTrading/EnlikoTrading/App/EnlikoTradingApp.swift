@@ -23,7 +23,7 @@ class AppDelegate: NSObject, UIApplicationDelegate {
         PushNotificationService.shared.registerDeviceToken(deviceToken)
     }
     
-    func application(_ application: UIApplication, didFailToRegisterForRemoteNotificationsWithDeviceToken error: Error) {
+    func application(_ application: UIApplication, didFailToRegisterForRemoteNotificationsWithError error: Error) {
         AppLogger.shared.error("Failed to register for APNs: \(error.localizedDescription)", category: .general)
     }
     
@@ -107,7 +107,7 @@ struct RootView: View {
                         .transition(.opacity)
                         .task {
                             // Setup push notifications when authenticated
-                            await notificationService.requestPermission()
+                            let _ = await notificationService.requestPermission()
                             await notificationService.connectWebSocket()
                             await notificationService.loadPreferences()
                         }
