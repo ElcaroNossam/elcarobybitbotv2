@@ -16490,12 +16490,19 @@ async def handle_balance_callback(update: Update, ctx: ContextTypes.DEFAULT_TYPE
             await query.edit_message_text(text, reply_markup=keyboard, parse_mode="Markdown")
             logger.info(f"[{uid}] Balance callback completed in {time.time() - start_time:.2f}s")
             
+        except BadRequest as e:
+            if "Message is not modified" in str(e):
+                logger.debug(f"[{uid}] Balance (Bybit {mode}) - message unchanged, ignoring")
+                await query.answer("Balance is up to date ✅")
+            else:
+                logger.error(f"Balance fetch error (Bybit {mode}): {e}")
+                await query.edit_message_text(f"❌ Error fetching balance: {str(e)}", parse_mode="Markdown")
         except Exception as e:
             logger.error(f"Balance fetch error (Bybit {mode}): {e}")
-            await query.edit_message_text(
-                f"❌ Error fetching balance: {str(e)}",
-                parse_mode="Markdown"
-            )
+            try:
+                await query.edit_message_text(f"❌ Error fetching balance: {str(e)}", parse_mode="Markdown")
+            except BadRequest:
+                pass
             
     elif exchange == "hl":
         # Fetch HyperLiquid balance for selected mode
@@ -16595,12 +16602,22 @@ async def handle_balance_callback(update: Update, ctx: ContextTypes.DEFAULT_TYPE
             await query.edit_message_text(text, reply_markup=keyboard, parse_mode="Markdown")
             logger.info(f"[{uid}] HL Balance callback completed in {time.time() - start_time:.2f}s")
                 
+        except BadRequest as e:
+            if "Message is not modified" in str(e):
+                logger.debug(f"[{uid}] Balance (HL {mode}) - message unchanged, ignoring")
+                await query.answer("Balance is up to date ✅")
+            else:
+                logger.error(f"Balance fetch error (HL {mode}): {e}")
+                try:
+                    await query.edit_message_text(f"❌ Error: {str(e)}", parse_mode="Markdown")
+                except BadRequest:
+                    pass
         except Exception as e:
             logger.error(f"Balance fetch error (HL {mode}): {e}")
-            await query.edit_message_text(
-                f"❌ Error: {str(e)}",
-                parse_mode="Markdown"
-            )
+            try:
+                await query.edit_message_text(f"❌ Error: {str(e)}", parse_mode="Markdown")
+            except BadRequest:
+                pass
         finally:
             if adapter:
                 await adapter.close()
