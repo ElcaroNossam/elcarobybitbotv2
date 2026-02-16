@@ -243,7 +243,6 @@ class LocalizationManager: ObservableObject {
         "chat_status_waiting": "Waiting for reply",
         "chat_status_resolved": "Resolved",
         "chat_status_closed": "Closed",
-        "common_cancel": "Cancel",
         
         // Settings (legacy)
         "settings_title": "Settings",
@@ -996,7 +995,6 @@ class LocalizationManager: ObservableObject {
         "chat_status_waiting": "Ожидание ответа",
         "chat_status_resolved": "Решено",
         "chat_status_closed": "Закрыт",
-        "common_cancel": "Отмена",
         
         // Settings (legacy)
         "settings_title": "Настройки",
