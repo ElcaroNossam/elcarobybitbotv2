@@ -5848,7 +5848,9 @@ async def detect_exit_reason(
             if "takeprofit" in ctp:
                 return "TP", order_type
             elif "stoploss" in ctp:
-                return "SL", order_type
+                # CRITICAL FIX: Check atr_activated — ATR trailing uses SL orders
+                # so Bybit reports CreateByStopLoss even for ATR trailing exits
+                return ("ATR_SL" if atr_activated else "SL"), order_type
             elif "trailing" in ctp:
                 return "TRAILING", order_type
             elif "liq" in ctp or "takeover" in ctp:
@@ -5861,7 +5863,7 @@ async def detect_exit_reason(
             if "takeprofit" in sop or "partialtakeprofit" in sop:
                 return "TP", order_type
             elif "stoploss" in sop or "partialstoploss" in sop:
-                return "SL", order_type
+                return ("ATR_SL" if atr_activated else "SL"), order_type
             elif "trailingstop" in sop:
                 return "TRAILING", order_type
             
@@ -5893,7 +5895,7 @@ async def detect_exit_reason(
                         if "takeprofit" in order_ctp:
                             return "TP", order_type
                         elif "stoploss" in order_ctp:
-                            return "SL", order_type
+                            return ("ATR_SL" if atr_activated else "SL"), order_type
                         elif "trailing" in order_ctp:
                             return "TRAILING", order_type
                         elif "liq" in order_ctp or "takeover" in order_ctp:
@@ -5906,7 +5908,7 @@ async def detect_exit_reason(
                         if "takeprofit" in order_sop:
                             return "TP", order_type
                         elif "stoploss" in order_sop:
-                            return "SL", order_type
+                            return ("ATR_SL" if atr_activated else "SL"), order_type
                         elif "trailingstop" in order_sop:
                             return "TRAILING", order_type
                         
@@ -7209,24 +7211,26 @@ async def _remove_take_profit_bybit(
     effective_side: str,
     account_type: str | None = None,
 ) -> bool:
-    """Remove Take Profit on Bybit.
+    """Remove Take Profit on Bybit by setting it to an unreachable price.
     
-    CRITICAL FIX (Feb 11, 2026): Bybit's /v5/position/trading-stop with takeProfit="0"
-    returns retCode 34040 ("not modified") — Bybit internally considers the TP already
-    cleared, but the position endpoint still reports the old TP value (stale display).
+    CRITICAL FIX (Feb 2026): Bybit's /v5/position/trading-stop with takeProfit="0"
+    returns retCode 34040 ("not modified") and the TP REMAINS ACTIVE on the exchange.
+    This caused positions to close at TP level instead of being managed by ATR trailing.
     
-    Since Bybit says the TP is already effectively "0" (not active), we accept this
-    and return True. The retCode 34040 means the TP WON'T trigger on exchange even
-    though position data still shows a value.
+    Solution: Instead of takeProfit="0", set TP to an unreachable price:
+    - Long: TP = markPrice * 10 (10x above — will never trigger)
+    - Short: TP = markPrice * 0.01 (100x below — will never trigger)
+    Bybit accepts this as a valid TP change (retCode 0) and the TP never fires.
     
-    Returns True if TP is cleared (including when Bybit says it's already cleared).
+    Returns True if TP is effectively disabled.
     """
     mode = await get_position_mode(uid, symbol)
     position_idx = position_idx_for(effective_side, mode)
 
-    # Fetch current position data (SL + TP) to include in request
+    # Fetch current position data (SL + TP + markPrice) to include in request
     current_sl = None
     current_tp_val = None
+    mark_price = None
     try:
         positions = await fetch_open_positions(uid, account_type=account_type, exchange="bybit")
         pos = next((p for p in positions if p.get("symbol") == symbol), None)
@@ -7237,6 +7241,9 @@ async def _remove_take_profit_bybit(
             raw_tp = pos.get("takeProfit")
             if raw_tp not in (None, "", 0, "0", 0.0):
                 current_tp_val = float(raw_tp)
+            raw_mark = pos.get("markPrice")
+            if raw_mark:
+                mark_price = float(raw_mark)
     except Exception as e:
         logger.debug(f"{symbol}: Could not fetch position data for TP removal: {e}")
 
@@ -7245,12 +7252,25 @@ async def _remove_take_profit_bybit(
         logger.debug(f"[{uid}] {symbol}: TP already cleared on exchange, nothing to remove")
         return True
 
+    # If we couldn't get mark price, we can't calculate unreachable TP
+    if not mark_price or mark_price <= 0:
+        logger.warning(f"[{uid}] {symbol}: No mark price available, cannot set unreachable TP")
+        return False
+
+    # Calculate unreachable TP price based on side
+    if effective_side == "Buy":
+        # Long: set TP far above current price (will never trigger)
+        unreachable_tp = round(mark_price * 10, 4)
+    else:
+        # Short: set TP far below current price (will never trigger)
+        unreachable_tp = round(max(mark_price * 0.01, 0.0001), 6)
+
     body = {
         "category": "linear",
         "symbol": symbol,
         "positionIdx": position_idx,
         "tpslMode": "Full",
-        "takeProfit": "0",
+        "takeProfit": str(unreachable_tp),
         "tpTriggerBy": "MarkPrice",
     }
     
@@ -7259,14 +7279,11 @@ async def _remove_take_profit_bybit(
         body["stopLoss"] = str(current_sl)
         body["slTriggerBy"] = "MarkPrice"
 
-    logger.info(f"[{uid}] {symbol}: remove_take_profit_bybit side={effective_side} current_tp={current_tp_val} current_sl={current_sl}")
+    logger.info(f"[{uid}] {symbol}: remove_take_profit_bybit side={effective_side} current_tp={current_tp_val} → unreachable_tp={unreachable_tp} mark={mark_price}")
 
     try:
         result = await _bybit_request(uid, "POST", "/v5/position/trading-stop", body=body, account_type=account_type)
-        # retCode 0 = TP actually cleared
-        # retCode 34040 = "not modified" — Bybit says TP is already at 0 internally
-        # Both cases mean TP is effectively cleared and won't trigger
-        logger.info(f"[{uid}] {symbol}: TP removal accepted by Bybit (result={result})")
+        logger.info(f"[{uid}] {symbol}: TP set to unreachable {unreachable_tp} (was {current_tp_val}), ATR trailing manages exit")
         return True
     except RuntimeError as e:
         err_str = str(e).lower()
@@ -22216,7 +22233,9 @@ async def monitor_positions_loop(app: Application):
                                     strat_tp = float(cfg.get("tp_percent") or DEFAULT_TP_PCT)
                                 
                                 # Check if ATR trailing was activated for this position
-                                atr_was_activated = bool(ap.get("atr_activated", 0))
+                                # Use DB value (persisted) OR in-memory _atr_triggered (current session)
+                                pos_key = (uid, sym, ap_account_type)
+                                atr_was_activated = bool(ap.get("atr_activated", 0)) or _atr_triggered.get(pos_key, False)
                             
                                 exit_reason, exit_order_type = await detect_exit_reason(
                                     uid, sym, 
@@ -23361,11 +23380,13 @@ async def monitor_positions_loop(app: Application):
                                     if sl_should_update:
                                         kwargs["sl_price"] = sl0
                                     
-                                    # Set TP as safety net if not present (ATR-TP-REMOVE will clear it when ATR triggers)
-                                    if current_tp is None:
-                                        if (side == "Buy" and tp0 > mark) or (side == "Sell" and tp0 < mark):
-                                            kwargs["tp_price"] = tp0
-                                            logger.info(f"[ATR-WAIT-TP] {sym} uid={uid} - Setting safety TP={tp0:.6f} (tp_pct={tp_pct}%) until ATR triggers")
+                                    # NOTE: Do NOT set safety TP during ATR-WAIT!
+                                    # Previously we set a "safety TP" here, but remove_take_profit()
+                                    # fails to actually clear it on Bybit (retCode 34040 = stale display
+                                    # but TP still triggers). This caused positions to close at TP level
+                                    # instead of being managed by ATR trailing to higher profits.
+                                    # With only SL during ATR-WAIT, the SL protects the downside,
+                                    # and ATR trailing takes over once trigger_pct is reached.
                                     
                                     if kwargs:
                                         try:
@@ -23403,6 +23424,19 @@ async def monitor_positions_loop(app: Application):
                                 if not _atr_triggered.get(key, False):
                                     _atr_triggered[key] = True
                                     logger.info(f"[ATR-ACTIVATED] {sym} uid={uid} - ATR trailing now active (move={move_pct:+.2f}% >= trigger={trigger_pct}%)")
+                                    # CRITICAL FIX: Persist atr_activated to DB so detect_exit_reason
+                                    # can correctly identify ATR trailing exits (ATR_SL vs SL)
+                                    # Previously update_atr_state() existed but was NEVER called!
+                                    try:
+                                        db.update_atr_state(
+                                            user_id=uid, symbol=sym,
+                                            account_type=pos_account_type,
+                                            atr_activated=True,
+                                            atr_activation_price=mark,
+                                            exchange=current_exchange,
+                                        )
+                                    except Exception as e:
+                                        logger.warning(f"[{uid}] {sym}: Failed to persist atr_activated to DB: {e}")
                                 
                                 # TP removal is now handled above (at line ~22497) on EVERY cycle
                                 # when current_tp is not None. No duplicate handling needed here.
@@ -23431,6 +23465,11 @@ async def monitor_positions_loop(app: Application):
                                         try:
                                             result = await set_trading_stop(uid, sym, sl_price=new_sl, side_hint=side, is_trailing=True, account_type=pos_account_type, exchange=current_exchange)
                                             logger.info(f"[ATR-TRAIL] {sym} LONG: SL updated {current_sl} -> {new_sl}, result={result}")
+                                            # Persist trailing SL to DB for crash recovery
+                                            try:
+                                                db.update_atr_state(user_id=uid, symbol=sym, account_type=pos_account_type, atr_activated=True, atr_last_stop_price=new_sl, exchange=current_exchange)
+                                            except Exception:
+                                                pass
                                         except RuntimeError as e:
                                             if "no open positions" in str(e).lower():
                                                 logger.debug(f"{sym}: Position closed, skipping ATR SL")
@@ -23451,6 +23490,11 @@ async def monitor_positions_loop(app: Application):
                                         try:
                                             result = await set_trading_stop(uid, sym, sl_price=new_sl, side_hint=side, is_trailing=True, account_type=pos_account_type, exchange=current_exchange)
                                             logger.info(f"[ATR-TRAIL] {sym} SHORT: SL updated {current_sl} -> {new_sl}, result={result}")
+                                            # Persist trailing SL to DB for crash recovery
+                                            try:
+                                                db.update_atr_state(user_id=uid, symbol=sym, account_type=pos_account_type, atr_activated=True, atr_last_stop_price=new_sl, exchange=current_exchange)
+                                            except Exception:
+                                                pass
                                         except RuntimeError as e:
                                             if "no open positions" in str(e).lower():
                                                 logger.debug(f"{sym}: Position closed, skipping ATR SL")
