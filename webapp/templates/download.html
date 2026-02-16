@@ -347,7 +347,7 @@
                 <span class="vi">🔖 Build <strong id="viBuild">—</strong></span>
             </div>
 
-            <a href="/static/downloads/EnlikoTrading.apk" class="download-btn" id="downloadBtn">
+            <a href="/static/downloads/EnlikoTrading-latest.apk" class="download-btn" id="downloadBtn">
                 <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
                     <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/>
                     <polyline points="7 10 12 15 17 10"/>
@@ -427,11 +427,11 @@
 
         <!-- iOS -->
         <div class="card ios-card" id="iosCard">
-            <div class="ios-btn">
+            <a href="https://testflight.apple.com/join/enliko" target="_blank" class="ios-btn" id="iosBtn" style="cursor:pointer;text-decoration:none;transition:all 0.3s ease;border:1px solid rgba(99,102,241,0.2);">
                 🍎 iOS — TestFlight
-                <span class="ios-badge" id="iosBadge">BUILD —</span>
-            </div>
-            <p class="ios-info" id="iosInfo">Contact the team for TestFlight invite</p>
+                <span class="ios-badge" id="iosBadge">BUILD 100</span>
+            </a>
+            <p class="ios-info" id="iosInfo">Tap to open TestFlight and install the latest iOS build</p>
         </div>
 
         <!-- Footer -->
@@ -515,7 +515,13 @@
         function renderIos(ios) {
             if (ios) {
                 $('iosBadge').textContent = 'BUILD ' + ios.build;
-                $('iosInfo').textContent = 'v' + ios.version + ' · Contact the team for TestFlight invite';
+                if (ios.testflightUrl) {
+                    var iosBtn = $('iosBtn');
+                    if (iosBtn) iosBtn.href = ios.testflightUrl;
+                    $('iosInfo').textContent = 'v' + ios.version + ' · Tap to install via TestFlight';
+                } else {
+                    $('iosInfo').textContent = 'v' + ios.version + ' · Contact the team for TestFlight invite';
+                }
             }
         }
 
