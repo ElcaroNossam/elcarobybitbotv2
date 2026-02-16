@@ -670,15 +670,40 @@ def pg_init_db():
                 side          TEXT NOT NULL,
                 qty           REAL NOT NULL,
                 price         REAL NOT NULL,
-                signal_id     INTEGER NOT NULL,
+                signal_id     INTEGER,
                 created_ts    BIGINT NOT NULL,
                 time_in_force TEXT NOT NULL DEFAULT 'GTC',
                 strategy      TEXT,
+                sl_price      REAL,
+                tp_price      REAL,
+                leverage      REAL,
                 account_type  TEXT DEFAULT 'demo',
-                PRIMARY KEY(user_id, order_id)
+                exchange      TEXT DEFAULT 'bybit',
+                status        TEXT DEFAULT 'pending',
+                expires_at    TIMESTAMP,
+                PRIMARY KEY(user_id, order_id, exchange)
             )
         """)
         cur.execute("CREATE INDEX IF NOT EXISTS idx_pending_user_created ON pending_limit_orders(user_id, created_ts DESC)")
+
+        # Add missing columns for existing tables (idempotent migration)
+        for col_def in [
+            ("exchange", "TEXT DEFAULT 'bybit'"),
+            ("status", "TEXT DEFAULT 'pending'"),
+            ("expires_at", "TIMESTAMP"),
+            ("sl_price", "REAL"),
+            ("tp_price", "REAL"),
+            ("leverage", "REAL"),
+        ]:
+            try:
+                cur.execute(f"ALTER TABLE pending_limit_orders ADD COLUMN IF NOT EXISTS {col_def[0]} {col_def[1]}")
+            except Exception:
+                pass
+        # Fix signal_id NOT NULL constraint if table already exists
+        try:
+            cur.execute("ALTER TABLE pending_limit_orders ALTER COLUMN signal_id DROP NOT NULL")
+        except Exception:
+            pass
         
         # ═══════════════════════════════════════════════════════════════════════════════════
         # USER LICENSES TABLE
@@ -791,10 +816,16 @@ def pg_init_db():
                 symbol    TEXT NOT NULL,
                 side      TEXT,
                 count     INTEGER NOT NULL DEFAULT 0,
-                PRIMARY KEY(user_id, symbol)
+                exchange  TEXT NOT NULL DEFAULT 'bybit',
+                PRIMARY KEY(user_id, symbol, exchange)
             )
         """)
         cur.execute("CREATE INDEX IF NOT EXISTS idx_pyramids_user ON pyramids(user_id)")
+        # Add exchange column for existing tables
+        try:
+            cur.execute("ALTER TABLE pyramids ADD COLUMN IF NOT EXISTS exchange TEXT NOT NULL DEFAULT 'bybit'")
+        except Exception:
+            pass
         
         # ═══════════════════════════════════════════════════════════════════════════════════
         # ELC TRANSACTIONS TABLE
@@ -1782,7 +1813,8 @@ def pg_get_user_trading_context(user_id: int) -> Dict:
 def pg_get_active_account_types(user_id: int) -> List[str]:
     """Get list of account types to trade on based on trading_mode."""
     row = execute_one(
-        "SELECT exchange_type, trading_mode FROM users WHERE user_id = %s",
+        "SELECT exchange_type, trading_mode, hl_testnet, "
+        "hl_testnet_private_key, hl_mainnet_private_key, hl_private_key FROM users WHERE user_id = %s",
         (user_id,)
     )
     
@@ -1793,7 +1825,28 @@ def pg_get_active_account_types(user_id: int) -> List[str]:
     trading_mode = row.get('trading_mode') or "demo"
     
     if exchange == "hyperliquid":
-        return ["mainnet"]  # HL only has mainnet for now
+        # Determine available HL account types based on configured credentials
+        has_testnet = bool(row.get('hl_testnet_private_key'))
+        has_mainnet = bool(row.get('hl_mainnet_private_key') or row.get('hl_private_key'))
+        hl_testnet_flag = row.get('hl_testnet')
+        
+        if trading_mode == "both":
+            types = []
+            if has_testnet:
+                types.append("testnet")
+            if has_mainnet:
+                types.append("mainnet")
+            return types if types else ["testnet"]
+        
+        # Single mode: use trading_mode mapping or hl_testnet flag
+        if trading_mode in ("demo", "testnet"):
+            return ["testnet"]
+        elif trading_mode in ("real", "mainnet"):
+            return ["mainnet"]
+        elif hl_testnet_flag:
+            return ["testnet"]
+        else:
+            return ["mainnet"]
     
     if trading_mode == "both":
         return ["demo", "real"]

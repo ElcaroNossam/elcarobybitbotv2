@@ -492,6 +492,7 @@ data class TradeData(
     @kotlinx.serialization.SerialName("pnl_percent") val pnlPercent: Double? = null,  // WebApp format
     val strategy: String? = null,
     @kotlinx.serialization.SerialName("exit_reason") val exitReason: String? = null,
+    val exchange: String? = null,
     val timestamp: String? = null,  // Server returns string, not Long
     val ts: String? = null,  // iOS format
     @kotlinx.serialization.SerialName("account_type") val accountType: String? = null

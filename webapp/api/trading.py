@@ -1401,7 +1401,7 @@ async def get_trades(
         if account_type:
             trades_data = execute("""
                 SELECT id, symbol, side, entry_price, exit_price, pnl, pnl_pct,
-                       ts, strategy, account_type, exit_reason, exchange
+                       ts, strategy, account_type, exit_reason, exchange, qty
                 FROM trade_logs 
                 WHERE user_id = %s AND account_type = %s AND exchange = %s
                 ORDER BY ts DESC 
@@ -1416,7 +1416,7 @@ async def get_trades(
         else:
             trades_data = execute("""
                 SELECT id, symbol, side, entry_price, exit_price, pnl, pnl_pct,
-                       ts, strategy, account_type, exit_reason, exchange
+                       ts, strategy, account_type, exit_reason, exchange, qty
                 FROM trade_logs 
                 WHERE user_id = %s AND exchange = %s
                 ORDER BY ts DESC 
@@ -1449,6 +1449,7 @@ async def get_trades(
                 "closed_at": ts_str,  # WebApp compatibility
                 "account_type": row.get("account_type") or "demo",
                 "exit_reason": row.get("exit_reason"),
+                "size": row.get("qty"),
             })
         
         # Return both formats for compatibility: iOS expects "trades", Android expects "data"
@@ -2253,8 +2254,31 @@ async def cancel_all_orders(
     account_type = _normalize_both_account_type(account_type, exchange) or account_type or "demo"
     
     if exchange == "hyperliquid":
-        # HyperLiquid cancel all - would need implementation
-        return {"success": False, "error": "Not implemented for HyperLiquid yet"}
+        # HyperLiquid cancel all via HLAdapter
+        try:
+            from hl_adapter import HLAdapter
+            hl_creds = db.get_all_user_credentials(user_id) or {}
+            private_key, is_testnet, wallet_address = _get_hl_credentials_for_account(hl_creds, account_type)
+            if not private_key:
+                return {"success": False, "error": "HyperLiquid API key not configured"}
+            
+            adapter = HLAdapter(private_key=private_key, testnet=is_testnet)
+            try:
+                await adapter.initialize()
+                result = await adapter.cancel_all_orders(symbol=symbol)
+                ret_code = result.get("retCode", 1)
+                cancelled = result.get("result", {}).get("count", 0)
+                return {
+                    "success": ret_code == 0,
+                    "cancelled": cancelled,
+                    "orders": [],
+                    "error": result.get("retMsg") if ret_code != 0 else None
+                }
+            finally:
+                await adapter.close()
+        except Exception as e:
+            logger.error(f"HL cancel-all-orders error: {e}")
+            return {"success": False, "error": str(e)}
     
     else:
         try:

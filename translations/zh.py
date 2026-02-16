@@ -1420,4 +1420,12 @@ TEXTS = {
     'digest_filter_real': '💼 实盘',
     'digest_filter_testnet': '🧪 测试网',
     'digest_filter_mainnet': '🌐 主网',
+    'stats_testnet': '🧪 Testnet',
+    'stats_mainnet': '🌐 Mainnet',
+    'trades_title': 'Trade History',
+    'trades_list_btn': 'Trade List',
+    'trades_page': 'Page',
+    'trades_total': 'trades',
+    'trades_empty': 'No trades found for this filter.',
+    'trades_to_stats': 'Statistics',
 }

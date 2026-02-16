@@ -1433,4 +1433,12 @@ TEXTS = {
     'digest_filter_real': '💼 حقيقي',
     'digest_filter_testnet': '🧪 شبكة اختبار',
     'digest_filter_mainnet': '🌐 الشبكة الرئيسية',
+    'stats_testnet': '🧪 Testnet',
+    'stats_mainnet': '🌐 Mainnet',
+    'trades_title': 'Trade History',
+    'trades_list_btn': 'Trade List',
+    'trades_page': 'Page',
+    'trades_total': 'trades',
+    'trades_empty': 'No trades found for this filter.',
+    'trades_to_stats': 'Statistics',
 }

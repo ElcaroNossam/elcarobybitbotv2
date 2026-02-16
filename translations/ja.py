@@ -1423,4 +1423,12 @@ TEXTS = {
     'digest_filter_real': '💼 リアル',
     'digest_filter_testnet': '🧪 テストネット',
     'digest_filter_mainnet': '🌐 メインネット',
+    'stats_testnet': '🧪 Testnet',
+    'stats_mainnet': '🌐 Mainnet',
+    'trades_title': 'Trade History',
+    'trades_list_btn': 'Trade List',
+    'trades_page': 'Page',
+    'trades_total': 'trades',
+    'trades_empty': 'No trades found for this filter.',
+    'trades_to_stats': 'Statistics',
 }

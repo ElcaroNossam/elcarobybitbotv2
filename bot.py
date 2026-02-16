@@ -16923,7 +16923,7 @@ async def on_positions_cb(update: Update, ctx: ContextTypes.DEFAULT_TYPE):
                 logger.warning(f"[{uid}] Failed to log manual close for {symbol}: {log_err}", exc_info=True)
             
             # Clean up internal tracking (log_exit_and_remove_position already removes position)
-            reset_pyramid(uid, symbol)
+            reset_pyramid(uid, symbol, exchange=exchange)
             
             # Send notification about closed position
             if notification_service:
@@ -17157,7 +17157,7 @@ async def on_positions_cb(update: Update, ctx: ContextTypes.DEFAULT_TYPE):
                         logger.error(f"Failed to send position closed notification (close_all): {notif_err}")
                     
                     # log_exit_and_remove_position already removes position
-                    reset_pyramid(uid, symbol)
+                    reset_pyramid(uid, symbol, exchange=exchange)
                     closed += 1
                     total_pnl += unrealized_pnl
                     closed_positions.append({
@@ -20154,9 +20154,9 @@ async def on_channel_post(update: Update, ctx: ContextTypes.DEFAULT_TYPE):
             global_coins_mode = global_coins_mode.upper() if isinstance(global_coins_mode, str) else "ALL"
 
             if not any(p.get("symbol") == symbol for p in all_db_positions):
-                reset_pyramid(uid, symbol)
+                reset_pyramid(uid, symbol, exchange=user_exchange)
 
-            cnt = get_pyramid(uid, symbol)["count"]
+            cnt = get_pyramid(uid, symbol, exchange=user_exchange)["count"]
             if cnt > 0:
                 logger.info(f"[{uid}] {symbol}: pyramid count={cnt} → skip signal")
                 continue
@@ -20493,7 +20493,7 @@ async def on_channel_post(update: Update, ctx: ContextTypes.DEFAULT_TYPE):
                             uid, symbol, side, price=liq, qty=qty,
                             signal_id=(signal_id or 0), strategy="rsi_bb"
                         )
-                        inc_pyramid(uid, symbol, side)
+                        inc_pyramid(uid, symbol, side, exchange=ctx_exchange)
                         await ctx.bot.send_message(
                             uid,
                             t.get('rsi_bb_limit_entry', "📊 RSI+BB Limit: {symbol} {side} @ {price:.6f} qty={qty}")
@@ -20565,7 +20565,7 @@ async def on_channel_post(update: Update, ctx: ContextTypes.DEFAULT_TYPE):
                                     except Exception as ts_err:
                                         logger.warning(f"[{uid}] Failed to set TP/SL on {target_key}: {ts_err}")
                         
-                        inc_pyramid(uid, symbol, side)
+                        inc_pyramid(uid, symbol, side, exchange=ctx_exchange)
                         
                         # Note: Position is now saved inside place_order_all_accounts for each account_type
                         
@@ -20654,7 +20654,7 @@ async def on_channel_post(update: Update, ctx: ContextTypes.DEFAULT_TYPE):
                                 uid, symbol, side, price=liq, qty=qty,
                                 signal_id=(signal_id or 0), strategy="scryptomera"
                             )
-                            inc_pyramid(uid, symbol, side)
+                            inc_pyramid(uid, symbol, side, exchange=ctx_exchange)
                             side_display = 'LONG' if side == 'Buy' else 'SHORT'
                             await ctx.bot.send_message(
                                 uid,
@@ -20710,7 +20710,7 @@ async def on_channel_post(update: Update, ctx: ContextTypes.DEFAULT_TYPE):
                                     except Exception as ts_err:
                                         logger.warning(f"[{uid}] Failed to set TP/SL on {target_key}: {ts_err}")
                         
-                        inc_pyramid(uid, symbol, side)
+                        inc_pyramid(uid, symbol, side, exchange=ctx_exchange)
                         
                         # Note: Position is now saved inside place_order_all_accounts for each account_type
                         
@@ -20803,7 +20803,7 @@ async def on_channel_post(update: Update, ctx: ContextTypes.DEFAULT_TYPE):
                                 uid, symbol, side, price=liq, qty=qty,
                                 signal_id=(signal_id or 0), strategy="scalper"
                             )
-                            inc_pyramid(uid, symbol, side)
+                            inc_pyramid(uid, symbol, side, exchange=ctx_exchange)
                             side_display = 'LONG' if side == 'Buy' else 'SHORT'
                             await ctx.bot.send_message(
                                 uid,
@@ -20859,7 +20859,7 @@ async def on_channel_post(update: Update, ctx: ContextTypes.DEFAULT_TYPE):
                                     except Exception as ts_err:
                                         logger.warning(f"[{uid}] Failed to set TP/SL on {target_key}: {ts_err}")
                         
-                        inc_pyramid(uid, symbol, side)
+                        inc_pyramid(uid, symbol, side, exchange=ctx_exchange)
                         
                         # Note: Position is now saved inside place_order_all_accounts for each account_type
                         
@@ -20970,7 +20970,7 @@ async def on_channel_post(update: Update, ctx: ContextTypes.DEFAULT_TYPE):
                                 uid, symbol, side, price=elcaro_entry, qty=qty,
                                 signal_id=(signal_id or 0), strategy="elcaro"
                             )
-                            inc_pyramid(uid, symbol, side)
+                            inc_pyramid(uid, symbol, side, exchange=ctx_exchange)
                             side_display = 'LONG' if side == 'Buy' else 'SHORT'
                             await ctx.bot.send_message(
                                 uid,
@@ -21030,7 +21030,7 @@ async def on_channel_post(update: Update, ctx: ContextTypes.DEFAULT_TYPE):
                                             logger.warning(f"[{uid}] Failed to set TP/SL on {target_key}: {ts_err}")
                             
                             # Note: Position is now saved inside place_order_all_accounts for each account_type
-                            inc_pyramid(uid, symbol, side)
+                            inc_pyramid(uid, symbol, side, exchange=ctx_exchange)
                             
                             # Format signal message with account details
                             accounts_lines = []
@@ -21170,7 +21170,7 @@ async def on_channel_post(update: Update, ctx: ContextTypes.DEFAULT_TYPE):
                                 uid, symbol, side, price=limit_entry_price, qty=qty,
                                 signal_id=(signal_id or 0), strategy="fibonacci"
                             )
-                            inc_pyramid(uid, symbol, side)
+                            inc_pyramid(uid, symbol, side, exchange=ctx_exchange)
                             side_display = 'LONG' if side == 'Buy' else 'SHORT'
                             entry_zone_display = f"{fibo_entry_low:.6f} – {fibo_entry_high:.6f}"
                             await ctx.bot.send_message(
@@ -21236,7 +21236,7 @@ async def on_channel_post(update: Update, ctx: ContextTypes.DEFAULT_TYPE):
                                             logger.warning(f"[{uid}] Failed to set TP/SL on {target_key}: {ts_err}")
                             
                             # Note: Position is now saved inside place_order_all_accounts for each account_type
-                            inc_pyramid(uid, symbol, side)
+                            inc_pyramid(uid, symbol, side, exchange=ctx_exchange)
                             
                             # Format signal message with account details
                             accounts_lines = []
@@ -21341,7 +21341,7 @@ async def on_channel_post(update: Update, ctx: ContextTypes.DEFAULT_TYPE):
                              .format(symbol=symbol, side=side, price=lim_price, qty=qty_lim, sl_pct=user_sl_pct),
                             parse_mode="Markdown"
                         )
-                        inc_pyramid(uid, symbol, side)
+                        inc_pyramid(uid, symbol, side, exchange=ctx_exchange)
                     else:
                         # Full market order
                         qty_mkt = q_qty(qty_total)
@@ -21425,7 +21425,7 @@ async def on_channel_post(update: Update, ctx: ContextTypes.DEFAULT_TYPE):
                         )
                         
                         await ctx.bot.send_message(uid, signal_info, parse_mode="Markdown")
-                        inc_pyramid(uid, symbol, side)
+                        inc_pyramid(uid, symbol, side, exchange=ctx_exchange)
                         
                         # Place ladder limit orders if enabled
                         try:
@@ -22119,7 +22119,7 @@ async def monitor_positions_loop(app: Application):
                                     try:
                                         # Pass entry_price to avoid race condition
                                         remove_active_position(uid, sym, account_type=ap_account_type, entry_price=ap.get("entry_price"), exchange=current_exchange)
-                                        reset_pyramid(uid, sym)
+                                        reset_pyramid(uid, sym, exchange=current_exchange)
                                         # Invalidate HL cache so positions list refreshes
                                         if current_exchange == "hyperliquid":
                                             try:
@@ -22204,8 +22204,8 @@ async def monitor_positions_loop(app: Application):
                                     pnl_for_check = (exit_price - entry_price) * size_for_pnl * (1 if ap_side == "Buy" else -1)
                                     
                                     # DEDUPLICATION: Check if this closure was already processed
-                                    # Key includes entry_price and pnl to identify unique trades
-                                    closure_key = (uid, sym, round(entry_price, 4), round(pnl_for_check, 2))
+                                    # Key includes entry_price, pnl, exchange and account_type for full 4D isolation
+                                    closure_key = (uid, sym, round(entry_price, 4), round(pnl_for_check, 2), current_exchange, ap_account_type)
                                     now_ts = int(time.time())
                                     CLOSURE_COOLDOWN = 86400  # 24 hours
                                     
@@ -22466,7 +22466,7 @@ async def monitor_positions_loop(app: Application):
                                 finally:
                                
                                     try:
-                                        reset_pyramid(uid, sym)
+                                        reset_pyramid(uid, sym, exchange=current_exchange)
                                     finally:
                                         _atr_triggered.pop((uid, sym, ap_account_type), None)
                                         _atr_was_enabled.pop((uid, sym, ap_account_type), None)  # Clear ATR was enabled cache
@@ -23436,7 +23436,7 @@ async def monitor_positions_loop(app: Application):
                                     logger.info(f"[STALE-CLEANUP] {uid} {db_sym} - removing from DB (not on exchange)")
                                     try:
                                         remove_active_position(uid, db_sym, account_type=current_account_type, entry_price=db_pos.get("entry_price"), exchange=current_exchange)
-                                        reset_pyramid(uid, db_sym)
+                                        reset_pyramid(uid, db_sym, exchange=current_exchange)
                                         _atr_triggered.pop((uid, db_sym, current_account_type), None)
                                         _atr_was_enabled.pop((uid, db_sym, current_account_type), None)  # Clear ATR was enabled cache
                                         _be_triggered.pop((uid, db_sym, current_account_type), None)  # Clear BE cache
@@ -30743,7 +30743,7 @@ async def on_hl_close_callback(update: Update, ctx: ContextTypes.DEFAULT_TYPE):
                         )
                     except Exception as log_err:
                         logger.warning(f"[{uid}] Failed to log HL close for {symbol}: {log_err}")
-                    reset_pyramid(uid, symbol)
+                    reset_pyramid(uid, symbol, exchange="hyperliquid")
                 else:
                     failed_count += 1
                     logger.warning(f"[{uid}] Failed to close HL position {coin}: {result}")

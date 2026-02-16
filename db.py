@@ -2128,43 +2128,43 @@ def store_prev_btc_dom(dom: float):
 # ------------------------------------------------------------------------------------
 # Pyramids
 # ------------------------------------------------------------------------------------
-def get_pyramid(user_id: int, symbol: str) -> dict:
+def get_pyramid(user_id: int, symbol: str, exchange: str = "bybit") -> dict:
     with get_conn() as conn:
         row = conn.execute(
-            "SELECT side, count FROM pyramids WHERE user_id=? AND symbol=?",
-            (user_id, symbol),
+            "SELECT side, count FROM pyramids WHERE user_id=? AND symbol=? AND exchange=?",
+            (user_id, symbol, exchange),
         ).fetchone()
     return {"side": row[0], "count": row[1]} if row else {"side": None, "count": 0}
 
-def inc_pyramid(user_id: int, symbol: str, new_side: str):
+def inc_pyramid(user_id: int, symbol: str, new_side: str, exchange: str = "bybit"):
     ensure_user(user_id)
     with get_conn() as conn:
         conn.execute(
             """
-            INSERT INTO pyramids(user_id, symbol, side, count)
-            VALUES (?, ?, ?, 1)
-            ON CONFLICT(user_id, symbol) DO UPDATE SET
+            INSERT INTO pyramids(user_id, symbol, side, count, exchange)
+            VALUES (?, ?, ?, 1, ?)
+            ON CONFLICT(user_id, symbol, exchange) DO UPDATE SET
               side  = excluded.side,
               count = CASE
                         WHEN pyramids.side <> excluded.side THEN 1
                         ELSE pyramids.count + 1
                       END
         """,
-            (user_id, symbol, new_side),
+            (user_id, symbol, new_side, exchange),
         )
         conn.commit()
 
-def reset_pyramid(user_id: int, symbol: str):
+def reset_pyramid(user_id: int, symbol: str, exchange: str = "bybit"):
     with get_conn() as conn:
         conn.execute(
-            "DELETE FROM pyramids WHERE user_id=? AND symbol=?", (user_id, symbol)
+            "DELETE FROM pyramids WHERE user_id=? AND symbol=? AND exchange=?", (user_id, symbol, exchange)
         )
         conn.commit()
 
-def get_all_pyramided_symbols(user_id: int) -> list[str]:
+def get_all_pyramided_symbols(user_id: int, exchange: str = "bybit") -> list[str]:
     with get_conn() as conn:
         rows = conn.execute(
-            "SELECT symbol FROM pyramids WHERE user_id=?", (user_id,)
+            "SELECT symbol FROM pyramids WHERE user_id=? AND exchange=?", (user_id, exchange)
         ).fetchall()
     return [r[0] for r in rows]
 
