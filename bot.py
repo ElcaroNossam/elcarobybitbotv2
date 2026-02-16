@@ -22829,8 +22829,9 @@ async def monitor_positions_loop(app: Application):
                                         logger.error(f"{sym}: DCA −{dca_pct_1}% failed for {uid}: {e}", exc_info=True)
 
                             # --- DCA при -dca_pct_2% против нас (только если DCA включён) ---
+                            # CRITICAL: Only fire Leg 2 if Leg 1 is already done — prevents 2x accumulation on flash crashes
                             if dca_enabled and move_pct <= -dca_pct_2:
-                                if not get_dca_flag(uid, sym, 25, account_type=pos_account_type, exchange=current_exchange):
+                                if get_dca_flag(uid, sym, 10, account_type=pos_account_type, exchange=current_exchange) and not get_dca_flag(uid, sym, 25, account_type=pos_account_type, exchange=current_exchange):
                                     try:
                                         # Use strategy-specific percent if available
                                         if risk_pct_for_dca > 0:
@@ -23061,10 +23062,21 @@ async def monitor_positions_loop(app: Application):
                                     # === STEP 2: Close ptp_2_close% at ptp_2_trigger% profit ===
                                     if move_pct >= ptp_2_trigger and not get_ptp_flag(uid, sym, 2, account_type=pos_account_type, exchange=current_exchange):
                                         try:
-                                            # Recalculate size (may have decreased from step 1)
+                                            # Recalculate size: if Step 1 just fired in this cycle,
+                                            # open_positions still has the STALE pre-Step1 size.
+                                            # Use pos_size minus what Step 1 closed for accuracy.
                                             current_pos = next((p for p in open_positions if p["symbol"] == sym), None)
                                             if current_pos:
                                                 current_size = float(current_pos["size"])
+                                                # If Step 1 was done (possibly just now), adjust size
+                                                if get_ptp_flag(uid, sym, 1, account_type=pos_account_type, exchange=current_exchange):
+                                                    step1_closed = pos_size * (ptp_1_close / 100)
+                                                    filt_adj = await get_symbol_filters(uid, sym, exchange=current_exchange)
+                                                    qty_step_adj = float(filt_adj.get("qtyStep", 0.001))
+                                                    step1_closed = math.floor(step1_closed / qty_step_adj) * qty_step_adj
+                                                    # Only adjust if current_size still equals original (stale data)
+                                                    if abs(current_size - pos_size) < qty_step_adj:
+                                                        current_size = max(current_size - step1_closed, 0)
                                                 close_qty = current_size * (ptp_2_close / 100)
                                                 
                                                 # Get symbol filters for qty step
