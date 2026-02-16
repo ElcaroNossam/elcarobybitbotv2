@@ -897,8 +897,8 @@ TEXTS = {
     'basic_bybit_only': (
         '⚠️ *Community Tier*\n\n'
         'Community tier supports Bybit integration only.\n'
-        'HyperLiquid available for Patron supporters.\n\n'
-        '👉 /subscribe — Become a patron'
+        'HyperLiquid available on Pro plan.\n\n'
+        '👉 /subscribe — Upgrade to Pro'
     ),
     
     # Support menu — voluntary contributions
@@ -911,25 +911,24 @@ TEXTS = {
     
     'subscribe_menu_info': '_Select your support level:_',
     
-    'btn_premium': '🤝 Patron',
+    'btn_premium': '💎 Pro',
     'btn_basic': '💚 Supporter',
     'btn_trial': '🆓 Explorer (Free)',
     'btn_enter_promo': '🎟 Invite Code',
     'btn_my_subscription': '📋 My Membership',
     
-    # Patron tier — community recognition
-    'premium_title': '🤝 *Patron Membership*',
+    # Pro tier
+    'premium_title': '💎 *Pro Plan*',
     'premium_desc': (
-        '*Thank you for supporting our community!*\n\n'
-        'As a patron, you receive access to:\n'
-        '✅ All community analysis templates\n'
+        '*Full access to all trading tools.*\n\n'
+        'What you get:\n'
+        '✅ All trading strategies\n'
         '✅ Demo & live environments\n'
-        '✅ Priority community support\n'
-        '✅ ATR risk management tools\n'
-        '✅ DCA configuration tools\n'
+        '✅ Priority support\n'
+        '✅ ATR risk management\n'
+        '✅ DCA configuration\n'
         '✅ Early access to updates\n\n'
-        '⚠️ _Educational tools only. Not financial advice.\n'
-        'Your contribution is a voluntary donation._'
+        '⚠️ _Educational tools only. Not financial advice._'
     ),
     
     'premium_1m': '🤝 1 Month — {price} ELC',
@@ -946,8 +945,8 @@ TEXTS = {
         '✅ Templates: OI, RSI+BB\n'
         '✅ Bybit integration\n'
         '✅ ATR risk management tools\n\n'
-        'Additional templates — Patron tier\n'
-        'HyperLiquid — Patron tier\n\n'
+        'Additional strategies — Pro plan\n'
+        'HyperLiquid — Pro plan\n\n'
         '⚠️ _Educational tools only. Not financial advice._'
     ),
     

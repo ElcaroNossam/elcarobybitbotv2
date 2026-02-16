@@ -72,22 +72,22 @@ class PaymentStatus(Enum):
 # Pricing in USD (same as ELC which is 1:1 with USD)
 LICENSE_PRICES_USD = {
     "basic": {
-        "1m": 50.0,
-        "3m": 135.0,    # $45/mo - 10% discount
-        "6m": 240.0,    # $40/mo - 20% discount
-        "1y": 420.0,    # $35/mo - 30% discount
+        "1m": 25.0,      # $50 base × 50% off = $25/mo
+        "3m": 142.50,    # $50 × 3 × 0.95 = $47.50/mo (-5%)
+        "6m": 270.0,     # $50 × 6 × 0.90 = $45/mo (-10%)
+        "1y": 480.0,     # $50 × 12 × 0.80 = $40/mo (-20%)
     },
     "premium": {
-        "1m": 100.0,
-        "3m": 270.0,    # $90/mo - 10% discount
-        "6m": 480.0,    # $80/mo - 20% discount
-        "1y": 840.0,    # $70/mo - 30% discount
+        "1m": 50.0,      # $100 base × 50% off = $50/mo
+        "3m": 285.0,     # $100 × 3 × 0.95 = $95/mo (-5%)
+        "6m": 540.0,     # $100 × 6 × 0.90 = $90/mo (-10%)
+        "1y": 960.0,     # $100 × 12 × 0.80 = $80/mo (-20%)
     },
     "enterprise": {
-        "1m": 500.0,
-        "3m": 1350.0,   # $450/mo - 10% discount
-        "6m": 2400.0,   # $400/mo - 20% discount
-        "1y": 4200.0,   # $350/mo - 30% discount
+        "1m": 250.0,     # $500 base × 50% off = $250/mo
+        "3m": 1425.0,    # $500 × 3 × 0.95 = $475/mo (-5%)
+        "6m": 2700.0,    # $500 × 6 × 0.90 = $450/mo (-10%)
+        "1y": 4800.0,    # $500 × 12 × 0.80 = $400/mo (-20%)
     },
     "trial": {
         "1m": 0.0,
@@ -129,8 +129,8 @@ PLAN_FEATURES = {
         "bybit_only": True,
     },
     "premium": {
-        "name": "Patron",
-        "description": "Full community access for patrons",
+        "name": "Pro",
+        "description": "Full access to all trading tools",
         "features": [
             "All strategies",
             "All exchanges (Bybit + HyperLiquid)",
@@ -139,22 +139,22 @@ PLAN_FEATURES = {
             "Break-Even automation",
             "Partial Take Profit",
             "DCA tools",
-            "Priority community support",
+            "Priority support",
         ],
         "recommended": True,
     },
     "enterprise": {
-        "name": "Enterprise",
-        "description": "Extended access for organizations",
+        "name": "VIP",
+        "description": "Maximum capabilities for power users",
         "features": [
-            "Everything in Patron tier",
+            "Everything in Pro",
             "Unlimited positions",
             "Multi-exchange simultaneous",
             "Custom strategies",
             "Webhooks integration",
             "API access",
-            "Dedicated community liaison",
-            "Guided onboarding",
+            "Personal manager",
+            "Priority onboarding",
         ],
         "max_positions": 999,
     },

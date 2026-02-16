@@ -578,20 +578,18 @@ _Cada trade es un paso hacia la libertad financiera._
     # Subscribe menu - BLACK RHETORIC: Urgency + Authority + Exclusivity
     'subscribe_menu_header': '🤝 *Support Enliko*\n\nYour voluntary contribution helps maintain\nfree open-source community tools.\n\nChoose your support level:',
     'subscribe_menu_info': '_Select your support level:_',
-    'btn_premium': '🤝 Patrón',
+    'btn_premium': '💎 Pro',
     'btn_basic': '💚 Colaborador',
     'btn_trial': '🆓 Explorador (Gratis)',
     'btn_enter_promo': '🎟 Código de invitación',
     'btn_my_subscription': '📋 Mi membresía',
-    # Premium plan - BLACK RHETORIC: Authority + Scarcity + Social Proof
-    'premium_title': '''💎 *PREMIUM — DOMINACIÓN TOTAL*
-
-_"Este bot literalmente imprime dinero"_ — @CryptoKing''',
-    'premium_desc': '*Thank you for supporting our community!*\n\nAs a patron, you receive access to:\n✅ All community analysis templates\n✅ Demo & live environments\n✅ Priority community support\n✅ ATR risk management tools\n✅ DCA configuration tools\n✅ Early access to updates\n\n⚠️ _Educational tools only. Not financial advice._',
-    'premium_1m': '🤝 1 Month — {price} ELC',
-    'premium_3m': '🤝 3 Months — {price} ELC',
-    'premium_6m': '🤝 6 Months — {price} ELC',
-    'premium_12m': '🤝 12 Months — {price} ELC',
+    # Premium plan
+    'premium_title': '💎 *Pro Plan*',
+    'premium_desc': '*Full access to all tools:*\n\n✅ All trading strategies\n✅ Demo & live environments\n✅ Priority support\n✅ ATR risk management\n✅ DCA configuration\n✅ All platform updates\n\n⚠️ _Trading involves risk. Not financial advice._',
+    'premium_1m': '💎 1 Month — {price} ELC',
+    'premium_3m': '💎 3 Months — {price} ELC',
+    'premium_6m': '💎 6 Months — {price} ELC',
+    'premium_12m': '💎 12 Months — {price} ELC',
     # Basic plan - BLACK RHETORIC: Stepping stone narrative
     'basic_title': '''🥈 *BASIC — INICIO INTELIGENTE*
 
@@ -1303,7 +1301,7 @@ Recompensas diarias • Unstaking instantáneo''',
     "app_login_prompt": "🔐 <b>Login to Enliko App</b>\n\nClick the button below to login to iOS or Android app.\nLink is valid for 5 minutes.\n\n⚠️ Do not share this link with anyone!",
     "app_login_rejected": "❌ <b>Login rejected</b>\n\nIf this wasn't you, we recommend checking your security settings.",
     "atr_disabled_restored": "🔄 <b>ATR Disabled</b>\n\n📊 {symbol}\n🛡️ SL restored: {sl_price:.4f}\n🎯 TP restored: {tp_price:.4f}",
-    "basic_bybit_only": "⚠️ *Basic Plan Limitation*\n\nBasic plan supports Bybit only.\nHyperLiquid is available on Premium.\n\n👉 /subscribe — Upgrade to Premium",
+    "basic_bybit_only": "⚠️ *Basic Plan Limitation*\n\nBasic plan supports Bybit only.\nHyperLiquid is available on Pro plan.\n\n👉 /subscribe — Upgrade to Pro",
     "btn_check_payment": "✅ Check Payment",
     "btn_copy_address": "📋 Copy Address",
     "btn_new_currency": "🔄 Different Currency",
@@ -1382,7 +1380,7 @@ Recompensas diarias • Unstaking instantáneo''',
     'button_spot': '💹 Spot',
     'payment_ton_desc': 'TON payments are currently unavailable.',
     'position_closed_error': '⚠️ {symbol} closed but log failed: {error}',
-    'premium_title': '🤝 *Patron Membership*',
+    'premium_title': '💎 *Pro Plan*',
     'spot_btn_buy': '💰 Buy Now',
     'spot_btn_holdings': '💎 Holdings',
     'spot_btn_rebalance': '⚖️ Rebalance',

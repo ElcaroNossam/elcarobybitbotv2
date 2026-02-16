@@ -36,9 +36,9 @@ logger = logging.getLogger(__name__)
 
 # License prices in ELC (= USD, 1:1 peg)
 LICENSE_PRICES_ELC = {
-    "premium": {1: 100, 3: 270, 6: 480, 12: 840},
-    "basic": {1: 50, 3: 135, 6: 240, 12: 420},
-    "enterprise": {1: 500, 3: 1350, 6: 2400, 12: 4200},
+    "premium": {1: 50, 3: 285, 6: 540, 12: 960},
+    "basic": {1: 25, 3: 143, 6: 270, 12: 480},
+    "enterprise": {1: 250, 3: 1425, 6: 2700, 12: 4800},
     "trial": {1: 0}  # Free trial
 }
 

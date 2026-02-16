@@ -465,15 +465,20 @@
     <!-- Period Toggle -->
     <div class="period-toggle">
         <button class="period-btn active" data-period="monthly" onclick="changePeriod('monthly')">
-            Monthly
+            1 Month
+            <span class="discount-badge">-50%</span>
         </button>
         <button class="period-btn" data-period="quarterly" onclick="changePeriod('quarterly')">
-            Quarterly
+            3 Months
+            <span class="discount-badge">-5%</span>
+        </button>
+        <button class="period-btn" data-period="semiannual" onclick="changePeriod('semiannual')">
+            6 Months
             <span class="discount-badge">-10%</span>
         </button>
         <button class="period-btn" data-period="yearly" onclick="changePeriod('yearly')">
-            Yearly
-            <span class="discount-badge">-25%</span>
+            12 Months
+            <span class="discount-badge">-20%</span>
         </button>
     </div>
     
@@ -537,10 +542,11 @@
         // Pricing Data
         const pricingPlans = {
             trial: {
-                name: 'Trial',
-                description: 'Try all features for 7 days',
+                name: 'Explorer',
+                description: 'Try all features for 14 days',
                 monthly: 0,
                 quarterly: 0,
+                semiannual: 0,
                 yearly: 0,
                 features: [
                     { text: 'Demo Trading Only', enabled: true },
@@ -553,27 +559,29 @@
                 ]
             },
             basic: {
-                name: 'Basic',
-                description: 'Perfect for beginners',
-                monthly: 29,
-                quarterly: 78,
-                yearly: 261,
+                name: 'Supporter',
+                description: 'Core trading tools',
+                monthly: 25,
+                quarterly: 143,
+                semiannual: 270,
+                yearly: 480,
                 features: [
                     { text: 'Real Trading Access', enabled: true },
-                    { text: 'Basic Strategies (4)', enabled: true },
+                    { text: 'Strategies: OI, RSI+BB', enabled: true },
                     { text: 'Standard Analytics', enabled: true },
                     { text: 'Email Support', enabled: true },
                     { text: 'Bybit Exchange', enabled: true },
-                    { text: 'Premium Strategies', enabled: false },
+                    { text: 'Pro Strategies', enabled: false },
                     { text: 'AI Agent', enabled: false },
                 ]
             },
             premium: {
-                name: 'Premium',
-                description: 'Full power for professionals',
-                monthly: 99,
-                quarterly: 267,
-                yearly: 891,
+                name: 'Pro',
+                description: 'Full access to all tools',
+                monthly: 50,
+                quarterly: 285,
+                semiannual: 540,
+                yearly: 960,
                 featured: true,
                 features: [
                     { text: 'All Strategies (7+)', enabled: true },
@@ -617,7 +625,10 @@
             Object.entries(pricingPlans).forEach(([key, plan]) => {
                 const price = plan[currentPeriod];
                 const monthlyEquivalent = currentPeriod === 'quarterly' ? price / 3 : currentPeriod === 'yearly' ? price / 12 : price;
-                const savings = currentPeriod === 'quarterly' ? 10 : currentPeriod === 'yearly' ? 25 : 0;
+                const savingsMap = { monthly: 50, quarterly: 5, semiannual: 10, yearly: 20 };
+                const savings = savingsMap[currentPeriod] || 0;
+                const monthsMap = { monthly: 1, quarterly: 3, semiannual: 6, yearly: 12 };
+                const months = monthsMap[currentPeriod] || 1;
                 
                 const card = document.createElement('div');
                 card.className = `pricing-card${plan.featured ? ' featured' : ''}`;
@@ -628,9 +639,9 @@
                     <div class="plan-price">
                         <span class="price-currency">$</span>
                         <span class="price-amount">${price}</span>
-                        <span class="price-period">/${currentPeriod === 'monthly' ? 'mo' : currentPeriod === 'quarterly' ? '3mo' : 'year'}</span>
+                        <span class="price-period">/${months === 1 ? 'mo' : months + 'mo'}</span>
                     </div>
-                    ${savings > 0 ? `<div class="savings">💰 Save ${savings}% ($${Math.round(monthlyEquivalent * (savings/100) * (currentPeriod === 'quarterly' ? 3 : 12))}/year)</div>` : ''}
+                    ${price > 0 ? `<div class="savings">💰 $${Math.round(price / months)}/mo ${savings > 0 ? `(save ${savings}%)` : ''}</div>` : ''}
                     <ul class="features-list">
                         ${plan.features.map(f => `
                             <li class="${f.enabled ? '' : 'feature-disabled'}">

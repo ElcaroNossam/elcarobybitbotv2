@@ -1148,7 +1148,7 @@ SIGNAL_CHANNEL_IDS = list(dict.fromkeys(SIGNAL_CHANNEL_IDS))
 # =====================================================
 # COMMUNITY MEMBERSHIP - VOLUNTARY CONTRIBUTIONS
 # All amounts are suggested donations (1 ELC = 1 USDT)
-# Patron: suggested $100/mo, Supporter: suggested $50/mo
+# Pro: suggested $100/mo, Supporter: suggested $50/mo
 # =====================================================
 
 # Import blockchain module (Sovereign Monetary System)
@@ -1170,16 +1170,16 @@ from core.blockchain import (
 )
 
 # Suggested contribution amounts (1 ELC = 1 USDT)
-PREMIUM_ELC_1M = 100.0    # Patron tier - suggested monthly
-PREMIUM_ELC_3M = 270.0    # Patron 3mo (-10%)
-PREMIUM_ELC_6M = 480.0    # Patron 6mo (-20%)
-PREMIUM_ELC_12M = 840.0   # Patron 12mo (-30%)
+PREMIUM_ELC_1M = 50.0     # Pro tier - 1 month (50% off $100 base)
+PREMIUM_ELC_3M = 285.0    # Pro 3mo (-5%)
+PREMIUM_ELC_6M = 540.0    # Pro 6mo (-10%)
+PREMIUM_ELC_12M = 960.0   # Pro 12mo (-20%)
 
-# Supporter tier (50% of patron)
-BASIC_ELC_1M = 50.0       # Supporter monthly
-BASIC_ELC_3M = 135.0      # Supporter 3mo
-BASIC_ELC_6M = 240.0      # Supporter 6mo
-BASIC_ELC_12M = 420.0     # Supporter 12mo
+# Supporter tier
+BASIC_ELC_1M = 25.0       # Supporter 1 month (50% off $50 base)
+BASIC_ELC_3M = 142.50     # Supporter 3mo (-5%)
+BASIC_ELC_6M = 270.0      # Supporter 6mo (-10%)
+BASIC_ELC_12M = 480.0     # Supporter 12mo (-20%)
 
 TRIAL_PRICE = 0  # Free explorer access
 TRIAL_DAYS = 7   # Explorer access duration
@@ -1191,21 +1191,21 @@ ELC_MASTER_WALLET = "0xELC000000000000000000000000000000001"
 # ELC will eventually deprecated as the primary payment token
 ELC_PRICE_USD = 1.0  # 1 ELC = 1 USD
 
-# Enterprise tier (5x Patron)
-ENTERPRISE_ELC_1M = 500.0     # Enterprise monthly
-ENTERPRISE_ELC_3M = 1350.0    # Enterprise 3mo
-ENTERPRISE_ELC_6M = 2400.0    # Enterprise 6mo
-ENTERPRISE_ELC_12M = 4200.0   # Enterprise 12mo
+# VIP tier
+ENTERPRISE_ELC_1M = 250.0     # VIP 1 month (50% off $500 base)
+ENTERPRISE_ELC_3M = 1425.0    # VIP 3mo (-5%)
+ENTERPRISE_ELC_6M = 2700.0    # VIP 6mo (-10%)
+ENTERPRISE_ELC_12M = 4800.0   # VIP 12mo (-20%)
 
 # Membership contribution mapping (ELC token, 1 ELC = 1 USD)
 LICENSE_PRICES = {
-    "premium": {  # Patron tier
+    "premium": {  # Pro tier
         "elc": {1: PREMIUM_ELC_1M, 3: PREMIUM_ELC_3M, 6: PREMIUM_ELC_6M, 12: PREMIUM_ELC_12M},
     },
     "basic": {  # Supporter tier
         "elc": {1: BASIC_ELC_1M, 3: BASIC_ELC_3M, 6: BASIC_ELC_6M, 12: BASIC_ELC_12M},
     },
-    "enterprise": {  # Enterprise tier
+    "enterprise": {  # VIP tier
         "elc": {1: ENTERPRISE_ELC_1M, 3: ENTERPRISE_ELC_3M, 6: ENTERPRISE_ELC_6M, 12: ENTERPRISE_ELC_12M},
     },
     "trial": {  # Explorer access
@@ -1215,10 +1215,10 @@ LICENSE_PRICES = {
 
 # Discount labels
 DISCOUNT_LABELS = {
-    1: "",
-    3: " (-10%)",
-    6: " (-20%)",
-    12: " (-30%)",
+    1: " (50% off)",
+    3: " (-5%)",
+    6: " (-10%)",
+    12: " (-20%)",
 }
 
 _session_lock = asyncio.Lock()
@@ -24455,7 +24455,7 @@ async def on_admin_cb(update: Update, ctx: ContextTypes.DEFAULT_TYPE):
         # Build user list header
         filter_labels = {
             "all": "all", "active": "✅ active", "banned": "🚫 banned",
-            "premium": "🤝 patron", "basic": "🥈 supporter", "trial": "🎁 explorer",
+            "premium": "💎 pro", "basic": "💚 supporter", "trial": "🎁 explorer",
             "no_license": "❌ no access"
         }
         header = f"👥 *Users ({filter_labels.get(filter_type, filter_type)})* — Page {page + 1}/{total_pages}"
@@ -25419,7 +25419,7 @@ async def on_admin_cb(update: Update, ctx: ContextTypes.DEFAULT_TYPE):
         
         target_labels = {
             "all": "all users",
-            "premium": "Patron members",
+            "premium": "Pro members",
             "active": "active members"
         }
         
@@ -26269,7 +26269,7 @@ async def text_handler(update: Update, ctx: ContextTypes.DEFAULT_TYPE):
     
     # Support / membership button
     if text in [ctx.t.get('button_subscribe', '🤝 SUPPORT US'), 
-                "🤝 Support", "🤝 Patron", "🤝 SUPPORT US",
+                "💎 Support", "💎 Pro", "💎 SUPPORT US",
                 "💎 Premium", "💎 Subscribe", "👑 PREMIUM", "👑 VIP",
                 "👑 ПРЕМИУМ", "🤝 ПОДДЕРЖАТЬ"]:
         return await cmd_subscribe(update, ctx)
@@ -27132,8 +27132,8 @@ async def text_handler(update: Update, ctx: ContextTypes.DEFAULT_TYPE):
 def get_subscribe_menu_keyboard(t: dict) -> InlineKeyboardMarkup:
     """Main membership menu keyboard."""
     return InlineKeyboardMarkup([
-        [InlineKeyboardButton(t.get("btn_premium", "🤝 Patron"), callback_data="sub:plan:premium")],
-        [InlineKeyboardButton(t.get("btn_basic", "🥈 Supporter"), callback_data="sub:plan:basic")],
+        [InlineKeyboardButton(t.get("btn_premium", "💎 Pro"), callback_data="sub:plan:premium")],
+        [InlineKeyboardButton(t.get("btn_basic", "💚 Supporter"), callback_data="sub:plan:basic")],
         [InlineKeyboardButton(t.get("btn_trial", "🎁 Free Access"), callback_data="sub:plan:trial")],
         [
             InlineKeyboardButton(t.get("btn_enter_promo", "🎟 Invite"), callback_data="sub:promo"),
@@ -27144,24 +27144,24 @@ def get_subscribe_menu_keyboard(t: dict) -> InlineKeyboardMarkup:
 
 
 def get_premium_period_keyboard(t: dict) -> InlineKeyboardMarkup:
-    """Patron tier period selection keyboard."""
+    """Pro tier period selection keyboard."""
     from services.oxapay_service import LICENSE_PRICES_USD
     prices = LICENSE_PRICES_USD.get("premium", {})
     return InlineKeyboardMarkup([
         [InlineKeyboardButton(
-            f"🤝 1 Month — ${prices.get('1m', 100):.0f}",
+            f"🔥 1 Month — ${prices.get('1m', 50):.0f} (${prices.get('1m', 50):.0f}/mo) -50%",
             callback_data="sub:period:premium:1m"
         )],
         [InlineKeyboardButton(
-            f"🤝 3 Months — ${prices.get('3m', 270):.0f} (10% off)",
+            f"💎 3 Months — ${prices.get('3m', 285):.0f} (${prices.get('3m', 285) / 3:.0f}/mo) -5%",
             callback_data="sub:period:premium:3m"
         )],
         [InlineKeyboardButton(
-            f"🤝 6 Months — ${prices.get('6m', 480):.0f} (20% off)",
+            f"💎 6 Months — ${prices.get('6m', 540):.0f} (${prices.get('6m', 540) / 6:.0f}/mo) -10%",
             callback_data="sub:period:premium:6m"
         )],
         [InlineKeyboardButton(
-            f"🤝 1 Year — ${prices.get('1y', 840):.0f} (30% off)",
+            f"💎 12 Months — ${prices.get('1y', 960):.0f} (${prices.get('1y', 960) / 12:.0f}/mo) -20%",
             callback_data="sub:period:premium:1y"
         )],
         [InlineKeyboardButton(t.get("btn_back", "« Back"), callback_data="sub:menu")],
@@ -27174,19 +27174,19 @@ def get_basic_period_keyboard(t: dict) -> InlineKeyboardMarkup:
     prices = LICENSE_PRICES_USD.get("basic", {})
     return InlineKeyboardMarkup([
         [InlineKeyboardButton(
-            f"🥈 1 Month — ${prices.get('1m', 50):.0f}",
+            f"🔥 1 Month — ${prices.get('1m', 25):.0f} (${prices.get('1m', 25):.0f}/mo) -50%",
             callback_data="sub:period:basic:1m"
         )],
         [InlineKeyboardButton(
-            f"🥈 3 Months — ${prices.get('3m', 135):.0f} (10% off)",
+            f"💚 3 Months — ${prices.get('3m', 143):.0f} (${prices.get('3m', 143) / 3:.0f}/mo) -5%",
             callback_data="sub:period:basic:3m"
         )],
         [InlineKeyboardButton(
-            f"🥈 6 Months — ${prices.get('6m', 240):.0f} (20% off)",
+            f"💚 6 Months — ${prices.get('6m', 270):.0f} (${prices.get('6m', 270) / 6:.0f}/mo) -10%",
             callback_data="sub:period:basic:6m"
         )],
         [InlineKeyboardButton(
-            f"🥈 1 Year — ${prices.get('1y', 420):.0f} (30% off)",
+            f"💚 12 Months — ${prices.get('1y', 480):.0f} (${prices.get('1y', 480) / 12:.0f}/mo) -20%",
             callback_data="sub:period:basic:1y"
         )],
         [InlineKeyboardButton(t.get("btn_back", "« Back"), callback_data="sub:menu")],
@@ -28464,7 +28464,7 @@ async def on_subscribe_cb(update: Update, ctx: ContextTypes.DEFAULT_TYPE):
         usd_price = prices.get(duration, 0)
         
         duration_text = {
-            "1m": "1 month", "3m": "3 months", "6m": "6 months", "1y": "1 year"
+            "1m": "1 month", "3m": "3 months", "6m": "6 months", "1y": "12 months"
         }.get(duration, duration)
         
         # Get user's ELC balance
@@ -28494,7 +28494,7 @@ async def on_subscribe_cb(update: Update, ctx: ContextTypes.DEFAULT_TYPE):
         usd_price = prices.get(duration, 0)
         
         duration_text = {
-            "1m": "1 month", "3m": "3 months", "6m": "6 months", "1y": "1 year"
+            "1m": "1 month", "3m": "3 months", "6m": "6 months", "1y": "12 months"
         }.get(duration, duration)
         
         # Map duration to months for license
@@ -28987,7 +28987,7 @@ async def on_subscribe_cb(update: Update, ctx: ContextTypes.DEFAULT_TYPE):
             return
         
         duration_text = {
-            "1m": "1 month", "3m": "3 months", "6m": "6 months", "1y": "1 year"
+            "1m": "1 month", "3m": "3 months", "6m": "6 months", "1y": "12 months"
         }.get(duration, duration)
         
         text = t.get("crypto_select_currency",
@@ -29072,7 +29072,7 @@ async def on_subscribe_cb(update: Update, ctx: ContextTypes.DEFAULT_TYPE):
                 amount_display = f"${amount_usd:.2f}"
             
             duration_text = {
-                "1m": "1 month", "3m": "3 months", "6m": "6 months", "1y": "1 year"
+                "1m": "1 month", "3m": "3 months", "6m": "6 months", "1y": "12 months"
             }.get(duration, duration)
             
             text = t.get("crypto_payment_invoice",
