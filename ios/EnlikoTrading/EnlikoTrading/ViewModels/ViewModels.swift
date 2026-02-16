@@ -216,7 +216,7 @@ class BacktestViewModel: ObservableObject {
     @Published var isRunning = false
     @Published var error: String?
     
-    let availableStrategies = ["OI", "Scryptomera", "Scalper", "Enliko", "Fibonacci", "RSI_BB"]
+    let availableStrategies = ["oi", "scryptomera", "scalper", "elcaro", "fibonacci", "rsi_bb"]
     let availableTimeframes = ["5m", "15m", "1h", "4h", "1d"]
     
     func runBacktest() async {

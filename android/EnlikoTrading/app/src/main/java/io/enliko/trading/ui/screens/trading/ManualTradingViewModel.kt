@@ -83,7 +83,7 @@ class ManualTradingViewModel @Inject constructor(
                     accountType = _uiState.value.accountType
                 )
                 if (response.isSuccessful) {
-                    val balance = response.body()?.data
+                    val balance = response.body()
                     _uiState.update {
                         it.copy(availableBalance = balance?.availableBalance ?: 0.0)
                     }

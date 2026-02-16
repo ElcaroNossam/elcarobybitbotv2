@@ -35,46 +35,17 @@ data class Strategy(
     val shortEnabled: Boolean,
     val trades: Int,
     val pnl: Double,
-    val winRate: Double,
-    val settings: StrategySettings
-)
-
-data class StrategySettings(
-    val entryPercent: Double = 1.0,
-    val tpPercent: Double = 25.0,
-    val slPercent: Double = 30.0,
-    val leverage: Int = 10,
-    val useAtr: Boolean = true,
-    val atrPeriods: Int = 7,
-    val atrMultiplierSl: Double = 0.5,
-    val atrTriggerPct: Double = 3.0,
-    val atrStepPct: Double = 0.5,
-    val orderType: String = "market",
-    val limitOffsetPct: Double = 0.1,
-    val direction: String = "all",
-    val coinsGroup: String = "ALL",
-    val maxPositions: Int = 0,
-    val dcaEnabled: Boolean = false,
-    val dcaPct1: Double = 10.0,
-    val dcaPct2: Double = 25.0,
-    val beEnabled: Boolean = false,
-    val beTriggerPct: Double = 1.0,
-    val partialTpEnabled: Boolean = false,
-    val partialTp1TriggerPct: Double = 2.0,
-    val partialTp1ClosePct: Double = 30.0,
-    val partialTp2TriggerPct: Double = 5.0,
-    val partialTp2ClosePct: Double = 30.0
+    val winRate: Double
 )
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun StrategiesScreen(
-    onNavigateBack: () -> Unit = {}
+    onNavigateBack: () -> Unit = {},
+    onNavigateToSettings: (String) -> Unit = {}
 ) {
     var strategies by remember { mutableStateOf(listOf<Strategy>()) }
     var isLoading by remember { mutableStateOf(true) }
-    var selectedStrategy by remember { mutableStateOf<Strategy?>(null) }
-    var showSettingsSheet by remember { mutableStateOf(false) }
     
     // Load strategies
     LaunchedEffect(Unit) {
@@ -133,27 +104,12 @@ fun StrategiesScreen(
                             }
                         },
                         onSettings = {
-                            selectedStrategy = strategy
-                            showSettingsSheet = true
+                            onNavigateToSettings(strategy.id)
                         }
                     )
                 }
             }
         }
-    }
-    
-    // Settings Bottom Sheet
-    if (showSettingsSheet && selectedStrategy != null) {
-        StrategySettingsSheet(
-            strategy = selectedStrategy!!,
-            onDismiss = { showSettingsSheet = false },
-            onSave = { updatedStrategy ->
-                strategies = strategies.map {
-                    if (it.id == updatedStrategy.id) updatedStrategy else it
-                }
-                showSettingsSheet = false
-            }
-        )
     }
 }
 
@@ -392,257 +348,6 @@ private fun DirectionChip(
     }
 }
 
-@OptIn(ExperimentalMaterial3Api::class)
-@Composable
-private fun StrategySettingsSheet(
-    strategy: Strategy,
-    onDismiss: () -> Unit,
-    onSave: (Strategy) -> Unit
-) {
-    var settings by remember { mutableStateOf(strategy.settings) }
-    var longEnabled by remember { mutableStateOf(strategy.longEnabled) }
-    var shortEnabled by remember { mutableStateOf(strategy.shortEnabled) }
-    
-    ModalBottomSheet(
-        onDismissRequest = onDismiss,
-        containerColor = MaterialTheme.colorScheme.surface
-    ) {
-        Column(
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(16.dp)
-        ) {
-            // Header
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.SpaceBetween,
-                verticalAlignment = Alignment.CenterVertically
-            ) {
-                Text(
-                    text = "${strategy.name} Settings",
-                    style = MaterialTheme.typography.titleLarge,
-                    fontWeight = FontWeight.Bold
-                )
-                IconButton(onClick = onDismiss) {
-                    Icon(Icons.Default.Close, contentDescription = "Close")
-                }
-            }
-            
-            Spacer(modifier = Modifier.height(16.dp))
-            
-            // Direction Settings
-            Card(
-                modifier = Modifier.fillMaxWidth(),
-                shape = RoundedCornerShape(12.dp)
-            ) {
-                Column(modifier = Modifier.padding(16.dp)) {
-                    Text(
-                        text = "Direction",
-                        style = MaterialTheme.typography.titleSmall,
-                        fontWeight = FontWeight.Bold
-                    )
-                    
-                    Spacer(modifier = Modifier.height(12.dp))
-                    
-                    Row(
-                        modifier = Modifier.fillMaxWidth(),
-                        horizontalArrangement = Arrangement.SpaceBetween,
-                        verticalAlignment = Alignment.CenterVertically
-                    ) {
-                        Text("Enable LONG")
-                        Switch(
-                            checked = longEnabled,
-                            onCheckedChange = { longEnabled = it },
-                            colors = SwitchDefaults.colors(checkedTrackColor = LongGreen)
-                        )
-                    }
-                    
-                    Row(
-                        modifier = Modifier.fillMaxWidth(),
-                        horizontalArrangement = Arrangement.SpaceBetween,
-                        verticalAlignment = Alignment.CenterVertically
-                    ) {
-                        Text("Enable SHORT")
-                        Switch(
-                            checked = shortEnabled,
-                            onCheckedChange = { shortEnabled = it },
-                            colors = SwitchDefaults.colors(checkedTrackColor = ShortRed)
-                        )
-                    }
-                }
-            }
-            
-            Spacer(modifier = Modifier.height(12.dp))
-            
-            // Trading Settings
-            Card(
-                modifier = Modifier.fillMaxWidth(),
-                shape = RoundedCornerShape(12.dp)
-            ) {
-                Column(modifier = Modifier.padding(16.dp)) {
-                    Text(
-                        text = "Trading Parameters",
-                        style = MaterialTheme.typography.titleSmall,
-                        fontWeight = FontWeight.Bold
-                    )
-                    
-                    Spacer(modifier = Modifier.height(12.dp))
-                    
-                    SettingSlider(
-                        label = "Entry %",
-                        value = settings.entryPercent,
-                        range = 0.1f..10f,
-                        format = "%.1f%%",
-                        onValueChange = { settings = settings.copy(entryPercent = it.toDouble()) }
-                    )
-                    
-                    SettingSlider(
-                        label = "Take Profit %",
-                        value = settings.tpPercent,
-                        range = 0.5f..100f,
-                        format = "%.1f%%",
-                        onValueChange = { settings = settings.copy(tpPercent = it.toDouble()) }
-                    )
-                    
-                    SettingSlider(
-                        label = "Stop Loss %",
-                        value = settings.slPercent,
-                        range = 0.5f..100f,
-                        format = "%.1f%%",
-                        onValueChange = { settings = settings.copy(slPercent = it.toDouble()) }
-                    )
-                    
-                    SettingSlider(
-                        label = "Leverage",
-                        value = settings.leverage.toDouble(),
-                        range = 1f..100f,
-                        format = "%.0fx",
-                        onValueChange = { settings = settings.copy(leverage = it.toInt()) }
-                    )
-                }
-            }
-            
-            Spacer(modifier = Modifier.height(12.dp))
-            
-            // ATR Settings
-            Card(
-                modifier = Modifier.fillMaxWidth(),
-                shape = RoundedCornerShape(12.dp)
-            ) {
-                Column(modifier = Modifier.padding(16.dp)) {
-                    Row(
-                        modifier = Modifier.fillMaxWidth(),
-                        horizontalArrangement = Arrangement.SpaceBetween,
-                        verticalAlignment = Alignment.CenterVertically
-                    ) {
-                        Text(
-                            text = "ATR Trailing Stop",
-                            style = MaterialTheme.typography.titleSmall,
-                            fontWeight = FontWeight.Bold
-                        )
-                        Switch(
-                            checked = settings.useAtr,
-                            onCheckedChange = { settings = settings.copy(useAtr = it) }
-                        )
-                    }
-                    
-                    if (settings.useAtr) {
-                        Spacer(modifier = Modifier.height(12.dp))
-                        
-                        SettingSlider(
-                            label = "ATR Periods",
-                            value = settings.atrPeriods.toDouble(),
-                            range = 3f..50f,
-                            format = "%.0f",
-                            onValueChange = { settings = settings.copy(atrPeriods = it.toInt()) }
-                        )
-                        
-                        SettingSlider(
-                            label = "ATR Multiplier (SL)",
-                            value = settings.atrMultiplierSl,
-                            range = 0.1f..5f,
-                            format = "%.1f",
-                            onValueChange = { settings = settings.copy(atrMultiplierSl = it.toDouble()) }
-                        )
-                        
-                        SettingSlider(
-                            label = "ATR Trigger %",
-                            value = settings.atrTriggerPct,
-                            range = 0.1f..10f,
-                            format = "%.1f%%",
-                            onValueChange = { settings = settings.copy(atrTriggerPct = it.toDouble()) }
-                        )
-                        
-                        SettingSlider(
-                            label = "ATR Step %",
-                            value = settings.atrStepPct,
-                            range = 0.05f..5f,
-                            format = "%.2f%%",
-                            onValueChange = { settings = settings.copy(atrStepPct = it.toDouble()) }
-                        )
-                    }
-                }
-            }
-            
-            Spacer(modifier = Modifier.height(24.dp))
-            
-            // Save Button
-            Button(
-                onClick = {
-                    onSave(strategy.copy(
-                        longEnabled = longEnabled,
-                        shortEnabled = shortEnabled,
-                        settings = settings
-                    ))
-                },
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .height(50.dp),
-                shape = RoundedCornerShape(12.dp)
-            ) {
-                Icon(Icons.Default.Save, contentDescription = null)
-                Spacer(modifier = Modifier.width(8.dp))
-                Text("Save Settings", fontWeight = FontWeight.Bold)
-            }
-            
-            Spacer(modifier = Modifier.height(32.dp))
-        }
-    }
-}
-
-@Composable
-private fun SettingSlider(
-    label: String,
-    value: Double,
-    range: ClosedFloatingPointRange<Float>,
-    format: String,
-    onValueChange: (Float) -> Unit
-) {
-    Column(modifier = Modifier.padding(vertical = 8.dp)) {
-        Row(
-            modifier = Modifier.fillMaxWidth(),
-            horizontalArrangement = Arrangement.SpaceBetween
-        ) {
-            Text(
-                text = label,
-                style = MaterialTheme.typography.bodyMedium,
-                color = MaterialTheme.colorScheme.onSurfaceVariant
-            )
-            Text(
-                text = String.format(format, value),
-                style = MaterialTheme.typography.bodyMedium,
-                fontWeight = FontWeight.Bold
-            )
-        }
-        
-        Slider(
-            value = value.toFloat().coerceIn(range),
-            onValueChange = onValueChange,
-            valueRange = range
-        )
-    }
-}
-
 // Default strategies with canonical settings from coin_params.py
 private fun generateDefaultStrategies(): List<Strategy> {
     return listOf(
@@ -657,8 +362,7 @@ private fun generateDefaultStrategies(): List<Strategy> {
             shortEnabled = true,
             trades = 0,
             pnl = 0.0,
-            winRate = 0.0,
-            settings = StrategySettings()
+            winRate = 0.0
         ),
         Strategy(
             id = "scryptomera",
@@ -671,8 +375,7 @@ private fun generateDefaultStrategies(): List<Strategy> {
             shortEnabled = true,
             trades = 0,
             pnl = 0.0,
-            winRate = 0.0,
-            settings = StrategySettings()
+            winRate = 0.0
         ),
         Strategy(
             id = "scalper",
@@ -685,8 +388,7 @@ private fun generateDefaultStrategies(): List<Strategy> {
             shortEnabled = true,
             trades = 0,
             pnl = 0.0,
-            winRate = 0.0,
-            settings = StrategySettings()
+            winRate = 0.0
         ),
         Strategy(
             id = "elcaro",
@@ -699,8 +401,7 @@ private fun generateDefaultStrategies(): List<Strategy> {
             shortEnabled = true,
             trades = 0,
             pnl = 0.0,
-            winRate = 0.0,
-            settings = StrategySettings()
+            winRate = 0.0
         ),
         Strategy(
             id = "fibonacci",
@@ -713,8 +414,7 @@ private fun generateDefaultStrategies(): List<Strategy> {
             shortEnabled = true,
             trades = 0,
             pnl = 0.0,
-            winRate = 0.0,
-            settings = StrategySettings()
+            winRate = 0.0
         ),
         Strategy(
             id = "rsi_bb",
@@ -727,8 +427,20 @@ private fun generateDefaultStrategies(): List<Strategy> {
             shortEnabled = true,
             trades = 0,
             pnl = 0.0,
-            winRate = 0.0,
-            settings = StrategySettings()
+            winRate = 0.0
+        ),
+        Strategy(
+            id = "manual",
+            name = "Manual",
+            description = "Manual trading signals",
+            icon = Icons.Default.TouchApp,
+            color = Color(0xFF607D8B),
+            isEnabled = true,
+            longEnabled = true,
+            shortEnabled = true,
+            trades = 0,
+            pnl = 0.0,
+            winRate = 0.0
         )
     )
 }

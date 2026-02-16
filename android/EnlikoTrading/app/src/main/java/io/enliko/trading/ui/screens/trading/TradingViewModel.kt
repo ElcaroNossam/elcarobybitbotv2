@@ -45,13 +45,13 @@ class TradingViewModel @Inject constructor(
             _uiState.update { it.copy(isLoading = true) }
             try {
                 val response = api.getOrders(_uiState.value.accountType)
-                if (response.isSuccessful && response.body()?.success == true) {
+                if (response.isSuccessful) {
                     _uiState.update { 
-                        it.copy(isLoading = false, orders = response.body()?.data ?: emptyList()) 
+                        it.copy(isLoading = false, orders = response.body() ?: emptyList()) 
                     }
                 } else {
                     _uiState.update { 
-                        it.copy(isLoading = false, error = response.body()?.error ?: "Failed to load orders") 
+                        it.copy(isLoading = false, error = "Failed to load orders") 
                     }
                 }
             } catch (e: Exception) {

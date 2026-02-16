@@ -49,7 +49,8 @@ data class StrategyInfo(
             StrategyInfo("scalper", "Scalper", "Momentum breakouts", Icons.Default.FlashOn, Color(0xFFFF9800)),
             StrategyInfo("elcaro", "ENLIKO AI", "AI-powered signals", Icons.Default.Psychology, Color(0xFF4CAF50)),
             StrategyInfo("fibonacci", "Fibonacci", "Fib retracement levels", Icons.Default.Functions, Color(0xFF00BCD4)),
-            StrategyInfo("rsi_bb", "RSI + BB", "RSI & Bollinger Bands", Icons.Default.ShowChart, Color(0xFFE91E63))
+            StrategyInfo("rsi_bb", "RSI + BB", "RSI & Bollinger Bands", Icons.Default.ShowChart, Color(0xFFE91E63)),
+            StrategyInfo("manual", "Manual Trading", "Custom manual trades", Icons.Default.TouchApp, Color(0xFF607D8B))
         )
     }
 }
@@ -100,9 +101,13 @@ fun StrategySettingsScreen(
     var shortSettings by remember { mutableStateOf(SideSettings()) }
     var isLoading by remember { mutableStateOf(false) }
     var showSaveSuccess by remember { mutableStateOf(false) }
+    var ptpError by remember { mutableStateOf<String?>(null) }
     
-    // Load settings from API on first composition
-    LaunchedEffect(strategyCode) {
+    // Load settings from API on first composition and on exchange/accountType change
+    val currentExchange by viewModel.exchange.collectAsState()
+    val currentAccountType by viewModel.accountType.collectAsState()
+    
+    LaunchedEffect(strategyCode, currentExchange, currentAccountType) {
         viewModel.loadSettings(strategyCode)
     }
     
@@ -310,8 +315,29 @@ fun StrategySettingsScreen(
             
             // Save Button
             item {
+                // PTP validation error
+                ptpError?.let { error ->
+                    Text(
+                        text = error,
+                        color = MaterialTheme.colorScheme.error,
+                        style = MaterialTheme.typography.bodySmall,
+                        modifier = Modifier.padding(bottom = 8.dp)
+                    )
+                }
+                
                 Button(
                     onClick = {
+                        // Validate PTP Step1 + Step2 <= 100% for both sides
+                        for ((side, settings) in listOf("Long" to longSettings, "Short" to shortSettings)) {
+                            if (settings.partialTpEnabled) {
+                                val total = settings.partialTp1ClosePct + settings.partialTp2ClosePct
+                                if (total > 100.0) {
+                                    ptpError = "$side: PTP Step1 (${settings.partialTp1ClosePct.toInt()}%) + Step2 (${settings.partialTp2ClosePct.toInt()}%) = ${total.toInt()}% > 100%"
+                                    return@Button
+                                }
+                            }
+                        }
+                        ptpError = null
                         viewModel.updateLongSettings(longSettings)
                         viewModel.updateShortSettings(shortSettings)
                         viewModel.saveSettings(strategyCode)
@@ -562,9 +588,9 @@ private fun CoreSettingsCard(
                 label = Localization.get("leverage"),
                 value = settings.leverage.toFloat(),
                 onValueChange = { onSettingsChange(settings.copy(leverage = it.toInt())) },
-                valueRange = 1f..50f,
+                valueRange = 1f..125f,
                 suffix = "x",
-                steps = 49
+                steps = 124
             )
         }
     }
@@ -719,7 +745,7 @@ private fun PartialTpCard(
             label = "Close %",
             value = settings.partialTp1ClosePct.toFloat(),
             onValueChange = { onSettingsChange(settings.copy(partialTp1ClosePct = it.toDouble())) },
-            valueRange = 10f..50f,
+            valueRange = 10f..90f,
             suffix = "%"
         )
         
@@ -743,7 +769,7 @@ private fun PartialTpCard(
             label = "Close %",
             value = settings.partialTp2ClosePct.toFloat(),
             onValueChange = { onSettingsChange(settings.copy(partialTp2ClosePct = it.toDouble())) },
-            valueRange = 10f..70f,
+            valueRange = 10f..90f,
             suffix = "%"
         )
     }
@@ -767,7 +793,7 @@ private fun DcaSettingsCard(
             label = "DCA 1 trigger",
             value = dcaPct1.toFloat(),
             onValueChange = { onPct1Change(it.toDouble()) },
-            valueRange = 5f..30f,
+            valueRange = 1f..50f,
             suffix = "%"
         )
         

@@ -31,19 +31,19 @@ interface EnlikoApi {
     suspend fun getBalance(
         @Query("exchange") exchange: String? = null,
         @Query("account_type") accountType: String? = null
-    ): Response<BalanceResponse>
+    ): Response<BalanceData>
 
     @GET("/api/trading/positions")
     suspend fun getPositions(
         @Query("exchange") exchange: String? = null,
         @Query("account_type") accountType: String? = null
-    ): Response<PositionsResponse>
+    ): Response<List<PositionData>>
 
     @GET("/api/trading/orders")
     suspend fun getOrders(
         @Query("exchange") exchange: String? = null,
         @Query("account_type") accountType: String? = null
-    ): Response<OrdersResponse>
+    ): Response<List<OrderData>>
 
     @POST("/api/trading/close")
     suspend fun closePosition(
@@ -61,7 +61,7 @@ interface EnlikoApi {
         @Query("exchange") exchange: String? = null,
         @Query("account_type") accountType: String? = null,
         @Query("days") days: Int? = null
-    ): Response<TradeStatsResponse>
+    ): Response<TradeStatsData>
 
     @GET("/api/trading/trades")
     suspend fun getTrades(
@@ -100,7 +100,8 @@ interface EnlikoApi {
     @GET("/api/users/strategy-settings/mobile")
     suspend fun getStrategySettingsMobile(
         @Query("strategy") strategy: String? = null,
-        @Query("exchange") exchange: String = "bybit"
+        @Query("exchange") exchange: String = "bybit",
+        @Query("account_type") accountType: String = "demo"
     ): Response<List<MobileStrategySettings>>
 
     @PUT("/api/users/strategy-settings/mobile/{strategy}")
@@ -261,6 +262,7 @@ interface EnlikoApi {
 data class ClosePositionRequest(
     val symbol: String,
     val side: String,
+    val exchange: String? = null,
     @kotlinx.serialization.SerialName("account_type") val accountType: String? = null
 )
 
@@ -417,7 +419,12 @@ data class PositionData(
     val leverage: Int = 1,
     val strategy: String? = null,
     @kotlinx.serialization.SerialName("sl_price") val slPrice: Double? = null,
-    @kotlinx.serialization.SerialName("tp_price") val tpPrice: Double? = null
+    @kotlinx.serialization.SerialName("tp_price") val tpPrice: Double? = null,
+    @kotlinx.serialization.SerialName("liq_price") val liqPrice: Double? = null,
+    @kotlinx.serialization.SerialName("position_margin") val positionMargin: Double? = null,
+    @kotlinx.serialization.SerialName("pnl_percent") val pnlPercent: Double? = null,
+    @kotlinx.serialization.SerialName("account_type") val accountType: String? = null,
+    val exchange: String? = null
 )
 
 @kotlinx.serialization.Serializable
@@ -437,7 +444,8 @@ data class OrderData(
     val qty: Double,
     @kotlinx.serialization.SerialName("filled_qty") val filledQty: Double? = 0.0,
     val status: String,
-    @kotlinx.serialization.SerialName("created_at") val createdAt: Long? = null
+    @kotlinx.serialization.SerialName("created_at") val createdAt: Long? = null,
+    @kotlinx.serialization.SerialName("trigger_price") val triggerPrice: Double? = null
 )
 
 @kotlinx.serialization.Serializable

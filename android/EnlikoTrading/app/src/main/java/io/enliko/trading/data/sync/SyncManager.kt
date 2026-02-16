@@ -6,6 +6,7 @@ import dagger.hilt.android.qualifiers.ApplicationContext
 import io.enliko.trading.data.api.EnlikoApi
 import io.enliko.trading.data.local.dao.*
 import io.enliko.trading.data.local.entities.*
+import io.enliko.trading.data.repository.PreferencesRepository
 import io.enliko.trading.data.repository.TradingRepository
 import io.enliko.trading.data.websocket.WebSocketMessage
 import io.enliko.trading.data.websocket.WebSocketService
@@ -35,6 +36,7 @@ class SyncManager @Inject constructor(
     private val tradingRepository: TradingRepository,
     private val webSocketService: WebSocketService,
     private val notificationService: NotificationService,
+    private val preferencesRepository: PreferencesRepository,
     private val positionDao: PositionDao,
     private val tradeDao: TradeDao,
     private val balanceCacheDao: BalanceCacheDao,
@@ -160,8 +162,18 @@ class SyncManager @Inject constructor(
             
             is WebSocketMessage.ExchangeSwitch -> {
                 if (message.source != "android") {
-                    // Another device switched exchange
+                    // Another device switched exchange — persist to DataStore
                     exchange = message.exchange
+                    scope.launch { preferencesRepository.saveExchange(message.exchange) }
+                    triggerImmediateSync()
+                }
+            }
+            
+            is WebSocketMessage.AccountSwitch -> {
+                if (message.source != "android") {
+                    // Another device switched account type — persist to DataStore
+                    accountType = message.accountType
+                    scope.launch { preferencesRepository.saveAccountType(message.accountType) }
                     triggerImmediateSync()
                 }
             }

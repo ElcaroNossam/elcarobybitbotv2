@@ -33,6 +33,7 @@ import io.enliko.trading.ui.screens.ai.AIAssistantScreen
 import io.enliko.trading.ui.screens.stats.StatsScreen
 import io.enliko.trading.ui.screens.spot.SpotTradingScreen
 import io.enliko.trading.ui.screens.strategies.StrategiesScreen
+import io.enliko.trading.ui.screens.settings.StrategySettingsScreen
 import io.enliko.trading.ui.screens.trading.ManualTradingScreen
 import io.enliko.trading.util.AppLanguage
 import io.enliko.trading.util.ProvideStrings
@@ -75,6 +76,9 @@ sealed class Screen(val route: String) {
     object Stats : Screen("stats")
     object SpotTrading : Screen("spot_trading")
     object Strategies : Screen("strategies")
+    object StrategySettings : Screen("strategy_settings/{strategy}") {
+        fun createRoute(strategy: String) = "strategy_settings/$strategy"
+    }
     object ManualTrading : Screen("manual_trading/{symbol}") {
         fun createRoute(symbol: String = "BTCUSDT") = "manual_trading/$symbol"
     }
@@ -410,7 +414,19 @@ fun EnlikoNavHost(
             // Strategies
             composable(Screen.Strategies.route) {
                 StrategiesScreen(
-                    onNavigateBack = { navController.popBackStack() }
+                    onNavigateBack = { navController.popBackStack() },
+                    onNavigateToSettings = { strategyCode ->
+                        navController.navigate(Screen.StrategySettings.createRoute(strategyCode))
+                    }
+                )
+            }
+            
+            // Strategy Settings (per-strategy, per-side via API)
+            composable(Screen.StrategySettings.route) { backStackEntry ->
+                val strategyCode = backStackEntry.arguments?.getString("strategy") ?: "oi"
+                StrategySettingsScreen(
+                    strategyCode = strategyCode,
+                    onBack = { navController.popBackStack() }
                 )
             }
             

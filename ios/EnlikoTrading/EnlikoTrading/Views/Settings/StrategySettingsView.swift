@@ -27,7 +27,8 @@ struct StrategyInfo: Identifiable {
         StrategyInfo(code: "scalper", name: "Scalper", description: "Momentum breakouts", icon: "bolt.fill", color: .orange, supportsAtr: true, supportsDca: true, supportsBE: true, supportsPartialTP: true),
         StrategyInfo(code: "elcaro", name: "ENLIKO AI", description: "AI-powered signals", icon: "brain.head.profile", color: .green, supportsAtr: true, supportsDca: true, supportsBE: true, supportsPartialTP: true),
         StrategyInfo(code: "fibonacci", name: "Fibonacci", description: "Fib retracement levels", icon: "ruler.fill", color: .cyan, supportsAtr: true, supportsDca: true, supportsBE: true, supportsPartialTP: true),
-        StrategyInfo(code: "rsi_bb", name: "RSI + BB", description: "RSI & Bollinger Bands", icon: "chart.line.uptrend.xyaxis", color: .pink, supportsAtr: true, supportsDca: true, supportsBE: true, supportsPartialTP: true)
+        StrategyInfo(code: "rsi_bb", name: "RSI + BB", description: "RSI & Bollinger Bands", icon: "chart.line.uptrend.xyaxis", color: .pink, supportsAtr: true, supportsDca: true, supportsBE: true, supportsPartialTP: true),
+        StrategyInfo(code: "manual", name: "Manual Trading", description: "Custom manual trades", icon: "hand.tap.fill", color: .gray, supportsAtr: true, supportsDca: true, supportsBE: true, supportsPartialTP: true)
     ]
 }
 
@@ -135,6 +136,7 @@ struct StrategySettingsView: View {
     @State private var isLoading = false
     @State private var isSaving = false
     @State private var showSaveSuccess = false
+    @State private var ptpValidationError: String? = nil
     @State private var animateChange = false
     
     var currentSettings: Binding<SideSettings> {
@@ -379,7 +381,7 @@ struct StrategySettingsView: View {
             AnimatedSettingsRow(
                 label: "stop_loss".localized, 
                 value: currentSettings.slPercent, 
-                range: 0.1...50, 
+                range: 0.1...100, 
                 step: 0.1, 
                 suffix: "%",
                 color: .enlikoRed
@@ -702,20 +704,20 @@ struct StrategySettingsView: View {
             
             for setting in settings {
                 let sideSettings = SideSettings(
-                    enabled: setting.enabled,
-                    percent: setting.percent,
-                    tpPercent: setting.tpPercent,
-                    slPercent: setting.slPercent,
-                    leverage: setting.leverage,
-                    useAtr: setting.useAtr,
+                    enabled: setting.enabled ?? true,
+                    percent: setting.percent ?? 1.0,
+                    tpPercent: setting.tpPercent ?? 25.0,
+                    slPercent: setting.slPercent ?? 30.0,
+                    leverage: setting.leverage ?? 10,
+                    useAtr: setting.useAtr ?? true,
                     atrTriggerPct: setting.atrTriggerPct ?? 3.0,
                     atrStepPct: setting.atrStepPct ?? 0.5,
                     atrPeriods: setting.atrPeriods ?? 7,
                     atrMultiplierSl: setting.atrMultiplierSl ?? 0.5,
-                    dcaEnabled: setting.dcaEnabled,
-                    dcaPct1: setting.dcaPct1,
-                    dcaPct2: setting.dcaPct2,
-                    orderType: setting.orderType,
+                    dcaEnabled: setting.dcaEnabled ?? false,
+                    dcaPct1: setting.dcaPct1 ?? 10.0,
+                    dcaPct2: setting.dcaPct2 ?? 25.0,
+                    orderType: setting.orderType ?? "market",
                     maxPositions: setting.maxPositions ?? 0,
                     coinsGroup: setting.coinsGroup ?? "ALL",
                     direction: setting.direction ?? "all",
@@ -742,6 +744,19 @@ struct StrategySettingsView: View {
     
     // MARK: - Save Settings
     private func saveSettings() {
+        // Validate PTP Step1 + Step2 <= 100% for both sides
+        for (side, settings) in [("Long", longSettings), ("Short", shortSettings)] {
+            if settings.partialTpEnabled {
+                let step1 = settings.partialTp1ClosePct
+                let step2 = settings.partialTp2ClosePct
+                if step1 + step2 > 100.0 {
+                    ptpValidationError = "\(side): PTP Step1 (\(Int(step1))%) + Step2 (\(Int(step2))%) = \(Int(step1 + step2))% > 100%"
+                    return
+                }
+            }
+        }
+        ptpValidationError = nil
+        
         Task {
             isSaving = true
             defer { isSaving = false }
@@ -805,24 +820,24 @@ struct StrategySettingsView: View {
 
 // MARK: - API Response Model
 struct StrategySideSettings: Codable {
-    let strategy: String
-    let side: String
-    let exchange: String
-    let accountType: String
-    let enabled: Bool
-    let percent: Double
-    let tpPercent: Double
-    let slPercent: Double
-    let leverage: Int
-    let useAtr: Bool
+    let strategy: String?
+    let side: String?
+    let exchange: String?
+    let accountType: String?
+    let enabled: Bool?
+    let percent: Double?
+    let tpPercent: Double?
+    let slPercent: Double?
+    let leverage: Int?
+    let useAtr: Bool?
     let atrTriggerPct: Double?
     let atrStepPct: Double?
     let atrPeriods: Int?
     let atrMultiplierSl: Double?
-    let dcaEnabled: Bool
-    let dcaPct1: Double
-    let dcaPct2: Double
-    let orderType: String
+    let dcaEnabled: Bool?
+    let dcaPct1: Double?
+    let dcaPct2: Double?
+    let orderType: String?
     let maxPositions: Int?
     let coinsGroup: String?
     let direction: String?
@@ -836,6 +851,29 @@ struct StrategySideSettings: Codable {
     let partialTp1ClosePct: Double?
     let partialTp2TriggerPct: Double?
     let partialTp2ClosePct: Double?
+    
+    // Safe accessors with defaults
+    var strategyValue: String { strategy ?? "" }
+    var sideValue: String { side ?? "long" }
+    var exchangeValue: String { exchange ?? "bybit" }
+    var accountTypeValue: String { accountType ?? "demo" }
+    var isEnabled: Bool { enabled ?? true }
+    var percentValue: Double { percent ?? 1.0 }
+    var tpPercentValue: Double { tpPercent ?? 25.0 }
+    var slPercentValue: Double { slPercent ?? 30.0 }
+    var leverageValue: Int { leverage ?? 10 }
+    var isAtrEnabled: Bool { useAtr ?? true }
+    var isDcaEnabled: Bool { dcaEnabled ?? false }
+    var dcaPct1Value: Double { dcaPct1 ?? 10.0 }
+    var dcaPct2Value: Double { dcaPct2 ?? 25.0 }
+    var orderTypeValue: String { orderType ?? "market" }
+    var isBeEnabled: Bool { beEnabled ?? false }
+    var beTriggerPctValue: Double { beTriggerPct ?? 1.0 }
+    var isPtpEnabled: Bool { partialTpEnabled ?? false }
+    var ptp1TriggerValue: Double { partialTp1TriggerPct ?? 2.0 }
+    var ptp1CloseValue: Double { partialTp1ClosePct ?? 30.0 }
+    var ptp2TriggerValue: Double { partialTp2TriggerPct ?? 5.0 }
+    var ptp2CloseValue: Double { partialTp2ClosePct ?? 30.0 }
     
     enum CodingKeys: String, CodingKey {
         case strategy, side, exchange, enabled, percent, leverage, direction

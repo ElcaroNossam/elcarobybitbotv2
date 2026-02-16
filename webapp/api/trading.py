@@ -180,6 +180,7 @@ class PositionCalculationResponse(BaseModel):
 
 class ClosePositionRequest(BaseModel):
     symbol: str
+    side: Optional[str] = None  # 'Buy'/'Sell'/'long'/'short' — for hedge mode
     exchange: str = "bybit"
     account_type: str = "demo"  # 'demo' or 'real'
 
@@ -194,7 +195,9 @@ class PlaceOrderRequest(BaseModel):
     side: str  # 'buy' or 'sell' -> will be converted to 'Buy'/'Sell'
     order_type: Optional[str] = "market"  # 'market' or 'limit'
     type: Optional[str] = None  # Alias for order_type from frontend
-    size: float
+    size: Optional[float] = None
+    qty: Optional[float] = None  # Android sends qty instead of size
+    amount_usdt: Optional[float] = None  # Android: place by USDT amount
     price: Optional[float] = None
     leverage: int = 10
     take_profit: Optional[float] = None
@@ -215,6 +218,10 @@ class PlaceOrderRequest(BaseModel):
     def get_order_type(self) -> str:
         """Get order type from either order_type or type field"""
         return self.type or self.order_type or "market"
+    
+    def get_size(self) -> float:
+        """Get order size from size, qty, or amount_usdt field (Android sends qty)"""
+        return self.size or self.qty or 0.0
     
     def get_take_profit(self) -> Optional[float]:
         """Get take profit from either field"""
@@ -872,7 +879,18 @@ async def close_position(
             if not positions:
                 raise HTTPException(status_code=404, detail="Position not found")
             
-            pos = positions[0]
+            # Filter by side if provided (important for hedge mode with multiple positions per symbol)
+            if req.side:
+                normalized_side = "Buy" if req.side.lower() in ("buy", "long") else "Sell"
+                pos = next((p for p in positions if p.get("side") == normalized_side and float(p.get("size", 0)) != 0), None)
+                if not pos:
+                    pos = next((p for p in positions if float(p.get("size", 0)) != 0), None)
+            else:
+                pos = next((p for p in positions if float(p.get("size", 0)) != 0), None)
+            
+            if not pos:
+                raise HTTPException(status_code=404, detail="No open position")
+            
             size = float(pos.get("size", 0))
             if size == 0:
                 raise HTTPException(status_code=404, detail="No open position")
@@ -1475,10 +1493,14 @@ async def get_trading_stats(
         
         return {
             "total_trades": total,
+            "total": total,  # Android alias
             "winning_trades": wins,
+            "wins": wins,  # Android alias
             "losing_trades": losses,
+            "losses": losses,  # Android alias
             "eod_trades": eod_count,
             "win_rate": round(winrate, 1),
+            "winrate": round(winrate, 1),  # Android alias
             "total_pnl": round(total_pnl, 2),
             "avg_pnl": round(avg_pnl_pct, 2),
             "gross_profit": round(gross_profit, 2),
@@ -1681,6 +1703,12 @@ async def place_order(
     side = "Buy" if req.side.lower() in ["buy", "long"] else "Sell"
     order_type_str = req.get_order_type()
     order_type = "Market" if order_type_str.lower() == "market" else "Limit"
+    
+    # Resolve size from size/qty/amount_usdt (Android sends qty)
+    resolved_size = req.get_size()
+    if resolved_size <= 0:
+        raise HTTPException(status_code=400, detail="Order size (size/qty) must be > 0")
+    req.size = resolved_size
     
     # Update req with resolved values
     req.take_profit = req.get_take_profit()
@@ -2010,6 +2038,7 @@ async def get_account_info(
 class ModifyTPSLRequest(BaseModel):
     """Request model for modifying TP/SL on an existing position"""
     symbol: str
+    side: Optional[str] = None  # 'Buy'/'Sell'/'long'/'short' — for hedge mode position_idx
     take_profit: Optional[float] = None
     stop_loss: Optional[float] = None
     tp_trigger_by: str = "LastPrice"  # MarkPrice, LastPrice, IndexPrice
@@ -2033,6 +2062,13 @@ async def modify_position_tpsl(
         req.exchange = exchange
     if account_type and req.account_type == "demo":
         req.account_type = account_type
+    
+    # Derive position_idx from side for Bybit hedge mode (if side provided and position_idx is default 0)
+    if req.side and req.position_idx == 0:
+        normalized_side = "Buy" if req.side.lower() in ("buy", "long") else "Sell"
+        # In hedge mode: 1=Buy, 2=Sell. In one-way mode 0 is correct.
+        # We set it for hedge mode; Bybit ignores it in one-way mode.
+        req.position_idx = 1 if normalized_side == "Buy" else 2
     
     if req.exchange == "hyperliquid":
         hl_creds = db.get_hl_credentials(user_id)
@@ -3145,6 +3181,12 @@ async def update_strategy_settings(
         
         if not settings:
             return {"success": False, "error": "No settings to update"}
+        
+        # Map 'enabled' to side-specific fields for bot.py compatibility
+        # bot.py checks long_enabled/short_enabled, NOT plain 'enabled'
+        if "enabled" in settings:
+            settings["long_enabled"] = settings["enabled"]
+            settings["short_enabled"] = settings["enabled"]
         
         # Use db function to update
         success = db.set_strategy_settings_db(user_id, req.strategy, settings, req.exchange, req.account_type)

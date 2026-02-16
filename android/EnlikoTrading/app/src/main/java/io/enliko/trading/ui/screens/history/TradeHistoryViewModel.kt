@@ -148,7 +148,7 @@ class TradeHistoryViewModel @Inject constructor(
             // Fetch orders using existing API method
             val ordersResponse = api.getOrders(exchange, accountType)
             if (ordersResponse.isSuccessful) {
-                val ordersData = ordersResponse.body()?.data ?: emptyList()
+                val ordersData = ordersResponse.body() ?: emptyList()
                 val orderRecords = ordersData.map { order ->
                     OrderRecord(
                         id = order.orderId,
@@ -191,7 +191,7 @@ class TradeHistoryViewModel @Inject constructor(
             // Fetch trade stats
             val statsResponse = api.getTradeStats(exchange, accountType)
             if (statsResponse.isSuccessful) {
-                val stats = statsResponse.body()?.data
+                val stats = statsResponse.body()
                 _uiState.update { 
                     it.copy(
                         totalTrades = stats?.total ?: 0,

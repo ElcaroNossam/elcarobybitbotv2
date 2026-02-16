@@ -5,9 +5,13 @@ import androidx.lifecycle.viewModelScope
 import dagger.hilt.android.lifecycle.HiltViewModel
 import io.enliko.trading.data.api.EnlikoApi
 import io.enliko.trading.data.models.MobileStrategySettings
+import io.enliko.trading.data.repository.PreferencesRepository
 import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.flow.first
+import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
 import javax.inject.Inject
 
@@ -18,7 +22,8 @@ import javax.inject.Inject
  */
 @HiltViewModel
 class StrategySettingsViewModel @Inject constructor(
-    private val api: EnlikoApi
+    private val api: EnlikoApi,
+    private val preferencesRepository: PreferencesRepository
 ) : ViewModel() {
     
     private val _isLoading = MutableStateFlow(false)
@@ -38,6 +43,12 @@ class StrategySettingsViewModel @Inject constructor(
     private val _shortSettings = MutableStateFlow(SideSettings())
     val shortSettings: StateFlow<SideSettings> = _shortSettings.asStateFlow()
     
+    // Expose exchange/accountType for LaunchedEffect keys in the Screen
+    val exchange: StateFlow<String> = preferencesRepository.exchange
+        .stateIn(viewModelScope, SharingStarted.Eagerly, "bybit")
+    val accountType: StateFlow<String> = preferencesRepository.accountType
+        .stateIn(viewModelScope, SharingStarted.Eagerly, "demo")
+    
     /**
      * Load strategy settings from mobile API.
      * The endpoint returns per-side objects: [{strategy, side:"long", ...}, {strategy, side:"short", ...}]
@@ -48,7 +59,9 @@ class StrategySettingsViewModel @Inject constructor(
             _error.value = null
             
             try {
-                val response = api.getStrategySettingsMobile(strategy = strategyCode)
+                val exchange = preferencesRepository.exchange.first()
+                val accountType = preferencesRepository.accountType.first()
+                val response = api.getStrategySettingsMobile(strategy = strategyCode, exchange = exchange, accountType = accountType)
                 if (response.isSuccessful) {
                     val settingsList = response.body() ?: emptyList()
                     
@@ -123,12 +136,15 @@ class StrategySettingsViewModel @Inject constructor(
             _error.value = null
             
             try {
+                val exchange = preferencesRepository.exchange.first()
+                val accountType = preferencesRepository.accountType.first()
+                
                 // Save long side
-                val longBody = buildSideBody("long", _longSettings.value)
+                val longBody = buildSideBody("long", _longSettings.value, exchange, accountType)
                 val longResponse = api.updateStrategySettingsMobile(strategyCode, longBody)
                 
                 // Save short side
-                val shortBody = buildSideBody("short", _shortSettings.value)
+                val shortBody = buildSideBody("short", _shortSettings.value, exchange, accountType)
                 val shortResponse = api.updateStrategySettingsMobile(strategyCode, shortBody)
                 
                 if (longResponse.isSuccessful && shortResponse.isSuccessful) {
@@ -149,10 +165,12 @@ class StrategySettingsViewModel @Inject constructor(
     }
     
     /** Build per-side body for PUT /api/users/strategy-settings/mobile/{strategy}. */
-    private fun buildSideBody(side: String, s: SideSettings): Map<String, Any> {
+    private fun buildSideBody(side: String, s: SideSettings, exchange: String, accountType: String): Map<String, Any> {
         return mapOf(
             "side" to side,
             "source" to "android",
+            "exchange" to exchange,
+            "account_type" to accountType,
             "enabled" to s.enabled,
             "percent" to s.percent,
             "tp_percent" to s.tpPercent,

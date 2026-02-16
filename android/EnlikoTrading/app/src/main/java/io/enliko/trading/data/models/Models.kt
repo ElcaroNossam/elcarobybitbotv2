@@ -104,7 +104,9 @@ data class Position(
     @SerialName("sl_price") val slPrice: Double? = null,
     @SerialName("tp_price") val tpPrice: Double? = null,
     @SerialName("account_type") val accountType: String? = null,
-    val exchange: String? = null
+    val exchange: String? = null,
+    @SerialName("liq_price") val liqPrice: Double? = null,
+    @SerialName("position_margin") val positionMargin: Double? = null
 )
 
 @Serializable
@@ -112,6 +114,7 @@ data class Balance(
     @SerialName("total_equity") val totalEquity: Double,
     @SerialName("available_balance") val availableBalance: Double,
     @SerialName("unrealized_pnl") val unrealizedPnl: Double = 0.0,
+    @SerialName("position_margin") val positionMargin: Double? = null,
     @SerialName("margin_used") val marginUsed: Double = 0.0,
     val currency: String = "USDT"
 )
@@ -180,7 +183,8 @@ data class Order(
     val price: Double? = null,
     val qty: Double,
     val status: String,
-    @SerialName("created_at") val createdAt: String? = null
+    @SerialName("created_at") val createdAt: String? = null,
+    @SerialName("trigger_price") val triggerPrice: Double? = null
 )
 
 @Serializable

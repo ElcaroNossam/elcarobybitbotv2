@@ -131,9 +131,9 @@ class PortfolioViewModel @Inject constructor(
                 _uiState.update { state ->
                     state.copy(
                         isLoading = false,
-                        balance = balanceResult.body()?.data,
-                        positions = positionsResult.body()?.data ?: emptyList(),
-                        stats = statsResult.body()?.data
+                        balance = balanceResult.body(),
+                        positions = positionsResult.body() ?: emptyList(),
+                        stats = statsResult.body()
                     )
                 }
                 
@@ -224,6 +224,7 @@ class PortfolioViewModel @Inject constructor(
                 val request = io.enliko.trading.data.api.ClosePositionRequest(
                     symbol = symbol,
                     side = side,
+                    exchange = _uiState.value.exchange,
                     accountType = _uiState.value.accountType
                 )
                 api.closePosition(request)

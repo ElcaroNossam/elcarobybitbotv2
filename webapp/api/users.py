@@ -1338,7 +1338,7 @@ STRATEGY_FEATURES = {
     },
 }
 
-VALID_STRATEGIES = ["elcaro", "scryptomera", "scalper", "fibonacci", "rsi_bb", "oi"]
+VALID_STRATEGIES = ["elcaro", "scryptomera", "scalper", "fibonacci", "rsi_bb", "oi", "manual"]
 
 
 class StrategySettings(BaseModel):
@@ -1738,7 +1738,7 @@ async def get_strategy_settings_mobile(
                 "max_positions": db_settings.get(f"{prefix}max_positions") or 0,
                 "coins_group": db_settings.get(f"{prefix}coins_group") or db_settings.get("coins_group") or "ALL",
                 "direction": db_settings.get("direction") or "all",
-                "order_type": db_settings.get("order_type") or "market",
+                "order_type": db_settings.get(f"{prefix}order_type") or db_settings.get("order_type") or "market",
                 # Break-Even settings
                 "be_enabled": _bool_val(db_settings.get(f"{prefix}be_enabled"), "be_enabled", False),
                 "be_trigger_pct": _val(db_settings.get(f"{prefix}be_trigger_pct"), "be_trigger_pct", 1.0),
@@ -1882,6 +1882,18 @@ async def update_strategy_settings_mobile(
     ]
     
     updated = []
+    
+    # Validate PTP BEFORE saving: Step1 + Step2 must be <= 100%
+    if any(f in settings for f in ("partial_tp_1_close_pct", "partial_tp_2_close_pct")):
+        current = db.get_strategy_settings(user_id, strategy_name, exchange)
+        step1 = float(settings.get("partial_tp_1_close_pct", current.get(f"{side}_partial_tp_1_close_pct") or 30.0))
+        step2 = float(settings.get("partial_tp_2_close_pct", current.get(f"{side}_partial_tp_2_close_pct") or 30.0))
+        if step1 + step2 > 100:
+            raise HTTPException(
+                status_code=400,
+                detail=f"Partial TP Step1 ({step1}%) + Step2 ({step2}%) = {step1+step2}% exceeds 100%. Reduce one of the steps."
+            )
+    
     for field in updatable_fields:
         if field in settings:
             value = settings[field]
@@ -1902,18 +1914,6 @@ async def update_strategy_settings_mobile(
             
             db.set_strategy_setting_db(user_id, strategy_name, db_field, value, exchange, account_type)
             updated.append(field)
-    
-    # Validate PTP: Step1 + Step2 must be <= 100%
-    if any(f in settings for f in ("partial_tp_1_close_pct", "partial_tp_2_close_pct")):
-        # Re-read current settings to validate sum
-        current = db.get_strategy_settings(user_id, strategy_name, exchange)
-        step1 = current.get(f"{side}_partial_tp_1_close_pct") or 30.0
-        step2 = current.get(f"{side}_partial_tp_2_close_pct") or 30.0
-        if step1 + step2 > 100:
-            raise HTTPException(
-                status_code=400,
-                detail=f"Partial TP Step1 ({step1}%) + Step2 ({step2}%) = {step1+step2}% exceeds 100%. Reduce one of the steps."
-            )
     
     # Non-side fields
     if "direction" in settings:

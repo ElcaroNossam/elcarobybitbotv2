@@ -51,24 +51,14 @@ class PositionsViewModel @Inject constructor(
                     accountType = _uiState.value.accountType
                 )
                 if (response.isSuccessful) {
-                    val body = response.body()
-                    if (body?.success == true) {
-                        _uiState.update {
-                            it.copy(
-                                isLoading = false,
-                                isRefreshing = false,
-                                positions = body.data ?: emptyList(),
-                                error = null
-                            )
-                        }
-                    } else {
-                        _uiState.update {
-                            it.copy(
-                                isLoading = false,
-                                isRefreshing = false,
-                                error = body?.error ?: "Failed to load positions"
-                            )
-                        }
+                    val positions = response.body() ?: emptyList()
+                    _uiState.update {
+                        it.copy(
+                            isLoading = false,
+                            isRefreshing = false,
+                            positions = positions,
+                            error = null
+                        )
                     }
                 } else {
                     _uiState.update {
@@ -105,6 +95,7 @@ class PositionsViewModel @Inject constructor(
                 val request = io.enliko.trading.data.api.ClosePositionRequest(
                     symbol = symbol,
                     side = side,
+                    exchange = _uiState.value.exchange,
                     accountType = _uiState.value.accountType
                 )
                 val response = api.closePosition(request)

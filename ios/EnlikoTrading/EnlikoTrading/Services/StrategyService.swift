@@ -23,7 +23,7 @@ class StrategyService: ObservableObject {
     private let network = NetworkService.shared
     
     // Built-in strategy names
-    let availableStrategies = ["oi", "scryptomera", "scalper", "elcaro", "fibonacci", "rsi_bb"]
+    let availableStrategies = ["oi", "scryptomera", "scalper", "elcaro", "fibonacci", "rsi_bb", "manual"]
     
     // Last backtest result for quick access
     var backtestResult: BacktestResult? {

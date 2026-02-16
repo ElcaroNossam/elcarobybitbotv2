@@ -24,6 +24,7 @@ sealed class WebSocketMessage {
     data class SignalReceived(val symbol: String, val side: String, val strategy: String) : WebSocketMessage()
     data class SettingsSync(val settingName: String, val value: String, val source: String) : WebSocketMessage()
     data class ExchangeSwitch(val exchange: String, val source: String) : WebSocketMessage()
+    data class AccountSwitch(val accountType: String, val source: String) : WebSocketMessage()
     data object Connected : WebSocketMessage()
     data object Disconnected : WebSocketMessage()
     data class Error(val message: String) : WebSocketMessage()
@@ -204,6 +205,13 @@ class WebSocketService @Inject constructor(
                     val exchange = data?.get("exchange")?.jsonPrimitive?.contentOrNull ?: ""
                     val source = data?.get("source")?.jsonPrimitive?.contentOrNull ?: ""
                     _messages.emit(WebSocketMessage.ExchangeSwitch(exchange, source))
+                }
+                
+                "account_switched" -> {
+                    val data = jsonObj["data"]?.jsonObject
+                    val accountType = data?.get("account_type")?.jsonPrimitive?.contentOrNull ?: ""
+                    val source = data?.get("source")?.jsonPrimitive?.contentOrNull ?: ""
+                    _messages.emit(WebSocketMessage.AccountSwitch(accountType, source))
                 }
                 
                 "pong" -> {

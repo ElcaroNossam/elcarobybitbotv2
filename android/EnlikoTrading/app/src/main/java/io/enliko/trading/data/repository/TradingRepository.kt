@@ -50,8 +50,8 @@ class TradingRepository @Inject constructor(
         // Fetch from server
         return try {
             val response = api.getPositions(exchange, accountType)
-            if (response.isSuccessful && response.body()?.success == true) {
-                val positions = response.body()?.data ?: emptyList()
+            if (response.isSuccessful && response.body() != null) {
+                val positions = response.body() ?: emptyList()
                 
                 // Cache in database
                 val entities = positions.map { it.toEntity(userId, exchange, accountType) }
@@ -64,7 +64,7 @@ class TradingRepository @Inject constructor(
                 if (cached.isNotEmpty()) {
                     Result.success(cached.map { it.toPositionData() })
                 } else {
-                    Result.failure(Exception(response.body()?.error ?: "Failed to load positions"))
+                    Result.failure(Exception("Failed to load positions"))
                 }
             }
         } catch (e: Exception) {
@@ -100,8 +100,8 @@ class TradingRepository @Inject constructor(
         
         return try {
             val response = api.getBalance(exchange, accountType)
-            if (response.isSuccessful && response.body()?.data != null) {
-                val balance = response.body()!!.data!!
+            if (response.isSuccessful && response.body() != null) {
+                val balance = response.body()!!
                 
                 // Cache
                 balanceCacheDao.insert(balance.toEntity(userId, exchange, accountType))
@@ -138,8 +138,8 @@ class TradingRepository @Inject constructor(
         
         return try {
             val response = api.getOrders(exchange, accountType)
-            if (response.isSuccessful && response.body()?.data != null) {
-                val orders = response.body()!!.data!!
+            if (response.isSuccessful && response.body() != null) {
+                val orders = response.body()!!
                 
                 val entities = orders.map { it.toEntity(userId, exchange, accountType) }
                 orderDao.replaceAll(userId, exchange, accountType, entities)
