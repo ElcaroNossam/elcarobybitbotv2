@@ -6,7 +6,7 @@
     <meta name="mobile-web-app-capable" content="yes">
     <meta name="apple-mobile-web-app-capable" content="yes">
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
-    <meta name="theme-color" content="#0a0a0a">
+    <meta name="theme-color" content="#050505">
     <title>Enliko Trading Bot - Professional Crypto Trading</title>
     
     <!-- Favicon -->
@@ -23,7 +23,7 @@
     <script src="https://telegram.org/js/telegram-web-app.js"></script>
     <style>
         :root {
-            --bg-primary: #0a0a0a;
+            --bg-primary: #050505;
             --bg-secondary: #12121a;
             --accent: #2563eb;
             --accent-glow: rgba(37, 99, 235, 0.5);
@@ -1032,7 +1032,7 @@
             modal.id = 'paymentModal';
             modal.style.cssText = 'position:fixed;inset:0;background:rgba(0,0,0,0.9);display:flex;align-items:center;justify-content:center;z-index:9999;';
             modal.innerHTML = `
-                <div style="background:linear-gradient(135deg,#1a1a1a,#0a0a0a);border:1px solid rgba(220,38,38,0.3);border-radius:16px;padding:30px;max-width:400px;width:90%;">
+                <div style="background:linear-gradient(135deg,#1a1a1a,#050505);border:1px solid rgba(220,38,38,0.3);border-radius:16px;padding:30px;max-width:400px;width:90%;">
                     <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:20px;">
                         <h3 style="font-size:1.25rem;font-weight:700;">${type === 'subscription' ? `Subscribe ${plan}` : 'Buy ELC'}</h3>
                         <button onclick="closePaymentModal()" style="color:#666;font-size:1.5rem;background:none;border:none;cursor:pointer;">&times;</button>
@@ -1104,7 +1104,7 @@
                 <div style="background:#1a1a1a;border:1px solid #333;border-radius:16px;padding:30px;max-width:450px;width:90%;">
                     <h3 style="margin-bottom:20px;">Send Payment</h3>
                     <p style="text-align:center;margin-bottom:15px;"><span style="font-size:2rem;font-weight:700;color:#22c55e;">$${amount}</span> ${network.toUpperCase()}</p>
-                    <div style="background:#0a0a0a;padding:15px;border-radius:8px;margin-bottom:15px;">
+                    <div style="background:#050505;padding:15px;border-radius:8px;margin-bottom:15px;">
                         <p style="color:#666;font-size:0.75rem;margin-bottom:8px;">Address:</p>
                         <p style="font-family:monospace;font-size:0.875rem;word-break:break-all;">${address}</p>
                         <button onclick="navigator.clipboard.writeText('${address}').then(()=>alert('Copied!'))" 

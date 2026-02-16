@@ -59,7 +59,10 @@ struct ExchangeSettingsView: View {
 
 // MARK: - Leverage Settings View
 struct LeverageSettingsView: View {
+    @ObservedObject var settingsService = GlobalSettingsService.shared
     @State private var selectedLeverage: Double = 10
+    @State private var isSaving = false
+    @State private var isLoaded = false
     
     var body: some View {
         ZStack {
@@ -118,6 +121,31 @@ struct LeverageSettingsView: View {
                 }
                 .padding(.horizontal)
                 
+                // Save Button
+                Button(action: {
+                    isSaving = true
+                    Task {
+                        _ = await settingsService.updateLeverage(Int(selectedLeverage))
+                        isSaving = false
+                    }
+                }) {
+                    HStack {
+                        if isSaving {
+                            ProgressView()
+                                .tint(.white)
+                        }
+                        Text("Save")
+                            .fontWeight(.semibold)
+                    }
+                    .frame(maxWidth: .infinity)
+                    .padding(.vertical, 14)
+                    .background(Color.enlikoPrimary)
+                    .foregroundColor(.white)
+                    .cornerRadius(12)
+                }
+                .disabled(isSaving)
+                .padding(.horizontal)
+                
                 // Warning
                 HStack {
                     Image(systemName: "exclamationmark.triangle.fill")
@@ -136,16 +164,26 @@ struct LeverageSettingsView: View {
         }
         .navigationTitle("Leverage")
         .navigationBarTitleDisplayMode(.inline)
+        .task {
+            if !isLoaded {
+                await settingsService.fetchGlobalSettings()
+                selectedLeverage = Double(settingsService.globalSettings.leverage)
+                isLoaded = true
+            }
+        }
     }
 }
 
 // MARK: - Risk Settings View
 struct RiskSettingsView: View {
+    @ObservedObject var settingsService = GlobalSettingsService.shared
     @State private var entryPercent: Double = 1.0
-    @State private var takeProfitPercent: Double = 8.0
-    @State private var stopLossPercent: Double = 3.0
+    @State private var takeProfitPercent: Double = 10.0
+    @State private var stopLossPercent: Double = 30.0
     @State private var useATR = false
     @State private var dcaEnabled = false
+    @State private var isSaving = false
+    @State private var isLoaded = false
     
     var body: some View {
         ZStack {
@@ -184,7 +222,7 @@ struct RiskSettingsView: View {
                             Text("\(stopLossPercent, specifier: "%.1f")%")
                                 .foregroundColor(.enlikoRed)
                         }
-                        Slider(value: $stopLossPercent, in: 0.5...20, step: 0.5)
+                        Slider(value: $stopLossPercent, in: 0.5...50, step: 0.5)
                             .tint(.enlikoRed)
                     }
                     .padding(.vertical, 4)
@@ -204,12 +242,55 @@ struct RiskSettingsView: View {
                     Text("ATR adjusts SL/TP based on market volatility. DCA adds to positions at drawdown levels.")
                 }
                 .listRowBackground(Color.enlikoCard)
+                
+                Section {
+                    Button(action: {
+                        isSaving = true
+                        Task {
+                            _ = await settingsService.updateRiskSettings(
+                                percent: entryPercent,
+                                tpPercent: takeProfitPercent,
+                                slPercent: stopLossPercent,
+                                useAtr: useATR,
+                                dcaEnabled: dcaEnabled
+                            )
+                            isSaving = false
+                        }
+                    }) {
+                        HStack {
+                            Spacer()
+                            if isSaving {
+                                ProgressView()
+                                    .tint(.white)
+                            }
+                            Text("Save Settings")
+                                .fontWeight(.semibold)
+                                .foregroundColor(.white)
+                            Spacer()
+                        }
+                        .padding(.vertical, 4)
+                    }
+                    .disabled(isSaving)
+                    .listRowBackground(Color.enlikoPrimary)
+                }
             }
             .listStyle(.insetGrouped)
             .scrollContentBackground(.hidden)
         }
         .navigationTitle("Risk Management")
         .navigationBarTitleDisplayMode(.inline)
+        .task {
+            if !isLoaded {
+                await settingsService.fetchGlobalSettings()
+                let s = settingsService.globalSettings
+                entryPercent = s.percent
+                takeProfitPercent = s.tpPercent
+                stopLossPercent = s.slPercent
+                useATR = s.useAtr
+                dcaEnabled = s.dcaEnabled
+                isLoaded = true
+            }
+        }
     }
 }
 

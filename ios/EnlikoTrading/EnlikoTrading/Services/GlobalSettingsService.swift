@@ -12,6 +12,10 @@ import Combine
 
 struct GlobalSettings: Codable {
     // Private backing optionals for Codable
+    private var _percent: Double?
+    private var _tpPercent: Double?
+    private var _slPercent: Double?
+    private var _leverage: Int?
     private var _dcaEnabled: Bool?
     private var _dcaPct1: Double?
     private var _dcaPct2: Double?
@@ -27,6 +31,10 @@ struct GlobalSettings: Codable {
     private var _atrStepPct: Double?
     
     // Public computed properties with defaults
+    var percent: Double { _percent ?? 1.0 }
+    var tpPercent: Double { _tpPercent ?? 10.0 }
+    var slPercent: Double { _slPercent ?? 30.0 }
+    var leverage: Int { _leverage ?? 10 }
     var dcaEnabled: Bool { _dcaEnabled ?? false }
     var dcaPct1: Double { _dcaPct1 ?? 10.0 }
     var dcaPct2: Double { _dcaPct2 ?? 25.0 }
@@ -35,13 +43,17 @@ struct GlobalSettings: Codable {
     var spotDcaEnabled: Bool { _spotDcaEnabled ?? false }
     var spotDcaPct: Double { _spotDcaPct ?? 5.0 }
     var spotEnabled: Bool { _spotEnabled ?? false }
-    var useAtr: Bool { _useAtr ?? true }
+    var useAtr: Bool { _useAtr ?? false }
     var atrPeriods: Int { _atrPeriods ?? 7 }
     var atrMultiplierSl: Double { _atrMultiplierSl ?? 0.5 }
     var atrTriggerPct: Double { _atrTriggerPct ?? 3.0 }
     var atrStepPct: Double { _atrStepPct ?? 0.5 }
     
     enum CodingKeys: String, CodingKey {
+        case _percent = "percent"
+        case _tpPercent = "tp_percent"
+        case _slPercent = "sl_percent"
+        case _leverage = "leverage"
         case _dcaEnabled = "dca_enabled"
         case _dcaPct1 = "dca_pct_1"
         case _dcaPct2 = "dca_pct_2"
@@ -69,6 +81,10 @@ struct GlobalSettings: Codable {
     
     // Manual default initializer
     init() {
+        self._percent = nil
+        self._tpPercent = nil
+        self._slPercent = nil
+        self._leverage = nil
         self._dcaEnabled = nil
         self._dcaPct1 = nil
         self._dcaPct2 = nil
@@ -152,6 +168,26 @@ struct ATRSettingsUpdate: Codable {
         case atrMultiplierSl = "atr_multiplier_sl"
         case atrTriggerPct = "atr_trigger_pct"
         case atrStepPct = "atr_step_pct"
+    }
+}
+
+struct LeverageUpdate: Codable {
+    let leverage: Int
+}
+
+struct RiskSettingsUpdate: Codable {
+    let percent: Double
+    let tpPercent: Double
+    let slPercent: Double
+    let useAtr: Bool
+    let dcaEnabled: Bool
+    
+    enum CodingKeys: String, CodingKey {
+        case percent
+        case tpPercent = "tp_percent"
+        case slPercent = "sl_percent"
+        case useAtr = "use_atr"
+        case dcaEnabled = "dca_enabled"
     }
 }
 
@@ -254,6 +290,42 @@ class GlobalSettingsService: ObservableObject {
             return true
         } catch {
             print("Failed to update ATR settings: \(error)")
+            AppState.shared.showError(error.localizedDescription)
+            return false
+        }
+    }
+    
+    // MARK: - Update Leverage
+    @MainActor
+    func updateLeverage(_ leverage: Int) async -> Bool {
+        do {
+            let update = LeverageUpdate(leverage: leverage)
+            let _: EmptyResponse = try await network.put("/users/global-settings", body: update)
+            await fetchGlobalSettings()
+            return true
+        } catch {
+            print("Failed to update leverage: \(error)")
+            AppState.shared.showError(error.localizedDescription)
+            return false
+        }
+    }
+    
+    // MARK: - Update Risk Settings (Entry%, TP%, SL%)
+    @MainActor
+    func updateRiskSettings(percent: Double, tpPercent: Double, slPercent: Double, useAtr: Bool, dcaEnabled: Bool) async -> Bool {
+        do {
+            let update = RiskSettingsUpdate(
+                percent: percent,
+                tpPercent: tpPercent,
+                slPercent: slPercent,
+                useAtr: useAtr,
+                dcaEnabled: dcaEnabled
+            )
+            let _: EmptyResponse = try await network.put("/users/global-settings", body: update)
+            await fetchGlobalSettings()
+            return true
+        } catch {
+            print("Failed to update risk settings: \(error)")
             AppState.shared.showError(error.localizedDescription)
             return false
         }

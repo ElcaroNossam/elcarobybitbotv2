@@ -18,7 +18,7 @@
     </filter>
   </defs>
   <!-- Background -->
-  <rect width="64" height="64" rx="14" fill="#0a0a0a"/>
+  <rect width="64" height="64" rx="14" fill="#050505"/>
   <rect width="64" height="64" rx="14" fill="url(#stark-gradient)" opacity="0.15"/>
   <!-- T Letter - Stylized -->
   <g filter="url(#glow)">

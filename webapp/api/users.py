@@ -679,6 +679,12 @@ async def get_global_settings(user: dict = Depends(get_current_user)):
             spot_settings = {}
     
     return {
+        # Position sizing & risk
+        "percent": cfg.get("percent", 1.0),
+        "tp_percent": cfg.get("tp_percent", 10.0),
+        "sl_percent": cfg.get("sl_percent", 30.0),
+        "leverage": cfg.get("leverage", 10),
+        
         # Order settings
         "global_order_type": cfg.get("global_order_type", "market"),
         "order_type": cfg.get("global_order_type", "market"),  # iOS compat alias
@@ -728,6 +734,7 @@ async def update_global_settings(
     
     # Allowed fields for update
     allowed_fields = {
+        "percent", "tp_percent", "sl_percent", "leverage",
         "global_order_type", "limit_offset_pct",
         "dca_enabled", "dca_pct_1", "dca_pct_2",
         "spot_enabled",
@@ -865,55 +872,301 @@ async def get_api_keys(user: dict = Depends(get_current_user)):
     }
 
 
+async def _test_bybit_key(api_key: str, api_secret: str, testnet: bool) -> bool:
+    """Test a single Bybit API key pair. Returns True if valid."""
+    try:
+        import aiohttp
+        import time as _time
+        import hashlib
+        import hmac
+
+        base_url = "https://api-demo.bybit.com" if testnet else "https://api.bybit.com"
+        timestamp = str(int(_time.time() * 1000))
+        recv_window = "20000"
+        params = "accountType=UNIFIED"
+        param_str = f"{timestamp}{api_key}{recv_window}{params}"
+        signature = hmac.new(
+            api_secret.encode('utf-8'),
+            param_str.encode('utf-8'),
+            hashlib.sha256
+        ).hexdigest()
+        headers = {
+            "X-BAPI-API-KEY": api_key,
+            "X-BAPI-TIMESTAMP": timestamp,
+            "X-BAPI-RECV-WINDOW": recv_window,
+            "X-BAPI-SIGN": signature,
+        }
+        async with aiohttp.ClientSession() as session:
+            async with session.get(
+                f"{base_url}/v5/account/wallet-balance?{params}",
+                headers=headers,
+                timeout=aiohttp.ClientTimeout(total=8),
+            ) as resp:
+                data = await resp.json()
+                return data.get("retCode") == 0
+    except Exception as e:
+        logger.warning(f"Bybit key test failed: {e}")
+        return False
+
+
+async def _test_hl_key(private_key: str, testnet: bool) -> bool:
+    """Test a single HyperLiquid private key. Returns True if valid."""
+    try:
+        from hl_adapter import HLAdapter
+        adapter = HLAdapter(private_key=private_key, testnet=testnet)
+        try:
+            await adapter.initialize()
+            bal = await adapter.get_balance()
+            return bal.get("success", False)
+        finally:
+            await adapter.close()
+    except Exception as e:
+        logger.warning(f"HL key test failed: {e}")
+        return False
+
+
 @router.get("/api-keys/status")
 async def get_api_keys_status(user: dict = Depends(get_current_user)):
-    """Get API keys configuration status for iOS app."""
+    """Get API keys configuration status for iOS app — actually tests keys."""
+    import asyncio
     user_id = user["user_id"]
     creds = db.get_all_user_credentials(user_id)
     hl_creds = db.get_hl_credentials(user_id)
-    
-    # Check Bybit Demo
-    bybit_demo_has_key = bool(creds.get("demo_api_key") and creds.get("demo_api_secret"))
-    
-    # Check Bybit Real
-    bybit_real_has_key = bool(creds.get("real_api_key") and creds.get("real_api_secret"))
-    
-    # Check HyperLiquid Testnet
-    hl_testnet_has_key = bool(hl_creds.get("hl_testnet_private_key"))
-    
-    # Check HyperLiquid Mainnet
-    hl_mainnet_has_key = bool(hl_creds.get("hl_mainnet_private_key"))
-    
-    # Legacy HL key - assign to appropriate network
-    if not hl_testnet_has_key and not hl_mainnet_has_key:
+
+    # --- Determine which keys exist ---
+    demo_key = creds.get("demo_api_key")
+    demo_secret = creds.get("demo_api_secret")
+    bybit_demo_has = bool(demo_key and demo_secret)
+
+    real_key = creds.get("real_api_key")
+    real_secret = creds.get("real_api_secret")
+    bybit_real_has = bool(real_key and real_secret)
+
+    hl_test_pk = hl_creds.get("hl_testnet_private_key")
+    hl_main_pk = hl_creds.get("hl_mainnet_private_key")
+    hl_testnet_has = bool(hl_test_pk)
+    hl_mainnet_has = bool(hl_main_pk)
+
+    # Legacy HL key fallback
+    if not hl_testnet_has and not hl_mainnet_has:
         legacy_key = hl_creds.get("hl_private_key")
         if legacy_key:
             if hl_creds.get("hl_testnet", False):
-                hl_testnet_has_key = True
+                hl_testnet_has = True
+                hl_test_pk = legacy_key
             else:
-                hl_mainnet_has_key = True
-    
+                hl_mainnet_has = True
+                hl_main_pk = legacy_key
+
+    # --- Test all configured keys in parallel ---
+    tasks = {}
+    if bybit_demo_has:
+        tasks["bybit_demo"] = _test_bybit_key(demo_key, demo_secret, testnet=True)
+    if bybit_real_has:
+        tasks["bybit_real"] = _test_bybit_key(real_key, real_secret, testnet=False)
+    if hl_testnet_has:
+        tasks["hl_testnet"] = _test_hl_key(hl_test_pk, testnet=True)
+    if hl_mainnet_has:
+        tasks["hl_mainnet"] = _test_hl_key(hl_main_pk, testnet=False)
+
+    results = {}
+    if tasks:
+        gathered = await asyncio.gather(*tasks.values(), return_exceptions=True)
+        for name, result in zip(tasks.keys(), gathered):
+            results[name] = bool(result) if not isinstance(result, Exception) else False
+
     return {
         "bybit_demo": {
-            "has_key": bybit_demo_has_key,
-            "is_valid": None  # Would need to test to verify
+            "has_key": bybit_demo_has,
+            "is_valid": results.get("bybit_demo") if bybit_demo_has else None,
         },
         "bybit_real": {
-            "has_key": bybit_real_has_key,
-            "is_valid": None
+            "has_key": bybit_real_has,
+            "is_valid": results.get("bybit_real") if bybit_real_has else None,
         },
         "hl_testnet": {
-            "has_key": hl_testnet_has_key,
-            "is_valid": None
+            "has_key": hl_testnet_has,
+            "is_valid": results.get("hl_testnet") if hl_testnet_has else None,
         },
         "hl_mainnet": {
-            "has_key": hl_mainnet_has_key,
-            "is_valid": None
-        }
+            "has_key": hl_mainnet_has,
+            "is_valid": results.get("hl_mainnet") if hl_mainnet_has else None,
+        },
     }
 
 
-@router.post("/api-keys/bybit")
+# ── Unified API Keys Endpoint (for iOS) ───────────────────────────────
+
+class UnifiedSaveAPIKeyRequest(BaseModel):
+    exchange: str  # "bybit" | "hyperliquid"
+    account_type: str  # "demo" | "real" | "testnet" | "mainnet"
+    api_key: Optional[str] = None
+    api_secret: Optional[str] = None
+    private_key: Optional[str] = None
+
+
+@router.post("/api-keys")
+async def save_api_keys_unified(
+    data: UnifiedSaveAPIKeyRequest,
+    user: dict = Depends(get_current_user)
+):
+    """Unified save API keys endpoint (called by iOS app).
+    
+    Dispatches to Bybit or HyperLiquid save logic based on exchange field.
+    """
+    user_id = user["user_id"]
+
+    if data.exchange == "bybit":
+        if data.account_type not in ("demo", "real"):
+            raise HTTPException(status_code=400, detail="Invalid account type for Bybit")
+        if not data.api_key or not data.api_secret:
+            raise HTTPException(status_code=400, detail="API key and secret required for Bybit")
+
+        if data.account_type == "demo":
+            db.set_user_field(user_id, "demo_api_key", data.api_key)
+            db.set_user_field(user_id, "demo_api_secret", data.api_secret)
+        else:
+            db.set_user_field(user_id, "real_api_key", data.api_key)
+            db.set_user_field(user_id, "real_api_secret", data.api_secret)
+
+        logger.info(f"[iOS] User {user_id} saved Bybit {data.account_type} API keys")
+        return {"success": True, "exchange": "bybit", "account_type": data.account_type}
+
+    elif data.exchange == "hyperliquid":
+        if data.account_type not in ("testnet", "mainnet"):
+            raise HTTPException(status_code=400, detail="Invalid account type for HyperLiquid")
+        if not data.private_key:
+            raise HTTPException(status_code=400, detail="Private key required for HyperLiquid")
+
+        pk = data.private_key.strip()
+        if not pk.startswith("0x"):
+            pk = "0x" + pk
+        if len(pk) != 66:
+            raise HTTPException(status_code=400, detail="Invalid private key format")
+
+        # Derive API wallet address
+        try:
+            from eth_account import Account
+            api_wallet = Account.from_key(pk).address
+        except Exception as e:
+            raise HTTPException(status_code=400, detail=f"Invalid private key: {e}")
+
+        is_testnet = data.account_type == "testnet"
+        if is_testnet:
+            db.set_user_field(user_id, "hl_testnet_private_key", pk)
+            db.set_user_field(user_id, "hl_testnet_wallet_address", api_wallet)
+        else:
+            db.set_user_field(user_id, "hl_mainnet_private_key", pk)
+            db.set_user_field(user_id, "hl_mainnet_wallet_address", api_wallet)
+
+        db.set_user_field(user_id, "hl_enabled", True)
+        logger.info(f"[iOS] User {user_id} saved HL {data.account_type} key (wallet: {api_wallet[:10]}...)")
+        return {"success": True, "exchange": "hyperliquid", "account_type": data.account_type, "api_wallet": api_wallet}
+
+    else:
+        raise HTTPException(status_code=400, detail=f"Unknown exchange: {data.exchange}")
+
+
+@router.delete("/api-keys/{exchange}/{account_type}")
+async def delete_api_keys(
+    exchange: str,
+    account_type: str,
+    user: dict = Depends(get_current_user)
+):
+    """Delete API keys for a specific exchange/account type (called by iOS app)."""
+    user_id = user["user_id"]
+
+    if exchange == "bybit":
+        if account_type == "demo":
+            db.set_user_field(user_id, "demo_api_key", "")
+            db.set_user_field(user_id, "demo_api_secret", "")
+        elif account_type == "real":
+            db.set_user_field(user_id, "real_api_key", "")
+            db.set_user_field(user_id, "real_api_secret", "")
+        else:
+            raise HTTPException(status_code=400, detail="Invalid account type for Bybit")
+
+    elif exchange == "hyperliquid":
+        if account_type == "testnet":
+            db.set_user_field(user_id, "hl_testnet_private_key", "")
+            db.set_user_field(user_id, "hl_testnet_wallet_address", "")
+        elif account_type == "mainnet":
+            db.set_user_field(user_id, "hl_mainnet_private_key", "")
+            db.set_user_field(user_id, "hl_mainnet_wallet_address", "")
+        else:
+            raise HTTPException(status_code=400, detail="Invalid account type for HyperLiquid")
+    else:
+        raise HTTPException(status_code=400, detail=f"Unknown exchange: {exchange}")
+
+    logger.info(f"[iOS] User {user_id} deleted {exchange}/{account_type} API keys")
+    return {"success": True}
+
+
+class TestBybitKeyRequest(BaseModel):
+    api_key: str
+    api_secret: str
+    is_demo: bool = True
+
+
+@router.post("/api-keys/bybit/test")
+async def test_bybit_api_with_keys(
+    data: TestBybitKeyRequest,
+    user: dict = Depends(get_current_user)
+):
+    """Test Bybit API connection with provided keys (called by iOS pre-save test).
+    
+    Unlike GET /api-keys/bybit/test which tests saved keys,
+    this POST endpoint tests raw keys before saving.
+    """
+    import aiohttp
+    import time
+    import hashlib
+    import hmac
+
+    try:
+        testnet = data.is_demo
+        base_url = "https://api-demo.bybit.com" if testnet else "https://api.bybit.com"
+        
+        timestamp = str(int(time.time() * 1000))
+        recv_window = "20000"
+        params = "accountType=UNIFIED"
+        
+        param_str = f"{timestamp}{data.api_key}{recv_window}{params}"
+        signature = hmac.new(
+            data.api_secret.encode('utf-8'),
+            param_str.encode('utf-8'),
+            hashlib.sha256
+        ).hexdigest()
+        
+        headers = {
+            "X-BAPI-API-KEY": data.api_key,
+            "X-BAPI-TIMESTAMP": timestamp,
+            "X-BAPI-RECV-WINDOW": recv_window,
+            "X-BAPI-SIGN": signature
+        }
+        
+        async with aiohttp.ClientSession() as session:
+            async with session.get(
+                f"{base_url}/v5/account/wallet-balance?{params}",
+                headers=headers,
+                timeout=aiohttp.ClientTimeout(total=10)
+            ) as resp:
+                result = await resp.json()
+                
+                if result.get("retCode") == 0:
+                    balance = 0.0
+                    lst = result.get("result", {}).get("list", [])
+                    if lst:
+                        balance = float(lst[0].get("totalEquity", "0"))
+                    return {"valid": True, "balance": balance}
+                else:
+                    return {"valid": False, "error": result.get("retMsg", "API error")}
+                    
+    except Exception as e:
+        logger.error(f"Bybit API test with keys failed: {e}")
+        return {"valid": False, "error": str(e)}
+
+
 async def save_bybit_api_keys(
     data: BybitApiKeys,
     user: dict = Depends(get_current_user)

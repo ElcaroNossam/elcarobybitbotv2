@@ -8,7 +8,7 @@
    ───────────────────────────────────────────────────────────────────────────── */
 :root {
     /* Colors */
-    --bg-primary: #0a0a0a;
+    --bg-primary: #050505;
     --bg-secondary: #111111;
     --bg-tertiary: #1a1a1a;
     --bg-card: rgba(255, 255, 255, 0.02);
@@ -28,7 +28,7 @@
     
     --gradient-primary: linear-gradient(135deg, #2563eb 0%, #1e40af 50%, #1e3a8a 100%);
     --gradient-gold: linear-gradient(135deg, #d4a017 0%, #b8860b 50%, #d4a017 100%);
-    --gradient-dark: linear-gradient(180deg, #0a0a0a 0%, #111111 100%);
+    --gradient-dark: linear-gradient(180deg, #050505 0%, #111111 100%);
     
     --border-color: rgba(255, 255, 255, 0.06);
     --border-hover: rgba(255, 255, 255, 0.12);
@@ -423,7 +423,7 @@ img {
     position: relative;
     width: 320px;
     height: 640px;
-    background: linear-gradient(145deg, #1a1a1a 0%, #0a0a0a 100%);
+    background: linear-gradient(145deg, #1a1a1a 0%, #050505 100%);
     border-radius: 40px;
     border: 3px solid rgba(255, 255, 255, 0.1);
     box-shadow: 

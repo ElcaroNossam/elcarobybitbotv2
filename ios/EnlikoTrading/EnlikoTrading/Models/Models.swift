@@ -1086,7 +1086,7 @@ struct StrategySettings: Codable, Identifiable {
         tpPercent = try container.decodeIfPresent(Double.self, forKey: .tpPercent) ?? 25.0
         slPercent = try container.decodeIfPresent(Double.self, forKey: .slPercent) ?? 30.0
         leverage = try container.decodeIfPresent(Int.self, forKey: .leverage) ?? 10
-        useAtr = try container.decodeIfPresent(Bool.self, forKey: .useAtr) ?? true
+        useAtr = try container.decodeIfPresent(Bool.self, forKey: .useAtr) ?? false
         atrTriggerPct = try container.decodeIfPresent(Double.self, forKey: .atrTriggerPct)
         atrStepPct = try container.decodeIfPresent(Double.self, forKey: .atrStepPct)
         atrPeriods = try container.decodeIfPresent(Int.self, forKey: .atrPeriods)

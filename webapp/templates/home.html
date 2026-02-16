@@ -6,7 +6,7 @@
     <meta name="mobile-web-app-capable" content="yes">
     <meta name="apple-mobile-web-app-capable" content="yes">
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
-    <meta name="theme-color" content="#0a0a0a">
+    <meta name="theme-color" content="#050505">
     <meta name="description" content="Enliko Trading Terminal - AI-powered crypto trading platform with automated strategies, copy trading, and real-time market analysis for Bybit and HyperLiquid.">
     <title>Enliko Trading | AI-Powered Crypto Trading Platform</title>
     
@@ -26,7 +26,7 @@
     
     <style>
         :root {
-            --bg-primary: #0a0a0a;
+            --bg-primary: #050505;
             --bg-secondary: #111111;
             --bg-tertiary: #1a1a1a;
             --bg-card: rgba(20, 20, 20, 0.8);
@@ -125,7 +125,7 @@
             right: 0;
             z-index: 1000;
             padding: 16px 24px;
-            background: rgba(10, 10, 10, 0.8);
+            background: rgba(5, 5, 5, 0.8);
             backdrop-filter: blur(20px);
             border-bottom: 1px solid var(--border-color);
         }
@@ -742,6 +742,239 @@
             border-color: var(--accent-primary);
         }
 
+        /* Market Overview Section */
+        .market-section {
+            padding: 80px 24px;
+            background: linear-gradient(180deg, var(--bg-secondary) 0%, var(--bg-primary) 100%);
+        }
+
+        .market-container {
+            max-width: 1400px;
+            margin: 0 auto;
+        }
+
+        .market-grid {
+            display: grid;
+            grid-template-columns: repeat(4, 1fr);
+            gap: 20px;
+            margin-bottom: 32px;
+        }
+
+        .market-card {
+            background: var(--bg-card);
+            border: 1px solid var(--border-color);
+            border-radius: 20px;
+            padding: 24px;
+            transition: all 0.3s;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .market-card:hover {
+            border-color: rgba(37, 99, 235, 0.3);
+            transform: translateY(-3px);
+        }
+
+        .market-card .mc-label {
+            font-size: 12px;
+            color: var(--text-muted);
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            margin-bottom: 8px;
+        }
+
+        .market-card .mc-value {
+            font-size: 28px;
+            font-weight: 800;
+            font-family: 'JetBrains Mono', monospace;
+            margin-bottom: 4px;
+        }
+
+        .market-card .mc-change {
+            font-size: 14px;
+            font-weight: 600;
+        }
+
+        .market-card .mc-change.up { color: var(--accent-green); }
+        .market-card .mc-change.down { color: var(--accent-red); }
+        .market-card .mc-change.neutral { color: var(--text-secondary); }
+
+        .market-card .mc-icon {
+            position: absolute;
+            top: 20px;
+            right: 20px;
+            font-size: 24px;
+            opacity: 0.6;
+        }
+
+        /* Gauge / Index Cards */
+        .index-grid {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 20px;
+            margin-bottom: 32px;
+        }
+
+        .index-card {
+            background: var(--bg-card);
+            border: 1px solid var(--border-color);
+            border-radius: 20px;
+            padding: 28px;
+            text-align: center;
+            transition: all 0.3s;
+        }
+
+        .index-card:hover {
+            border-color: rgba(37, 99, 235, 0.3);
+            transform: translateY(-3px);
+        }
+
+        .index-card .idx-title {
+            font-size: 13px;
+            color: var(--text-secondary);
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            margin-bottom: 16px;
+        }
+
+        .index-card .idx-value {
+            font-size: 48px;
+            font-weight: 900;
+            font-family: 'JetBrains Mono', monospace;
+            margin-bottom: 8px;
+            line-height: 1;
+        }
+
+        .index-card .idx-label {
+            font-size: 14px;
+            font-weight: 600;
+            margin-bottom: 12px;
+        }
+
+        .idx-gauge {
+            width: 100%;
+            height: 6px;
+            background: rgba(255,255,255,0.08);
+            border-radius: 3px;
+            overflow: hidden;
+            margin-top: 12px;
+        }
+
+        .idx-gauge-fill {
+            height: 100%;
+            border-radius: 3px;
+            transition: width 1s ease;
+        }
+
+        /* Top Coins Table */
+        .top-coins-card {
+            background: var(--bg-card);
+            border: 1px solid var(--border-color);
+            border-radius: 20px;
+            padding: 28px;
+            margin-bottom: 32px;
+        }
+
+        .top-coins-card h3 {
+            font-size: 16px;
+            font-weight: 700;
+            margin-bottom: 20px;
+            color: var(--text-primary);
+        }
+
+        .top-coins-table {
+            width: 100%;
+        }
+
+        .top-coins-table .tc-row {
+            display: grid;
+            grid-template-columns: 40px 1fr 120px 100px 80px;
+            align-items: center;
+            padding: 12px 0;
+            border-bottom: 1px solid var(--border-color);
+        }
+
+        .top-coins-table .tc-row:last-child {
+            border-bottom: none;
+        }
+
+        .top-coins-table .tc-rank {
+            font-size: 18px;
+        }
+
+        .top-coins-table .tc-symbol {
+            font-weight: 700;
+            font-size: 15px;
+        }
+
+        .top-coins-table .tc-price {
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 14px;
+            text-align: right;
+        }
+
+        .top-coins-table .tc-dom {
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 14px;
+            text-align: right;
+            color: var(--accent-blue);
+        }
+
+        .top-coins-table .tc-change {
+            font-size: 13px;
+            font-weight: 600;
+            text-align: right;
+        }
+
+        /* Total MCap Row */
+        .mcap-grid {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 20px;
+        }
+
+        .mcap-card {
+            background: var(--bg-card);
+            border: 1px solid var(--border-color);
+            border-radius: 16px;
+            padding: 20px;
+            text-align: center;
+        }
+
+        .mcap-card .mcap-lbl {
+            font-size: 12px;
+            color: var(--text-muted);
+            margin-bottom: 6px;
+        }
+
+        .mcap-card .mcap-val {
+            font-size: 22px;
+            font-weight: 800;
+            font-family: 'JetBrains Mono', monospace;
+            color: var(--accent-gold);
+        }
+
+        /* Market Loading State */
+        .market-loading {
+            text-align: center;
+            padding: 60px 0;
+            color: var(--text-muted);
+        }
+
+        .market-loading .spinner {
+            width: 40px;
+            height: 40px;
+            border: 3px solid var(--border-color);
+            border-top-color: var(--accent-primary);
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+            margin: 0 auto 16px;
+        }
+
+        @keyframes spin {
+            to { transform: rotate(360deg); }
+        }
+
         /* Mobile */
         @media (max-width: 768px) {
             .hero-grid {
@@ -758,6 +991,34 @@
 
             .chart-container {
                 height: 300px;
+            }
+
+            .market-grid {
+                grid-template-columns: repeat(2, 1fr);
+            }
+
+            .index-grid {
+                grid-template-columns: 1fr;
+            }
+
+            .top-coins-table .tc-row {
+                grid-template-columns: 32px 1fr 100px 80px;
+            }
+
+            .top-coins-table .tc-price {
+                display: none;
+            }
+
+            .mcap-grid {
+                grid-template-columns: 1fr;
+            }
+
+            .market-card .mc-value {
+                font-size: 22px;
+            }
+
+            .index-card .idx-value {
+                font-size: 36px;
             }
         }
     </style>
@@ -879,8 +1140,104 @@
 
     <!-- Live Ticker -->
     <div class="ticker">
-        <div class="ticker-track" id="tickerTrack"></div>
+        <div class="ticker-track" id="tickerTrack">
+            <div class="market-loading"><div class="spinner"></div></div>
+        </div>
     </div>
+
+    <!-- Market Overview Section -->
+    <section class="market-section" id="market">
+        <div class="market-container">
+            <div class="section-header">
+                <span class="section-badge">
+                    <i class="fas fa-globe"></i>
+                    Live Market Data
+                </span>
+                <h2 class="section-title">Market Overview</h2>
+                <p class="section-subtitle">
+                    Real-time data from global markets — same as Telegram bot's Market button
+                </p>
+            </div>
+
+            <!-- Price Cards: BTC, Gold, S&P 500, USDT Dominance -->
+            <div class="market-grid" id="marketGrid">
+                <div class="market-card">
+                    <div class="mc-icon">₿</div>
+                    <div class="mc-label">Bitcoin</div>
+                    <div class="mc-value" id="mktBtcPrice">—</div>
+                    <div class="mc-change neutral" id="mktBtcChange">Loading...</div>
+                    <div style="font-size:12px;color:var(--text-muted);margin-top:6px">BTC.D: <span id="mktBtcDom">—</span>%</div>
+                </div>
+                <div class="market-card">
+                    <div class="mc-icon">🥇</div>
+                    <div class="mc-label">Gold (XAU/USD)</div>
+                    <div class="mc-value" id="mktGoldPrice">—</div>
+                    <div class="mc-change neutral" id="mktGoldChange">Loading...</div>
+                </div>
+                <div class="market-card">
+                    <div class="mc-icon">📊</div>
+                    <div class="mc-label">S&P 500</div>
+                    <div class="mc-value" id="mktSp500">—</div>
+                    <div class="mc-change neutral" id="mktSp500Change">Loading...</div>
+                </div>
+                <div class="market-card">
+                    <div class="mc-icon">💵</div>
+                    <div class="mc-label">USDT Dominance</div>
+                    <div class="mc-value" id="mktUsdtDom">—</div>
+                    <div class="mc-change neutral">Stablecoin share</div>
+                </div>
+            </div>
+
+            <!-- Index Cards: Fear & Greed, Altseason, ALT Signal -->
+            <div class="index-grid" id="indexGrid">
+                <div class="index-card">
+                    <div class="idx-title">🎭 Fear & Greed Index</div>
+                    <div class="idx-value" id="mktFearGreed" style="color: var(--text-muted);">—</div>
+                    <div class="idx-label" id="mktFearGreedLabel">Loading...</div>
+                    <div class="idx-gauge">
+                        <div class="idx-gauge-fill" id="mktFearGreedBar" style="width: 0%; background: var(--accent-primary);"></div>
+                    </div>
+                </div>
+                <div class="index-card">
+                    <div class="idx-title">🔥 Altseason Index</div>
+                    <div class="idx-value" id="mktAltseason" style="color: var(--text-muted);">—</div>
+                    <div class="idx-label" id="mktAltseasonLabel">Loading...</div>
+                    <div class="idx-gauge">
+                        <div class="idx-gauge-fill" id="mktAltseasonBar" style="width: 0%; background: var(--accent-primary);"></div>
+                    </div>
+                </div>
+                <div class="index-card">
+                    <div class="idx-title">📡 ALT Signal</div>
+                    <div class="idx-value" id="mktAltSignal" style="color: var(--text-muted);">—</div>
+                    <div class="idx-label" id="mktAltSignalDesc">Loading...</div>
+                </div>
+            </div>
+
+            <!-- Top Coins by Dominance -->
+            <div class="top-coins-card">
+                <h3>📊 Top Coins by Dominance</h3>
+                <div class="top-coins-table" id="topCoinsTable">
+                    <div class="market-loading"><div class="spinner"></div><div>Loading market data...</div></div>
+                </div>
+            </div>
+
+            <!-- Total Market Cap -->
+            <div class="mcap-grid" id="mcapGrid">
+                <div class="mcap-card">
+                    <div class="mcap-lbl">Total 1 (All Crypto)</div>
+                    <div class="mcap-val" id="mktTotal1">—</div>
+                </div>
+                <div class="mcap-card">
+                    <div class="mcap-lbl">Total 2 (Without BTC)</div>
+                    <div class="mcap-val" id="mktTotal2">—</div>
+                </div>
+                <div class="mcap-card">
+                    <div class="mcap-lbl">Total 3 (Without BTC+ETH)</div>
+                    <div class="mcap-val" id="mktTotal3">—</div>
+                </div>
+            </div>
+        </div>
+    </section>
 
     <!-- Stats Section -->
     <section class="stats-section" id="stats">
@@ -1078,7 +1435,6 @@
                 priceLineVisible: true,
             });
 
-            // Handle resize
             window.addEventListener('resize', () => {
                 chart.applyOptions({ width: container.clientWidth });
             });
@@ -1090,7 +1446,6 @@
             document.querySelectorAll('.chart-tab').forEach(tab => {
                 tab.classList.toggle('active', tab.dataset.chart === type);
             });
-
             const data = type === 'btc' ? btcData : goldData;
             if (data.length > 0) {
                 lineSeries.setData(data);
@@ -1101,7 +1456,23 @@
             }
         }
 
-        // Fetch data from API
+        // Fetch Gold kline data from Binance (XAUUSDT)
+        async function fetchGoldChart() {
+            try {
+                const resp = await fetch('https://api.binance.com/api/v3/klines?symbol=XAUUSDT&interval=1h&limit=168');
+                if (resp.ok) {
+                    const klines = await resp.json();
+                    goldData = klines.map(k => ({
+                        time: Math.floor(parseInt(k[0]) / 1000),
+                        value: parseFloat(k[4])
+                    }));
+                }
+            } catch(e) {
+                console.warn('Gold chart fetch failed, using fallback');
+            }
+        }
+
+        // Fetch home data (BTC chart, Gold price, stats)
         async function fetchHomeData() {
             try {
                 const response = await fetch('/api/home/all');
@@ -1126,23 +1497,12 @@
                     }
                 }
 
-                // Update Gold (generate fake chart data for now)
+                // Update Gold price from API
                 if (data.gold) {
                     document.getElementById('goldPrice').textContent = '$' + formatNumber(data.gold.price);
                     const goldChangeEl = document.getElementById('goldChange');
                     goldChangeEl.textContent = (data.gold.change24h >= 0 ? '+' : '') + data.gold.change24h.toFixed(2) + '%';
                     goldChangeEl.className = 'change ' + (data.gold.change24h >= 0 ? 'up' : 'down');
-
-                    // Generate simple gold chart data
-                    const now = Math.floor(Date.now() / 1000);
-                    const basePrice = data.gold.price;
-                    goldData = [];
-                    for (let i = 168; i >= 0; i--) {
-                        goldData.push({
-                            time: now - (i * 3600),
-                            value: basePrice + (Math.random() - 0.5) * 20
-                        });
-                    }
                 }
 
                 // Update stats
@@ -1160,9 +1520,139 @@
                     document.getElementById('cardPnl').textContent = (data.stats.today_pnl >= 0 ? '+' : '') + '$' + formatNumber(data.stats.today_pnl);
                 }
 
+                // Update Market Overview section from data.market
+                if (data.market) {
+                    updateMarketOverview(data.market);
+                    updateTicker(data.market);
+                }
+
             } catch (error) {
                 console.error('Error fetching home data:', error);
             }
+        }
+
+        // Update Market Overview section
+        function updateMarketOverview(m) {
+            // BTC
+            if (m.btc) {
+                document.getElementById('mktBtcPrice').textContent = '$' + formatNumber(m.btc.price);
+                setChange('mktBtcChange', m.btc.change_24h);
+                document.getElementById('mktBtcDom').textContent = m.btc.dominance.toFixed(2);
+            }
+            // Gold
+            if (m.gold) {
+                document.getElementById('mktGoldPrice').textContent = '$' + formatNumber(m.gold.price);
+                setChange('mktGoldChange', m.gold.change);
+            }
+            // S&P 500
+            if (m.sp500) {
+                document.getElementById('mktSp500').textContent = formatNumber(m.sp500.price);
+                setChange('mktSp500Change', m.sp500.change);
+            }
+            // USDT Dominance
+            if (m.usdt_dominance !== undefined) {
+                document.getElementById('mktUsdtDom').textContent = m.usdt_dominance.toFixed(2) + '%';
+            }
+            // Fear & Greed
+            if (m.fear_greed) {
+                const fg = m.fear_greed.value;
+                const fgEl = document.getElementById('mktFearGreed');
+                fgEl.textContent = fg;
+                fgEl.style.color = fg >= 75 ? '#22c55e' : fg >= 55 ? '#eab308' : fg >= 45 ? '#a0a0a0' : fg >= 25 ? '#f97316' : '#ef4444';
+                document.getElementById('mktFearGreedLabel').textContent = m.fear_greed.label;
+                document.getElementById('mktFearGreedBar').style.width = fg + '%';
+                document.getElementById('mktFearGreedBar').style.background = fg >= 75 ? '#22c55e' : fg >= 55 ? '#eab308' : fg >= 45 ? '#6b7280' : fg >= 25 ? '#f97316' : '#ef4444';
+            }
+            // Altseason
+            if (m.altseason_index !== undefined) {
+                const alt = m.altseason_index;
+                const altEl = document.getElementById('mktAltseason');
+                altEl.textContent = alt;
+                altEl.style.color = alt >= 75 ? '#22c55e' : alt >= 50 ? '#eab308' : alt >= 25 ? '#f97316' : '#3b82f6';
+                document.getElementById('mktAltseasonLabel').textContent = alt >= 75 ? '🚀 Altcoin Season' : alt >= 50 ? '📈 Altcoin Momentum' : alt >= 25 ? '📉 Bitcoin Leaning' : '❄️ Bitcoin Season';
+                document.getElementById('mktAltseasonBar').style.width = alt + '%';
+                document.getElementById('mktAltseasonBar').style.background = alt >= 75 ? '#22c55e' : alt >= 50 ? '#eab308' : '#3b82f6';
+            }
+            // ALT Signal
+            if (m.alt_signal) {
+                const sig = m.alt_signal;
+                const sigEl = document.getElementById('mktAltSignal');
+                sigEl.textContent = sig;
+                sigEl.style.color = sig === 'LONG' ? '#22c55e' : sig === 'SHORT' ? '#ef4444' : '#a0a0a0';
+                const desc = sig === 'LONG' ? 'Falling BTC.D + BTC up → Altcoins favored' : sig === 'SHORT' ? 'Rising BTC.D → Bitcoin dominant' : 'Mixed signals — no clear direction';
+                document.getElementById('mktAltSignalDesc').textContent = desc;
+            }
+            // Top Coins
+            if (m.top_coins && m.top_coins.length > 0) {
+                const medals = ['🥇', '🥈', '🥉', '4️⃣', '5️⃣'];
+                let html = '';
+                m.top_coins.forEach((coin, i) => {
+                    const ch = coin.change_24h;
+                    html += `<div class="tc-row">
+                        <span class="tc-rank">${medals[i] || (i+1)+'.'}</span>
+                        <span class="tc-symbol">${coin.symbol}</span>
+                        <span class="tc-price">$${coin.price >= 1 ? formatNumber(coin.price) : coin.price.toFixed(4)}</span>
+                        <span class="tc-dom">${coin.dominance.toFixed(2)}%</span>
+                        <span class="tc-change ${ch >= 0 ? 'up' : 'down'}">${ch >= 0 ? '+' : ''}${ch.toFixed(1)}%</span>
+                    </div>`;
+                });
+                document.getElementById('topCoinsTable').innerHTML = html;
+            }
+            // Total Market Cap
+            if (m.total_market_cap) {
+                const t = m.total_market_cap;
+                document.getElementById('mktTotal1').textContent = '$' + t.total1.toFixed(2) + 'T';
+                document.getElementById('mktTotal2').textContent = '$' + t.total2.toFixed(2) + 'T';
+                document.getElementById('mktTotal3').textContent = '$' + t.total3.toFixed(2) + 'T';
+            }
+        }
+
+        // Update ticker with real market data
+        function updateTicker(m) {
+            const track = document.getElementById('tickerTrack');
+            const items = [];
+
+            // Add BTC from market data
+            if (m.btc && m.btc.price > 0) {
+                items.push({ symbol: 'BTC', price: m.btc.price, change: m.btc.change_24h });
+            }
+            // Add top coins
+            if (m.top_coins) {
+                m.top_coins.forEach(c => {
+                    items.push({ symbol: c.symbol, price: c.price, change: c.change_24h });
+                });
+            }
+            // Add Gold & S&P
+            if (m.gold && m.gold.price > 0) {
+                items.push({ symbol: 'GOLD', price: m.gold.price, change: m.gold.change });
+            }
+            if (m.sp500 && m.sp500.price > 0) {
+                items.push({ symbol: 'S&P500', price: m.sp500.price, change: m.sp500.change });
+            }
+
+            if (items.length === 0) return;
+
+            let html = '';
+            // Duplicate for seamless loop
+            for (let loop = 0; loop < 2; loop++) {
+                items.forEach(t => {
+                    const fmt = t.price >= 100 ? formatNumber(t.price) : t.price >= 1 ? t.price.toFixed(2) : t.price.toFixed(4);
+                    html += `<div class="ticker-item">
+                        <span class="symbol">${t.symbol}</span>
+                        <span class="price">$${fmt}</span>
+                        <span class="change ${t.change >= 0 ? 'up' : 'down'}">${t.change >= 0 ? '+' : ''}${t.change.toFixed(1)}%</span>
+                    </div>`;
+                });
+            }
+            track.innerHTML = html;
+        }
+
+        // Helper: set change text + color
+        function setChange(elId, val) {
+            const el = document.getElementById(elId);
+            if (!el) return;
+            el.textContent = (val >= 0 ? '+' : '') + val.toFixed(2) + '%';
+            el.className = 'mc-change ' + (val >= 0 ? 'up' : val < 0 ? 'down' : 'neutral');
         }
 
         // Format helpers
@@ -1182,45 +1672,20 @@
             return num.toString();
         }
 
-        // Ticker
-        async function initTicker() {
-            const tickers = [
-                { symbol: 'BTC', price: 104250, change: 2.4 },
-                { symbol: 'ETH', price: 3180, change: 1.8 },
-                { symbol: 'SOL', price: 185, change: -0.5 },
-                { symbol: 'XRP', price: 2.85, change: 3.2 },
-                { symbol: 'DOGE', price: 0.32, change: 1.1 },
-                { symbol: 'ADA', price: 0.95, change: -0.8 },
-                { symbol: 'AVAX', price: 38, change: 2.1 },
-                { symbol: 'LINK', price: 22, change: 0.9 },
-            ];
-
-            const track = document.getElementById('tickerTrack');
-            let html = '';
-            
-            // Duplicate for seamless loop
-            for (let i = 0; i < 2; i++) {
-                tickers.forEach(t => {
-                    html += `
-                        <div class="ticker-item">
-                            <span class="symbol">${t.symbol}</span>
-                            <span class="price">$${t.price.toLocaleString()}</span>
-                            <span class="change ${t.change >= 0 ? 'up' : 'down'}">${t.change >= 0 ? '+' : ''}${t.change}%</span>
-                        </div>
-                    `;
-                });
-            }
-            track.innerHTML = html;
-        }
-
         // Initialize
         document.addEventListener('DOMContentLoaded', () => {
             initChart();
-            initTicker();
             fetchHomeData();
+            fetchGoldChart().then(() => {
+                if (currentChart === 'gold' && goldData.length > 0) {
+                    lineSeries.setData(goldData);
+                    chart.timeScale().fitContent();
+                }
+            });
 
             // Refresh data every 60 seconds
             setInterval(fetchHomeData, 60000);
+            setInterval(fetchGoldChart, 120000);
         });
     </script>
 </body>

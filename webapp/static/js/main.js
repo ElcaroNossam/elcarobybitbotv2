@@ -114,7 +114,7 @@ const TelegramAuth = {
             
             // Set theme colors from Telegram
             if (tg.themeParams) {
-                document.documentElement.style.setProperty('--bg-primary', tg.themeParams.bg_color || '#0a0a0a');
+                document.documentElement.style.setProperty('--bg-primary', tg.themeParams.bg_color || '#050505');
                 document.documentElement.style.setProperty('--text-primary', tg.themeParams.text_color || '#f1f1f4');
             }
 

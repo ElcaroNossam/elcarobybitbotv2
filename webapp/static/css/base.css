@@ -23,7 +23,7 @@ html {
 /* ===== ROOT VARIABLES ===== */
 :root {
     /* === Background Colors === */
-    --bg-primary: #0a0a0a;
+    --bg-primary: #050505;
     --bg-secondary: #111111;
     --bg-tertiary: #1a1a1a;
     --bg-card: #141414;
@@ -94,7 +94,7 @@ html {
     --gradient-green: linear-gradient(135deg, #22c55e 0%, #16a34a 100%);
     --gradient-red: linear-gradient(135deg, #ef4444 0%, #dc2626 100%);
     --gradient-success: linear-gradient(135deg, #10b981 0%, #059669 100%);
-    --gradient-metal: linear-gradient(180deg, #2a2a2a 0%, #1a1a1a 50%, #0a0a0a 100%);
+    --gradient-metal: linear-gradient(180deg, #2a2a2a 0%, #1a1a1a 50%, #050505 100%);
     --gradient-card: linear-gradient(180deg, #1a1a1a 0%, #1a1a1a 100%);
     --gradient-shine: linear-gradient(90deg, transparent 0%, rgba(255,255,255,0.05) 50%, transparent 100%);
     

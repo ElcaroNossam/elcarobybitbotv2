@@ -19,7 +19,7 @@
   </defs>
   
   <!-- Icon Box -->
-  <rect x="2" y="8" width="44" height="44" rx="10" fill="#0a0a0a"/>
+  <rect x="2" y="8" width="44" height="44" rx="10" fill="#050505"/>
   <rect x="2" y="8" width="44" height="44" rx="10" fill="url(#stark-grad)" opacity="0.2"/>
   
   <!-- T Letter with Arc Reactor -->
