@@ -44,11 +44,26 @@ data class StrategySettings(
     val tpPercent: Double = 25.0,
     val slPercent: Double = 30.0,
     val leverage: Int = 10,
-    val useAtr: Boolean = false,
-    val atrPeriods: Int = 14,
-    val atrMultiplierSl: Double = 1.5,
-    val direction: String = "All", // All, Long, Short
-    val coinsGroup: String = "ALL"
+    val useAtr: Boolean = true,
+    val atrPeriods: Int = 7,
+    val atrMultiplierSl: Double = 0.5,
+    val atrTriggerPct: Double = 3.0,
+    val atrStepPct: Double = 0.5,
+    val orderType: String = "market",
+    val limitOffsetPct: Double = 0.1,
+    val direction: String = "all",
+    val coinsGroup: String = "ALL",
+    val maxPositions: Int = 0,
+    val dcaEnabled: Boolean = false,
+    val dcaPct1: Double = 10.0,
+    val dcaPct2: Double = 25.0,
+    val beEnabled: Boolean = false,
+    val beTriggerPct: Double = 1.0,
+    val partialTpEnabled: Boolean = false,
+    val partialTp1TriggerPct: Double = 2.0,
+    val partialTp1ClosePct: Double = 30.0,
+    val partialTp2TriggerPct: Double = 5.0,
+    val partialTp2ClosePct: Double = 30.0
 )
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -64,7 +79,7 @@ fun StrategiesScreen(
     // Load strategies
     LaunchedEffect(Unit) {
         delay(500)
-        strategies = generateMockStrategies()
+        strategies = generateDefaultStrategies()
         isLoading = false
     }
     
@@ -484,7 +499,7 @@ private fun StrategySettingsSheet(
                     SettingSlider(
                         label = "Take Profit %",
                         value = settings.tpPercent,
-                        range = 0.5f..50f,
+                        range = 0.5f..100f,
                         format = "%.1f%%",
                         onValueChange = { settings = settings.copy(tpPercent = it.toDouble()) }
                     )
@@ -492,7 +507,7 @@ private fun StrategySettingsSheet(
                     SettingSlider(
                         label = "Stop Loss %",
                         value = settings.slPercent,
-                        range = 0.5f..20f,
+                        range = 0.5f..100f,
                         format = "%.1f%%",
                         onValueChange = { settings = settings.copy(slPercent = it.toDouble()) }
                     )
@@ -537,7 +552,7 @@ private fun StrategySettingsSheet(
                         SettingSlider(
                             label = "ATR Periods",
                             value = settings.atrPeriods.toDouble(),
-                            range = 5f..50f,
+                            range = 3f..50f,
                             format = "%.0f",
                             onValueChange = { settings = settings.copy(atrPeriods = it.toInt()) }
                         )
@@ -545,9 +560,25 @@ private fun StrategySettingsSheet(
                         SettingSlider(
                             label = "ATR Multiplier (SL)",
                             value = settings.atrMultiplierSl,
-                            range = 0.5f..5f,
+                            range = 0.1f..5f,
                             format = "%.1f",
                             onValueChange = { settings = settings.copy(atrMultiplierSl = it.toDouble()) }
+                        )
+                        
+                        SettingSlider(
+                            label = "ATR Trigger %",
+                            value = settings.atrTriggerPct,
+                            range = 0.1f..10f,
+                            format = "%.1f%%",
+                            onValueChange = { settings = settings.copy(atrTriggerPct = it.toDouble()) }
+                        )
+                        
+                        SettingSlider(
+                            label = "ATR Step %",
+                            value = settings.atrStepPct,
+                            range = 0.05f..5f,
+                            format = "%.2f%%",
+                            onValueChange = { settings = settings.copy(atrStepPct = it.toDouble()) }
                         )
                     }
                 }
@@ -612,92 +643,92 @@ private fun SettingSlider(
     }
 }
 
-// Mock data
-private fun generateMockStrategies(): List<Strategy> {
+// Default strategies with canonical settings from coin_params.py
+private fun generateDefaultStrategies(): List<Strategy> {
     return listOf(
         Strategy(
             id = "oi",
             name = "OI Strategy",
-            description = "Open Interest based signals",
+            description = "Open Interest divergence signals",
             icon = Icons.Default.TrendingUp,
             color = Color(0xFF2196F3),
             isEnabled = true,
             longEnabled = true,
             shortEnabled = true,
-            trades = 156,
-            pnl = 4250.0,
-            winRate = 68.5,
-            settings = StrategySettings(entryPercent = 1.0, tpPercent = 25.0, slPercent = 30.0, leverage = 10)
+            trades = 0,
+            pnl = 0.0,
+            winRate = 0.0,
+            settings = StrategySettings()
         ),
         Strategy(
             id = "scryptomera",
             name = "Scryptomera",
-            description = "Scalping with momentum",
+            description = "Volume delta analysis",
             icon = Icons.Default.Speed,
             color = Color(0xFFE91E63),
             isEnabled = true,
             longEnabled = true,
-            shortEnabled = false,
-            trades = 89,
-            pnl = 1850.0,
-            winRate = 62.3,
-            settings = StrategySettings(entryPercent = 0.5, tpPercent = 3.0, slPercent = 1.5, leverage = 20)
+            shortEnabled = true,
+            trades = 0,
+            pnl = 0.0,
+            winRate = 0.0,
+            settings = StrategySettings()
         ),
         Strategy(
             id = "scalper",
             name = "Scalper",
-            description = "Quick trades, small profits",
+            description = "Momentum breakouts",
             icon = Icons.Default.FlashOn,
             color = Color(0xFFFF9800),
-            isEnabled = false,
-            longEnabled = true,
-            shortEnabled = true,
-            trades = 245,
-            pnl = 980.0,
-            winRate = 71.2,
-            settings = StrategySettings(entryPercent = 0.3, tpPercent = 1.5, slPercent = 1.0, leverage = 25)
-        ),
-        Strategy(
-            id = "fibonacci",
-            name = "Fibonacci",
-            description = "Fibonacci retracement levels",
-            icon = Icons.Default.AutoGraph,
-            color = Color(0xFF9C27B0),
             isEnabled = true,
             longEnabled = true,
             shortEnabled = true,
-            trades = 67,
-            pnl = 2150.0,
-            winRate = 59.7,
-            settings = StrategySettings(entryPercent = 1.5, tpPercent = 10.0, slPercent = 4.0, leverage = 8)
-        ),
-        Strategy(
-            id = "rsi_bb",
-            name = "RSI + Bollinger",
-            description = "RSI with Bollinger Bands",
-            icon = Icons.Default.Assessment,
-            color = Color(0xFF00BCD4),
-            isEnabled = false,
-            longEnabled = true,
-            shortEnabled = true,
-            trades = 112,
-            pnl = -350.0,
-            winRate = 48.2,
-            settings = StrategySettings(entryPercent = 1.0, tpPercent = 25.0, slPercent = 30.0, leverage = 10)
+            trades = 0,
+            pnl = 0.0,
+            winRate = 0.0,
+            settings = StrategySettings()
         ),
         Strategy(
             id = "elcaro",
-            name = "Elcaro",
-            description = "Multi-indicator strategy",
+            name = "ENLIKO AI",
+            description = "AI-powered trading signals",
             icon = Icons.Default.Psychology,
             color = Color(0xFF4CAF50),
             isEnabled = true,
             longEnabled = true,
             shortEnabled = true,
-            trades = 78,
-            pnl = 3200.0,
-            winRate = 65.4,
-            settings = StrategySettings(entryPercent = 2.0, tpPercent = 12.0, slPercent = 5.0, leverage = 5, useAtr = true)
+            trades = 0,
+            pnl = 0.0,
+            winRate = 0.0,
+            settings = StrategySettings()
+        ),
+        Strategy(
+            id = "fibonacci",
+            name = "Fibonacci",
+            description = "Fib retracement levels",
+            icon = Icons.Default.AutoGraph,
+            color = Color(0xFF9C27B0),
+            isEnabled = true,
+            longEnabled = true,
+            shortEnabled = true,
+            trades = 0,
+            pnl = 0.0,
+            winRate = 0.0,
+            settings = StrategySettings()
+        ),
+        Strategy(
+            id = "rsi_bb",
+            name = "RSI + Bollinger",
+            description = "RSI & Bollinger Bands",
+            icon = Icons.Default.Assessment,
+            color = Color(0xFF00BCD4),
+            isEnabled = true,
+            longEnabled = true,
+            shortEnabled = true,
+            trades = 0,
+            pnl = 0.0,
+            winRate = 0.0,
+            settings = StrategySettings()
         )
     )
 }

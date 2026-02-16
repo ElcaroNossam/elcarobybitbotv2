@@ -2832,15 +2832,57 @@ async def get_symbol_price(
 # Strategy names list (keep in sync with bot)
 STRATEGY_NAMES = ["oi", "scryptomera", "scalper", "elcaro", "fibonacci", "rsi_bb", "manual"]
 
-# Default strategy settings
+# Default strategy settings — must match coin_params.py canonical defaults
 DEFAULT_STRATEGY_SETTINGS = {
-    "oi": {"enabled": False, "percent": 1.0, "sl_percent": 30.0, "tp_percent": 25.0, "leverage": 10, "use_atr": 0},
-    "scryptomera": {"enabled": False, "percent": 1.0, "sl_percent": 30.0, "tp_percent": 25.0, "leverage": 10, "use_atr": 0},
-    "scalper": {"enabled": False, "percent": 1.0, "sl_percent": 30.0, "tp_percent": 25.0, "leverage": 10, "use_atr": 0},
-    "elcaro": {"enabled": False, "percent": 1.0, "sl_percent": 30.0, "tp_percent": 25.0, "leverage": 10, "use_atr": 0},
-    "fibonacci": {"enabled": False, "percent": 1.0, "sl_percent": 30.0, "tp_percent": 25.0, "leverage": 10, "use_atr": 0},
-    "rsi_bb": {"enabled": False, "percent": 1.0, "sl_percent": 30.0, "tp_percent": 25.0, "leverage": 10, "use_atr": 0},
-    "manual": {"enabled": True, "percent": 1.0, "sl_percent": 30.0, "tp_percent": 25.0, "leverage": 10, "use_atr": 0},
+    "oi": {"enabled": False, "percent": 1.0, "sl_percent": 30.0, "tp_percent": 25.0, "leverage": 10, "use_atr": True,
+           "atr_periods": 7, "atr_multiplier_sl": 0.5, "atr_trigger_pct": 3.0, "atr_step_pct": 0.5,
+           "dca_enabled": False, "dca_pct_1": 10.0, "dca_pct_2": 25.0,
+           "be_enabled": False, "be_trigger_pct": 1.0,
+           "partial_tp_enabled": False, "partial_tp_1_trigger_pct": 2.0, "partial_tp_1_close_pct": 30.0,
+           "partial_tp_2_trigger_pct": 5.0, "partial_tp_2_close_pct": 30.0,
+           "max_positions": 0, "coins_group": "ALL", "direction": "all", "order_type": "market", "limit_offset_pct": 0.1},
+    "scryptomera": {"enabled": False, "percent": 1.0, "sl_percent": 30.0, "tp_percent": 25.0, "leverage": 10, "use_atr": True,
+           "atr_periods": 7, "atr_multiplier_sl": 0.5, "atr_trigger_pct": 3.0, "atr_step_pct": 0.5,
+           "dca_enabled": False, "dca_pct_1": 10.0, "dca_pct_2": 25.0,
+           "be_enabled": False, "be_trigger_pct": 1.0,
+           "partial_tp_enabled": False, "partial_tp_1_trigger_pct": 2.0, "partial_tp_1_close_pct": 30.0,
+           "partial_tp_2_trigger_pct": 5.0, "partial_tp_2_close_pct": 30.0,
+           "max_positions": 0, "coins_group": "ALL", "direction": "all", "order_type": "market", "limit_offset_pct": 0.1},
+    "scalper": {"enabled": False, "percent": 1.0, "sl_percent": 30.0, "tp_percent": 25.0, "leverage": 10, "use_atr": True,
+           "atr_periods": 7, "atr_multiplier_sl": 0.5, "atr_trigger_pct": 3.0, "atr_step_pct": 0.5,
+           "dca_enabled": False, "dca_pct_1": 10.0, "dca_pct_2": 25.0,
+           "be_enabled": False, "be_trigger_pct": 1.0,
+           "partial_tp_enabled": False, "partial_tp_1_trigger_pct": 2.0, "partial_tp_1_close_pct": 30.0,
+           "partial_tp_2_trigger_pct": 5.0, "partial_tp_2_close_pct": 30.0,
+           "max_positions": 0, "coins_group": "ALL", "direction": "all", "order_type": "market", "limit_offset_pct": 0.1},
+    "elcaro": {"enabled": False, "percent": 1.0, "sl_percent": 30.0, "tp_percent": 25.0, "leverage": 10, "use_atr": True,
+           "atr_periods": 7, "atr_multiplier_sl": 0.5, "atr_trigger_pct": 3.0, "atr_step_pct": 0.5,
+           "dca_enabled": False, "dca_pct_1": 10.0, "dca_pct_2": 25.0,
+           "be_enabled": False, "be_trigger_pct": 1.0,
+           "partial_tp_enabled": False, "partial_tp_1_trigger_pct": 2.0, "partial_tp_1_close_pct": 30.0,
+           "partial_tp_2_trigger_pct": 5.0, "partial_tp_2_close_pct": 30.0,
+           "max_positions": 0, "coins_group": "ALL", "direction": "all", "order_type": "market", "limit_offset_pct": 0.1},
+    "fibonacci": {"enabled": False, "percent": 1.0, "sl_percent": 30.0, "tp_percent": 25.0, "leverage": 10, "use_atr": True,
+           "atr_periods": 7, "atr_multiplier_sl": 0.5, "atr_trigger_pct": 3.0, "atr_step_pct": 0.5,
+           "dca_enabled": False, "dca_pct_1": 10.0, "dca_pct_2": 25.0,
+           "be_enabled": False, "be_trigger_pct": 1.0,
+           "partial_tp_enabled": False, "partial_tp_1_trigger_pct": 2.0, "partial_tp_1_close_pct": 30.0,
+           "partial_tp_2_trigger_pct": 5.0, "partial_tp_2_close_pct": 30.0,
+           "max_positions": 0, "coins_group": "ALL", "direction": "all", "order_type": "market", "limit_offset_pct": 0.1},
+    "rsi_bb": {"enabled": False, "percent": 1.0, "sl_percent": 30.0, "tp_percent": 25.0, "leverage": 10, "use_atr": True,
+           "atr_periods": 7, "atr_multiplier_sl": 0.5, "atr_trigger_pct": 3.0, "atr_step_pct": 0.5,
+           "dca_enabled": False, "dca_pct_1": 10.0, "dca_pct_2": 25.0,
+           "be_enabled": False, "be_trigger_pct": 1.0,
+           "partial_tp_enabled": False, "partial_tp_1_trigger_pct": 2.0, "partial_tp_1_close_pct": 30.0,
+           "partial_tp_2_trigger_pct": 5.0, "partial_tp_2_close_pct": 30.0,
+           "max_positions": 0, "coins_group": "ALL", "direction": "all", "order_type": "market", "limit_offset_pct": 0.1},
+    "manual": {"enabled": True, "percent": 1.0, "sl_percent": 30.0, "tp_percent": 25.0, "leverage": 10, "use_atr": True,
+           "atr_periods": 7, "atr_multiplier_sl": 0.5, "atr_trigger_pct": 3.0, "atr_step_pct": 0.5,
+           "dca_enabled": False, "dca_pct_1": 10.0, "dca_pct_2": 25.0,
+           "be_enabled": False, "be_trigger_pct": 1.0,
+           "partial_tp_enabled": False, "partial_tp_1_trigger_pct": 2.0, "partial_tp_1_close_pct": 30.0,
+           "partial_tp_2_trigger_pct": 5.0, "partial_tp_2_close_pct": 30.0,
+           "max_positions": 0, "coins_group": "ALL", "direction": "all", "order_type": "market", "limit_offset_pct": 0.1},
 }
 
 
@@ -2892,12 +2934,26 @@ async def get_all_strategy_settings(
                     "sl_percent": settings.get("sl_percent") if settings.get("sl_percent") is not None else defaults.get("sl_percent", global_sl),
                     "tp_percent": settings.get("tp_percent") if settings.get("tp_percent") is not None else defaults.get("tp_percent", global_tp),
                     "leverage": settings.get("leverage") if settings.get("leverage") is not None else defaults.get("leverage", global_leverage),
-                    "use_atr": bool(settings.get("use_atr", 0)),
-                    "atr_periods": settings.get("atr_periods") or 14,
-                    "atr_multiplier_sl": settings.get("atr_multiplier_sl") or 1.5,
-                    "atr_trigger_pct": settings.get("atr_trigger_pct") or 2.0,
+                    "use_atr": bool(settings.get("use_atr", defaults.get("use_atr", True))),
+                    "atr_periods": settings.get("atr_periods") or 7,
+                    "atr_multiplier_sl": settings.get("atr_multiplier_sl") or 0.5,
+                    "atr_trigger_pct": settings.get("atr_trigger_pct") or 3.0,
+                    "atr_step_pct": settings.get("atr_step_pct") or 0.5,
                     "direction": settings.get("direction", "all"),
                     "order_type": settings.get("order_type", "market"),
+                    "dca_enabled": bool(settings.get("dca_enabled", False)),
+                    "dca_pct_1": settings.get("dca_pct_1") or 10.0,
+                    "dca_pct_2": settings.get("dca_pct_2") or 25.0,
+                    "max_positions": settings.get("max_positions") or 0,
+                    "coins_group": settings.get("coins_group") or "ALL",
+                    "limit_offset_pct": settings.get("limit_offset_pct") or 0.1,
+                    "be_enabled": bool(settings.get("be_enabled", False)),
+                    "be_trigger_pct": settings.get("be_trigger_pct") or 1.0,
+                    "partial_tp_enabled": bool(settings.get("partial_tp_enabled", False)),
+                    "partial_tp_1_trigger_pct": settings.get("partial_tp_1_trigger_pct") or 2.0,
+                    "partial_tp_1_close_pct": settings.get("partial_tp_1_close_pct") or 30.0,
+                    "partial_tp_2_trigger_pct": settings.get("partial_tp_2_trigger_pct") or 5.0,
+                    "partial_tp_2_close_pct": settings.get("partial_tp_2_close_pct") or 30.0,
                 }
             except Exception as e:
                 logger.warning(f"Failed to get settings for {strategy}: {e}")
@@ -2908,7 +2964,7 @@ async def get_all_strategy_settings(
     except Exception as e:
         logger.error(f"Failed to get strategy settings: {e}")
         return {
-            "global": {"sl_percent": 30.0, "tp_percent": 25.0, "leverage": 10, "percent": 1.0, "use_atr": False},
+            "global": {"sl_percent": 30.0, "tp_percent": 25.0, "leverage": 10, "percent": 1.0, "use_atr": True},
             "strategies": {s: DEFAULT_STRATEGY_SETTINGS.get(s, {}).copy() for s in STRATEGY_NAMES}
         }
 
@@ -2941,12 +2997,26 @@ async def get_single_strategy_settings(
             "sl_percent": settings.get("sl_percent") if settings.get("sl_percent") is not None else defaults.get("sl_percent", user_cfg.get("sl_percent", 30.0)),
             "tp_percent": settings.get("tp_percent") if settings.get("tp_percent") is not None else defaults.get("tp_percent", user_cfg.get("tp_percent", 25.0)),
             "leverage": settings.get("leverage") if settings.get("leverage") is not None else defaults.get("leverage", user_cfg.get("leverage", 10)),
-            "use_atr": bool(settings.get("use_atr", 0)),
-            "atr_periods": settings.get("atr_periods") or 14,
-            "atr_multiplier_sl": settings.get("atr_multiplier_sl") or 1.5,
-            "atr_trigger_pct": settings.get("atr_trigger_pct") or 2.0,
+            "use_atr": bool(settings.get("use_atr", defaults.get("use_atr", True))),
+            "atr_periods": settings.get("atr_periods") or 7,
+            "atr_multiplier_sl": settings.get("atr_multiplier_sl") or 0.5,
+            "atr_trigger_pct": settings.get("atr_trigger_pct") or 3.0,
+            "atr_step_pct": settings.get("atr_step_pct") or 0.5,
             "direction": settings.get("direction", "all"),
             "order_type": settings.get("order_type", "market"),
+            "dca_enabled": bool(settings.get("dca_enabled", False)),
+            "dca_pct_1": settings.get("dca_pct_1") or 10.0,
+            "dca_pct_2": settings.get("dca_pct_2") or 25.0,
+            "max_positions": settings.get("max_positions") or 0,
+            "coins_group": settings.get("coins_group") or "ALL",
+            "limit_offset_pct": settings.get("limit_offset_pct") or 0.1,
+            "be_enabled": bool(settings.get("be_enabled", False)),
+            "be_trigger_pct": settings.get("be_trigger_pct") or 1.0,
+            "partial_tp_enabled": bool(settings.get("partial_tp_enabled", False)),
+            "partial_tp_1_trigger_pct": settings.get("partial_tp_1_trigger_pct") or 2.0,
+            "partial_tp_1_close_pct": settings.get("partial_tp_1_close_pct") or 30.0,
+            "partial_tp_2_trigger_pct": settings.get("partial_tp_2_trigger_pct") or 5.0,
+            "partial_tp_2_close_pct": settings.get("partial_tp_2_close_pct") or 30.0,
         }
     except Exception as e:
         logger.error(f"Failed to get {strategy} settings: {e}")
@@ -2956,6 +3026,7 @@ async def get_single_strategy_settings(
 class UpdateStrategySettingsRequest(BaseModel):
     """Request to update strategy settings"""
     strategy: str
+    side: Optional[str] = None  # 'long' or 'short' — if set, updates only that side
     enabled: Optional[bool] = None
     percent: Optional[float] = None
     sl_percent: Optional[float] = None
@@ -2965,8 +3036,22 @@ class UpdateStrategySettingsRequest(BaseModel):
     atr_periods: Optional[int] = None
     atr_multiplier_sl: Optional[float] = None
     atr_trigger_pct: Optional[float] = None
+    atr_step_pct: Optional[float] = None
     direction: Optional[str] = None
     order_type: Optional[str] = None
+    dca_enabled: Optional[bool] = None
+    dca_pct_1: Optional[float] = None
+    dca_pct_2: Optional[float] = None
+    max_positions: Optional[int] = None
+    coins_group: Optional[str] = None
+    limit_offset_pct: Optional[float] = None
+    be_enabled: Optional[bool] = None
+    be_trigger_pct: Optional[float] = None
+    partial_tp_enabled: Optional[bool] = None
+    partial_tp_1_trigger_pct: Optional[float] = None
+    partial_tp_1_close_pct: Optional[float] = None
+    partial_tp_2_trigger_pct: Optional[float] = None
+    partial_tp_2_close_pct: Optional[float] = None
     exchange: str = "bybit"
     account_type: str = "demo"
 
@@ -3007,6 +3092,15 @@ async def update_strategy_settings(
             if req.atr_trigger_pct is not None:
                 db.set_user_field(user_id, "atr_trigger_pct", req.atr_trigger_pct)
                 updated = True
+            if req.atr_step_pct is not None:
+                db.set_user_field(user_id, "atr_step_pct", req.atr_step_pct)
+                updated = True
+            if req.be_enabled is not None:
+                db.set_user_field(user_id, "be_enabled", 1 if req.be_enabled else 0)
+                updated = True
+            if req.be_trigger_pct is not None:
+                db.set_user_field(user_id, "be_trigger_pct", req.be_trigger_pct)
+                updated = True
             
             if updated:
                 db.invalidate_user_cache(user_id)
@@ -3023,28 +3117,31 @@ async def update_strategy_settings(
     try:
         # Build settings dict from non-None fields
         settings = {}
-        if req.enabled is not None:
-            settings["enabled"] = 1 if req.enabled else 0
-        if req.percent is not None:
-            settings["percent"] = req.percent
-        if req.sl_percent is not None:
-            settings["sl_percent"] = req.sl_percent
-        if req.tp_percent is not None:
-            settings["tp_percent"] = req.tp_percent
-        if req.leverage is not None:
-            settings["leverage"] = req.leverage
-        if req.use_atr is not None:
-            settings["use_atr"] = 1 if req.use_atr else 0
-        if req.atr_periods is not None:
-            settings["atr_periods"] = req.atr_periods
-        if req.atr_multiplier_sl is not None:
-            settings["atr_multiplier_sl"] = req.atr_multiplier_sl
-        if req.atr_trigger_pct is not None:
-            settings["atr_trigger_pct"] = req.atr_trigger_pct
-        if req.direction is not None:
-            settings["direction"] = req.direction
-        if req.order_type is not None:
-            settings["order_type"] = req.order_type
+        _bool_fields = ["enabled", "use_atr", "dca_enabled", "be_enabled", "partial_tp_enabled"]
+        _float_fields = ["percent", "sl_percent", "tp_percent", "atr_multiplier_sl",
+                         "atr_trigger_pct", "atr_step_pct", "dca_pct_1", "dca_pct_2",
+                         "limit_offset_pct", "be_trigger_pct",
+                         "partial_tp_1_trigger_pct", "partial_tp_1_close_pct",
+                         "partial_tp_2_trigger_pct", "partial_tp_2_close_pct"]
+        _int_fields = ["leverage", "atr_periods", "max_positions"]
+        _str_fields = ["direction", "order_type", "coins_group"]
+
+        for field in _bool_fields:
+            val = getattr(req, field, None)
+            if val is not None:
+                settings[field] = 1 if val else 0
+        for field in _float_fields:
+            val = getattr(req, field, None)
+            if val is not None:
+                settings[field] = float(val)
+        for field in _int_fields:
+            val = getattr(req, field, None)
+            if val is not None:
+                settings[field] = int(val)
+        for field in _str_fields:
+            val = getattr(req, field, None)
+            if val is not None:
+                settings[field] = str(val)
         
         if not settings:
             return {"success": False, "error": "No settings to update"}

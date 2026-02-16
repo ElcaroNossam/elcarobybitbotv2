@@ -1242,6 +1242,9 @@ STRATEGY_FEATURES = {
         "hl_settings": True,     # HyperLiquid support
         "min_quality": False,    # Scryptomera doesn't have quality filter
         "dca": True,             # DCA averaging support
+        "be": True,              # Break-Even support
+        "partial_tp": True,      # Partial Take Profit (2-step)
+        "max_positions": True,   # Max open positions limit
     },
     "scalper": {
         "order_type": True,
@@ -1256,7 +1259,10 @@ STRATEGY_FEATURES = {
         "atr_params": True,
         "hl_settings": True,
         "min_quality": False,
-        "dca": True,             # DCA averaging support
+        "dca": True,
+        "be": True,
+        "partial_tp": True,
+        "max_positions": True,
     },
     "elcaro": {
         "order_type": False,     # Order type is per-side now
@@ -1272,6 +1278,9 @@ STRATEGY_FEATURES = {
         "hl_settings": True,
         "min_quality": False,
         "dca": False,            # No DCA for Enliko signals
+        "be": True,
+        "partial_tp": True,
+        "max_positions": True,
     },
     "fibonacci": {
         "order_type": True,      # Market/Limit toggle
@@ -1287,6 +1296,9 @@ STRATEGY_FEATURES = {
         "hl_settings": True,
         "min_quality": True,     # Fibonacci-specific quality filter
         "dca": True,
+        "be": True,
+        "partial_tp": True,
+        "max_positions": True,
     },
     "oi": {
         "order_type": True,
@@ -1302,6 +1314,9 @@ STRATEGY_FEATURES = {
         "hl_settings": True,
         "min_quality": False,
         "dca": True,
+        "be": True,
+        "partial_tp": True,
+        "max_positions": True,
     },
     "rsi_bb": {
         "order_type": True,
@@ -1317,6 +1332,9 @@ STRATEGY_FEATURES = {
         "hl_settings": True,
         "min_quality": False,
         "dca": True,
+        "be": True,
+        "partial_tp": True,
+        "max_positions": True,
     },
 }
 
@@ -1336,11 +1354,11 @@ def _build_strategy_params(strategy: str, db_settings: dict, features: dict) -> 
     params = {}
     
     # Basic params (always included)
-    params["percent"] = db_settings.get("percent") if db_settings.get("percent") is not None else 5.0
+    params["percent"] = db_settings.get("percent") if db_settings.get("percent") is not None else 1.0
     params["direction"] = db_settings.get("direction") or "all"
     
     # Enabled flag
-    params["enabled"] = bool(db_settings.get("enabled", False))
+    params["enabled"] = bool(db_settings.get("enabled", True))
     
     # Leverage (if strategy supports it)
     if features.get("leverage"):
@@ -1367,12 +1385,13 @@ def _build_strategy_params(strategy: str, db_settings: dict, features: dict) -> 
     
     # ATR settings (if strategy supports it)
     if features.get("use_atr"):
-        params["use_atr"] = bool(db_settings.get("use_atr", False))
+        params["use_atr"] = bool(db_settings.get("use_atr", True))
     
     if features.get("atr_params"):
         params["atr_periods"] = db_settings.get("atr_periods") if db_settings.get("atr_periods") is not None else 7
-        params["atr_multiplier_sl"] = db_settings.get("atr_multiplier_sl") if db_settings.get("atr_multiplier_sl") is not None else 1.0
-        params["atr_trigger_pct"] = db_settings.get("atr_trigger_pct") if db_settings.get("atr_trigger_pct") is not None else 2.0
+        params["atr_multiplier_sl"] = db_settings.get("atr_multiplier_sl") if db_settings.get("atr_multiplier_sl") is not None else 0.5
+        params["atr_trigger_pct"] = db_settings.get("atr_trigger_pct") if db_settings.get("atr_trigger_pct") is not None else 3.0
+        params["atr_step_pct"] = db_settings.get("atr_step_pct") if db_settings.get("atr_step_pct") is not None else 0.5
     
     # Min quality (Fibonacci only)
     if features.get("min_quality"):
@@ -1380,29 +1399,59 @@ def _build_strategy_params(strategy: str, db_settings: dict, features: dict) -> 
     
     # Side-specific settings (LONG/SHORT)
     if features.get("side_settings"):
-        # LONG side
-        params["long_percent"] = db_settings.get("long_percent")
-        if features.get("sl_tp"):
-            params["long_sl_percent"] = db_settings.get("long_sl_percent")
-            params["long_tp_percent"] = db_settings.get("long_tp_percent")
-        if features.get("atr_params"):
-            params["long_atr_periods"] = db_settings.get("long_atr_periods")
-            params["long_atr_multiplier_sl"] = db_settings.get("long_atr_multiplier_sl")
-            params["long_atr_trigger_pct"] = db_settings.get("long_atr_trigger_pct")
-        
-        # SHORT side
-        params["short_percent"] = db_settings.get("short_percent")
-        if features.get("sl_tp"):
-            params["short_sl_percent"] = db_settings.get("short_sl_percent")
-            params["short_tp_percent"] = db_settings.get("short_tp_percent")
-        if features.get("atr_params"):
-            params["short_atr_periods"] = db_settings.get("short_atr_periods")
-            params["short_atr_multiplier_sl"] = db_settings.get("short_atr_multiplier_sl")
-            params["short_atr_trigger_pct"] = db_settings.get("short_atr_trigger_pct")
+        for side_prefix in ("long_", "short_"):
+            params[f"{side_prefix}enabled"] = bool(db_settings.get(f"{side_prefix}enabled", True))
+            params[f"{side_prefix}percent"] = db_settings.get(f"{side_prefix}percent")
+            if features.get("leverage"):
+                params[f"{side_prefix}leverage"] = db_settings.get(f"{side_prefix}leverage")
+            if features.get("sl_tp"):
+                params[f"{side_prefix}sl_percent"] = db_settings.get(f"{side_prefix}sl_percent")
+                params[f"{side_prefix}tp_percent"] = db_settings.get(f"{side_prefix}tp_percent")
+            if features.get("use_atr"):
+                params[f"{side_prefix}use_atr"] = db_settings.get(f"{side_prefix}use_atr")
+            if features.get("atr_params"):
+                params[f"{side_prefix}atr_periods"] = db_settings.get(f"{side_prefix}atr_periods")
+                params[f"{side_prefix}atr_multiplier_sl"] = db_settings.get(f"{side_prefix}atr_multiplier_sl")
+                params[f"{side_prefix}atr_trigger_pct"] = db_settings.get(f"{side_prefix}atr_trigger_pct")
+                params[f"{side_prefix}atr_step_pct"] = db_settings.get(f"{side_prefix}atr_step_pct")
+            if features.get("dca"):
+                params[f"{side_prefix}dca_enabled"] = db_settings.get(f"{side_prefix}dca_enabled")
+                params[f"{side_prefix}dca_pct_1"] = db_settings.get(f"{side_prefix}dca_pct_1")
+                params[f"{side_prefix}dca_pct_2"] = db_settings.get(f"{side_prefix}dca_pct_2")
+            if features.get("be"):
+                params[f"{side_prefix}be_enabled"] = db_settings.get(f"{side_prefix}be_enabled")
+                params[f"{side_prefix}be_trigger_pct"] = db_settings.get(f"{side_prefix}be_trigger_pct")
+            if features.get("partial_tp"):
+                params[f"{side_prefix}partial_tp_enabled"] = db_settings.get(f"{side_prefix}partial_tp_enabled")
+                params[f"{side_prefix}partial_tp_1_trigger_pct"] = db_settings.get(f"{side_prefix}partial_tp_1_trigger_pct")
+                params[f"{side_prefix}partial_tp_1_close_pct"] = db_settings.get(f"{side_prefix}partial_tp_1_close_pct")
+                params[f"{side_prefix}partial_tp_2_trigger_pct"] = db_settings.get(f"{side_prefix}partial_tp_2_trigger_pct")
+                params[f"{side_prefix}partial_tp_2_close_pct"] = db_settings.get(f"{side_prefix}partial_tp_2_close_pct")
+            if features.get("max_positions"):
+                params[f"{side_prefix}max_positions"] = db_settings.get(f"{side_prefix}max_positions")
+            if features.get("coins_group"):
+                params[f"{side_prefix}coins_group"] = db_settings.get(f"{side_prefix}coins_group")
+    
+    # Break-Even settings
+    if features.get("be"):
+        params["be_enabled"] = bool(db_settings.get("be_enabled", False))
+        params["be_trigger_pct"] = db_settings.get("be_trigger_pct") if db_settings.get("be_trigger_pct") is not None else 1.0
+    
+    # Partial Take Profit settings
+    if features.get("partial_tp"):
+        params["partial_tp_enabled"] = bool(db_settings.get("partial_tp_enabled", False))
+        params["partial_tp_1_trigger_pct"] = db_settings.get("partial_tp_1_trigger_pct") if db_settings.get("partial_tp_1_trigger_pct") is not None else 2.0
+        params["partial_tp_1_close_pct"] = db_settings.get("partial_tp_1_close_pct") if db_settings.get("partial_tp_1_close_pct") is not None else 30.0
+        params["partial_tp_2_trigger_pct"] = db_settings.get("partial_tp_2_trigger_pct") if db_settings.get("partial_tp_2_trigger_pct") is not None else 5.0
+        params["partial_tp_2_close_pct"] = db_settings.get("partial_tp_2_close_pct") if db_settings.get("partial_tp_2_close_pct") is not None else 30.0
+    
+    # Max positions
+    if features.get("max_positions"):
+        params["max_positions"] = db_settings.get("max_positions") or 0
     
     # Coins group
     if features.get("coins_group"):
-        params["coins_group"] = db_settings.get("coins_group") or "all"
+        params["coins_group"] = db_settings.get("coins_group") or "ALL"
     
     return params
 
@@ -1482,18 +1531,38 @@ async def update_strategy_settings(
         # Leverage (if supported)
         "leverage",
         # Order type (if supported)
-        "order_type",
+        "order_type", "limit_offset_pct",
         # SL/TP (if supported)
         "sl_percent", "tp_percent",
         # ATR settings (if supported)
-        "use_atr", "atr_periods", "atr_multiplier_sl", "atr_trigger_pct",
+        "use_atr", "atr_periods", "atr_multiplier_sl", "atr_trigger_pct", "atr_step_pct",
+        # DCA settings
+        "dca_enabled", "dca_pct_1", "dca_pct_2",
+        # Break-Even settings
+        "be_enabled", "be_trigger_pct",
+        # Partial Take Profit settings
+        "partial_tp_enabled",
+        "partial_tp_1_trigger_pct", "partial_tp_1_close_pct",
+        "partial_tp_2_trigger_pct", "partial_tp_2_close_pct",
+        # Max positions
+        "max_positions",
         # Min quality (Fibonacci only)
         "min_quality",
         # Side-specific settings
-        "long_percent", "long_sl_percent", "long_tp_percent",
-        "long_atr_periods", "long_atr_multiplier_sl", "long_atr_trigger_pct",
-        "short_percent", "short_sl_percent", "short_tp_percent",
-        "short_atr_periods", "short_atr_multiplier_sl", "short_atr_trigger_pct",
+        "long_enabled", "long_percent", "long_sl_percent", "long_tp_percent", "long_leverage",
+        "long_use_atr", "long_atr_periods", "long_atr_multiplier_sl", "long_atr_trigger_pct", "long_atr_step_pct",
+        "long_dca_enabled", "long_dca_pct_1", "long_dca_pct_2",
+        "long_be_enabled", "long_be_trigger_pct",
+        "long_partial_tp_enabled", "long_partial_tp_1_trigger_pct", "long_partial_tp_1_close_pct",
+        "long_partial_tp_2_trigger_pct", "long_partial_tp_2_close_pct",
+        "long_max_positions", "long_coins_group", "long_order_type", "long_limit_offset_pct",
+        "short_enabled", "short_percent", "short_sl_percent", "short_tp_percent", "short_leverage",
+        "short_use_atr", "short_atr_periods", "short_atr_multiplier_sl", "short_atr_trigger_pct", "short_atr_step_pct",
+        "short_dca_enabled", "short_dca_pct_1", "short_dca_pct_2",
+        "short_be_enabled", "short_be_trigger_pct",
+        "short_partial_tp_enabled", "short_partial_tp_1_trigger_pct", "short_partial_tp_1_close_pct",
+        "short_partial_tp_2_trigger_pct", "short_partial_tp_2_close_pct",
+        "short_max_positions", "short_coins_group", "short_order_type", "short_limit_offset_pct",
     }
     
     # Update enabled flag
@@ -1507,13 +1576,37 @@ async def update_strategy_settings(
             continue
         
         # Convert value type if needed
-        if field in ("enabled", "use_atr"):
+        bool_fields = {
+            "enabled", "use_atr", "dca_enabled", "be_enabled", "partial_tp_enabled",
+            "long_enabled", "long_use_atr", "long_dca_enabled", "long_be_enabled", "long_partial_tp_enabled",
+            "short_enabled", "short_use_atr", "short_dca_enabled", "short_be_enabled", "short_partial_tp_enabled",
+        }
+        int_fields = {
+            "leverage", "atr_periods", "max_positions", "min_quality",
+            "long_leverage", "long_atr_periods", "long_max_positions",
+            "short_leverage", "short_atr_periods", "short_max_positions",
+        }
+        float_fields = {
+            "percent", "sl_percent", "tp_percent", "atr_multiplier_sl", "atr_trigger_pct", "atr_step_pct",
+            "dca_pct_1", "dca_pct_2", "be_trigger_pct", "limit_offset_pct",
+            "partial_tp_1_trigger_pct", "partial_tp_1_close_pct",
+            "partial_tp_2_trigger_pct", "partial_tp_2_close_pct",
+            "long_percent", "long_sl_percent", "long_tp_percent", "long_atr_multiplier_sl",
+            "long_atr_trigger_pct", "long_atr_step_pct", "long_dca_pct_1", "long_dca_pct_2",
+            "long_be_trigger_pct", "long_limit_offset_pct",
+            "long_partial_tp_1_trigger_pct", "long_partial_tp_1_close_pct",
+            "long_partial_tp_2_trigger_pct", "long_partial_tp_2_close_pct",
+            "short_percent", "short_sl_percent", "short_tp_percent", "short_atr_multiplier_sl",
+            "short_atr_trigger_pct", "short_atr_step_pct", "short_dca_pct_1", "short_dca_pct_2",
+            "short_be_trigger_pct", "short_limit_offset_pct",
+            "short_partial_tp_1_trigger_pct", "short_partial_tp_1_close_pct",
+            "short_partial_tp_2_trigger_pct", "short_partial_tp_2_close_pct",
+        }
+        if field in bool_fields:
             value = bool(value)
-        elif field in ("leverage", "atr_periods", "long_atr_periods", "short_atr_periods", "min_quality"):
+        elif field in int_fields:
             value = int(value) if value is not None else None
-        elif field in ("percent", "sl_percent", "tp_percent", "atr_multiplier_sl", "atr_trigger_pct",
-                       "long_percent", "long_sl_percent", "long_tp_percent", "long_atr_multiplier_sl", "long_atr_trigger_pct",
-                       "short_percent", "short_sl_percent", "short_tp_percent", "short_atr_multiplier_sl", "short_atr_trigger_pct"):
+        elif field in float_fields:
             value = float(value) if value is not None else None
         
         db.set_strategy_setting_db(user_id, strategy_name, field, value, data.exchange, data.account_type)
@@ -1636,9 +1729,9 @@ async def get_strategy_settings_mobile(
                 "tp_percent": _val(db_settings.get(f"{prefix}tp_percent"), "tp_percent", 25.0),
                 "sl_percent": _val(db_settings.get(f"{prefix}sl_percent"), "sl_percent", 30.0),
                 "leverage": _val(db_settings.get(f"{prefix}leverage"), "leverage", 10),
-                "use_atr": _bool_val(db_settings.get(f"{prefix}use_atr"), "use_atr", False),
-                "atr_trigger_pct": db_settings.get(f"{prefix}atr_trigger_pct"),
-                "atr_step_pct": db_settings.get(f"{prefix}atr_step_pct"),
+                "use_atr": _bool_val(db_settings.get(f"{prefix}use_atr"), "use_atr", True),
+                "atr_trigger_pct": db_settings.get(f"{prefix}atr_trigger_pct") or 3.0,
+                "atr_step_pct": db_settings.get(f"{prefix}atr_step_pct") or 0.5,
                 "dca_enabled": _bool_val(db_settings.get(f"{prefix}dca_enabled"), "dca_enabled", False),
                 "dca_pct_1": _val(db_settings.get(f"{prefix}dca_pct_1"), "dca_pct_1", 10.0),
                 "dca_pct_2": _val(db_settings.get(f"{prefix}dca_pct_2"), "dca_pct_2", 25.0),
@@ -1654,7 +1747,12 @@ async def get_strategy_settings_mobile(
                 "partial_tp_1_trigger_pct": db_settings.get(f"{prefix}partial_tp_1_trigger_pct") or 2.0,
                 "partial_tp_1_close_pct": db_settings.get(f"{prefix}partial_tp_1_close_pct") or 30.0,
                 "partial_tp_2_trigger_pct": db_settings.get(f"{prefix}partial_tp_2_trigger_pct") or 5.0,
-                "partial_tp_2_close_pct": db_settings.get(f"{prefix}partial_tp_2_close_pct") or 50.0,
+                "partial_tp_2_close_pct": db_settings.get(f"{prefix}partial_tp_2_close_pct") or 30.0,
+                # ATR detailed params
+                "atr_periods": db_settings.get(f"{prefix}atr_periods") or 7,
+                "atr_multiplier_sl": db_settings.get(f"{prefix}atr_multiplier_sl") or 0.5,
+                # Limit offset
+                "limit_offset_pct": db_settings.get(f"{prefix}limit_offset_pct") or 0.1,
             }
             
             result.append(settings_obj)
@@ -1772,7 +1870,7 @@ async def update_strategy_settings_mobile(
     # Fields that can be updated (with side prefix)
     updatable_fields = [
         "enabled", "percent", "tp_percent", "sl_percent", "leverage",
-        "use_atr", "atr_trigger_pct", "atr_step_pct", 
+        "use_atr", "atr_trigger_pct", "atr_step_pct", "atr_periods", "atr_multiplier_sl",
         "dca_enabled", "dca_pct_1", "dca_pct_2",
         "max_positions", "coins_group", "limit_offset_pct", "order_type",
         # Break-Even
@@ -1793,9 +1891,10 @@ async def update_strategy_settings_mobile(
             # Type conversion
             if field in ("enabled", "use_atr", "dca_enabled", "be_enabled", "partial_tp_enabled"):
                 value = bool(value)
-            elif field in ("leverage", "max_positions"):
+            elif field in ("leverage", "max_positions", "atr_periods"):
                 value = int(value) if value is not None else None
-            elif field in ("percent", "tp_percent", "sl_percent", "atr_trigger_pct", "atr_step_pct", 
+            elif field in ("percent", "tp_percent", "sl_percent", "atr_trigger_pct", "atr_step_pct",
+                           "atr_multiplier_sl", "limit_offset_pct",
                            "dca_pct_1", "dca_pct_2", "be_trigger_pct",
                            "partial_tp_1_trigger_pct", "partial_tp_1_close_pct",
                            "partial_tp_2_trigger_pct", "partial_tp_2_close_pct"):
@@ -1809,7 +1908,7 @@ async def update_strategy_settings_mobile(
         # Re-read current settings to validate sum
         current = db.get_strategy_settings(user_id, strategy_name, exchange)
         step1 = current.get(f"{side}_partial_tp_1_close_pct") or 30.0
-        step2 = current.get(f"{side}_partial_tp_2_close_pct") or 50.0
+        step2 = current.get(f"{side}_partial_tp_2_close_pct") or 30.0
         if step1 + step2 > 100:
             raise HTTPException(
                 status_code=400,

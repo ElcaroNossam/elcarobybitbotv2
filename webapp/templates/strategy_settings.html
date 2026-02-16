@@ -611,11 +611,11 @@
                 </div>
                 <div class="form-group">
                     <label class="form-label">Take Profit %</label>
-                    <input type="number" id="tp_percent" class="form-input" value="8" min="0.1" max="100" step="0.1">
+                    <input type="number" id="tp_percent" class="form-input" value="25" min="0.1" max="100" step="0.1">
                 </div>
                 <div class="form-group">
                     <label class="form-label">Stop Loss %</label>
-                    <input type="number" id="sl_percent" class="form-input" value="3" min="0.1" max="50" step="0.1">
+                    <input type="number" id="sl_percent" class="form-input" value="30" min="0.1" max="50" step="0.1">
                 </div>
                 <div class="form-group">
                     <label class="form-label">Leverage</label>
@@ -655,11 +655,11 @@
                     <div class="form-grid">
                         <div class="form-group">
                             <label class="form-label">Trigger Profit %</label>
-                            <input type="number" id="atr_trigger_pct" class="form-input" value="0.5" min="0.1" max="10" step="0.1">
+                            <input type="number" id="atr_trigger_pct" class="form-input" value="3.0" min="0.1" max="10" step="0.1">
                         </div>
                         <div class="form-group">
                             <label class="form-label">Trail Step %</label>
-                            <input type="number" id="atr_step_pct" class="form-input" value="0.25" min="0.05" max="5" step="0.05">
+                            <input type="number" id="atr_step_pct" class="form-input" value="0.5" min="0.05" max="5" step="0.05">
                         </div>
                     </div>
                 </div>
@@ -683,6 +683,105 @@
                         <div class="form-group">
                             <label class="form-label">Level 2 (Drawdown %)</label>
                             <input type="number" id="dca_pct_2" class="form-input" value="25" min="5" max="100" step="1">
+                        </div>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- Break-Even Section -->
+            <div class="collapse-section">
+                <div class="collapse-header" onclick="toggleSection('be')">
+                    <h4>
+                        <i class="fas fa-balance-scale"></i>
+                        Break-Even
+                    </h4>
+                    <div class="toggle" id="beToggle" onclick="event.stopPropagation(); toggleBe()"></div>
+                </div>
+                <div id="beContent" class="collapse-content">
+                    <div class="form-grid">
+                        <div class="form-group">
+                            <label class="form-label">Trigger Profit %</label>
+                            <input type="number" id="be_trigger_pct" class="form-input" value="1.0" min="0.1" max="50" step="0.1">
+                        </div>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- Partial Take Profit Section -->
+            <div class="collapse-section">
+                <div class="collapse-header" onclick="toggleSection('ptp')">
+                    <h4>
+                        <i class="fas fa-cut"></i>
+                        Partial Take Profit
+                    </h4>
+                    <div class="toggle" id="ptpToggle" onclick="event.stopPropagation(); togglePtp()"></div>
+                </div>
+                <div id="ptpContent" class="collapse-content">
+                    <div class="form-grid">
+                        <div class="form-group">
+                            <label class="form-label">Step 1 Trigger %</label>
+                            <input type="number" id="partial_tp_1_trigger_pct" class="form-input" value="2.0" min="0.1" max="50" step="0.1">
+                        </div>
+                        <div class="form-group">
+                            <label class="form-label">Step 1 Close %</label>
+                            <input type="number" id="partial_tp_1_close_pct" class="form-input" value="30" min="1" max="99" step="1">
+                        </div>
+                        <div class="form-group">
+                            <label class="form-label">Step 2 Trigger %</label>
+                            <input type="number" id="partial_tp_2_trigger_pct" class="form-input" value="5.0" min="0.1" max="50" step="0.1">
+                        </div>
+                        <div class="form-group">
+                            <label class="form-label">Step 2 Close %</label>
+                            <input type="number" id="partial_tp_2_close_pct" class="form-input" value="30" min="1" max="99" step="1">
+                        </div>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- Advanced Settings Section -->
+            <div class="collapse-section">
+                <div class="collapse-header" onclick="toggleSection('advanced')">
+                    <h4>
+                        <i class="fas fa-sliders-h"></i>
+                        Advanced Settings
+                    </h4>
+                    <i class="fas fa-chevron-down"></i>
+                </div>
+                <div id="advancedContent" class="collapse-content">
+                    <div class="form-grid">
+                        <div class="form-group">
+                            <label class="form-label">Direction</label>
+                            <select id="direction" class="form-select">
+                                <option value="all">All</option>
+                                <option value="long">Long Only</option>
+                                <option value="short">Short Only</option>
+                            </select>
+                        </div>
+                        <div class="form-group">
+                            <label class="form-label">Coins Group</label>
+                            <select id="coins_group" class="form-select">
+                                <option value="ALL">All Coins</option>
+                                <option value="TOP">Top Coins</option>
+                                <option value="TOP100">Top 100</option>
+                                <option value="VOLATILE">Volatile</option>
+                            </select>
+                        </div>
+                        <div class="form-group">
+                            <label class="form-label">Max Positions</label>
+                            <input type="number" id="max_positions" class="form-input" value="0" min="0" max="50" step="1">
+                            <small style="color:var(--text-secondary);font-size:11px">0 = Unlimited</small>
+                        </div>
+                        <div class="form-group">
+                            <label class="form-label">Limit Offset %</label>
+                            <input type="number" id="limit_offset_pct" class="form-input" value="0.1" min="0.01" max="5" step="0.01">
+                        </div>
+                        <div class="form-group">
+                            <label class="form-label">ATR Periods</label>
+                            <input type="number" id="atr_periods" class="form-input" value="7" min="1" max="50" step="1">
+                        </div>
+                        <div class="form-group">
+                            <label class="form-label">ATR Multiplier SL</label>
+                            <input type="number" id="atr_multiplier_sl" class="form-input" value="0.5" min="0.1" max="10" step="0.1">
                         </div>
                     </div>
                 </div>
@@ -842,8 +941,8 @@
             
             // Form values
             document.getElementById('percent').value = settings.percent || 1;
-            document.getElementById('tp_percent').value = settings.tp_percent || 8;
-            document.getElementById('sl_percent').value = settings.sl_percent || 3;
+            document.getElementById('tp_percent').value = settings.tp_percent || 25;
+            document.getElementById('sl_percent').value = settings.sl_percent || 30;
             document.getElementById('leverage').value = settings.leverage || 10;
             document.getElementById('order_type').value = settings.order_type || 'market';
             
@@ -851,8 +950,8 @@
             const atrToggle = document.getElementById('atrToggle');
             atrToggle.classList.toggle('active', settings.use_atr === true);
             document.getElementById('atrContent').classList.toggle('active', settings.use_atr === true);
-            document.getElementById('atr_trigger_pct').value = settings.atr_trigger_pct || 0.5;
-            document.getElementById('atr_step_pct').value = settings.atr_step_pct || 0.25;
+            document.getElementById('atr_trigger_pct').value = settings.atr_trigger_pct || 3.0;
+            document.getElementById('atr_step_pct').value = settings.atr_step_pct || 0.5;
             
             // DCA
             const dcaToggle = document.getElementById('dcaToggle');
@@ -860,6 +959,29 @@
             document.getElementById('dcaContent').classList.toggle('active', settings.dca_enabled === true);
             document.getElementById('dca_pct_1').value = settings.dca_pct_1 || 10;
             document.getElementById('dca_pct_2').value = settings.dca_pct_2 || 25;
+            
+            // Break-Even
+            const beToggle = document.getElementById('beToggle');
+            beToggle.classList.toggle('active', settings.be_enabled === true);
+            document.getElementById('beContent').classList.toggle('active', settings.be_enabled === true);
+            document.getElementById('be_trigger_pct').value = settings.be_trigger_pct || 1.0;
+            
+            // Partial Take Profit
+            const ptpToggle = document.getElementById('ptpToggle');
+            ptpToggle.classList.toggle('active', settings.partial_tp_enabled === true);
+            document.getElementById('ptpContent').classList.toggle('active', settings.partial_tp_enabled === true);
+            document.getElementById('partial_tp_1_trigger_pct').value = settings.partial_tp_1_trigger_pct || 2.0;
+            document.getElementById('partial_tp_1_close_pct').value = settings.partial_tp_1_close_pct || 30;
+            document.getElementById('partial_tp_2_trigger_pct').value = settings.partial_tp_2_trigger_pct || 5.0;
+            document.getElementById('partial_tp_2_close_pct').value = settings.partial_tp_2_close_pct || 30;
+            
+            // Advanced
+            document.getElementById('direction').value = settings.direction || 'all';
+            document.getElementById('coins_group').value = settings.coins_group || 'ALL';
+            document.getElementById('max_positions').value = settings.max_positions || 0;
+            document.getElementById('limit_offset_pct').value = settings.limit_offset_pct || 0.1;
+            document.getElementById('atr_periods').value = settings.atr_periods || 7;
+            document.getElementById('atr_multiplier_sl').value = settings.atr_multiplier_sl || 0.5;
         }
         
         // Collect current settings
@@ -874,9 +996,22 @@
                 use_atr: document.getElementById('atrToggle').classList.contains('active'),
                 atr_trigger_pct: parseFloat(document.getElementById('atr_trigger_pct').value),
                 atr_step_pct: parseFloat(document.getElementById('atr_step_pct').value),
+                atr_periods: parseInt(document.getElementById('atr_periods').value),
+                atr_multiplier_sl: parseFloat(document.getElementById('atr_multiplier_sl').value),
                 dca_enabled: document.getElementById('dcaToggle').classList.contains('active'),
                 dca_pct_1: parseFloat(document.getElementById('dca_pct_1').value),
-                dca_pct_2: parseFloat(document.getElementById('dca_pct_2').value)
+                dca_pct_2: parseFloat(document.getElementById('dca_pct_2').value),
+                be_enabled: document.getElementById('beToggle').classList.contains('active'),
+                be_trigger_pct: parseFloat(document.getElementById('be_trigger_pct').value),
+                partial_tp_enabled: document.getElementById('ptpToggle').classList.contains('active'),
+                partial_tp_1_trigger_pct: parseFloat(document.getElementById('partial_tp_1_trigger_pct').value),
+                partial_tp_1_close_pct: parseFloat(document.getElementById('partial_tp_1_close_pct').value),
+                partial_tp_2_trigger_pct: parseFloat(document.getElementById('partial_tp_2_trigger_pct').value),
+                partial_tp_2_close_pct: parseFloat(document.getElementById('partial_tp_2_close_pct').value),
+                direction: document.getElementById('direction').value,
+                coins_group: document.getElementById('coins_group').value,
+                max_positions: parseInt(document.getElementById('max_positions').value),
+                limit_offset_pct: parseFloat(document.getElementById('limit_offset_pct').value),
             };
         }
         
@@ -895,6 +1030,19 @@
                 shortSettings = { ...shortSettings, ...currentSettings };
             }
             
+            // Validate PTP: Step1 + Step2 <= 100%
+            for (const [side, settings] of [['long', longSettings], ['short', shortSettings]]) {
+                if (settings.partial_tp_enabled) {
+                    const step1 = settings.partial_tp_1_close_pct || 30;
+                    const step2 = settings.partial_tp_2_close_pct || 30;
+                    if (step1 + step2 > 100) {
+                        showNotification(`${side.toUpperCase()}: PTP Step1 (${step1}%) + Step2 (${step2}%) = ${step1+step2}% exceeds 100%!`, 'error');
+                        showLoading(false);
+                        return;
+                    }
+                }
+            }
+            
             // Save both sides
             try {
                 for (const [side, settings] of [['long', longSettings], ['short', shortSettings]]) {
@@ -902,18 +1050,32 @@
                         side: side,
                         exchange: exchange,
                         account_type: accountType,
+                        source: 'webapp',
                         enabled: settings.enabled !== false,
                         percent: settings.percent || 1,
-                        tp_percent: settings.tp_percent || 8,
-                        sl_percent: settings.sl_percent || 3,
+                        tp_percent: settings.tp_percent || 25,
+                        sl_percent: settings.sl_percent || 30,
                         leverage: settings.leverage || 10,
                         order_type: settings.order_type || 'market',
                         use_atr: settings.use_atr === true,
-                        atr_trigger_pct: settings.atr_trigger_pct || 0.5,
-                        atr_step_pct: settings.atr_step_pct || 0.25,
+                        atr_trigger_pct: settings.atr_trigger_pct || 3.0,
+                        atr_step_pct: settings.atr_step_pct || 0.5,
+                        atr_periods: settings.atr_periods || 7,
+                        atr_multiplier_sl: settings.atr_multiplier_sl || 0.5,
                         dca_enabled: settings.dca_enabled === true,
                         dca_pct_1: settings.dca_pct_1 || 10,
-                        dca_pct_2: settings.dca_pct_2 || 25
+                        dca_pct_2: settings.dca_pct_2 || 25,
+                        be_enabled: settings.be_enabled === true,
+                        be_trigger_pct: settings.be_trigger_pct || 1.0,
+                        partial_tp_enabled: settings.partial_tp_enabled === true,
+                        partial_tp_1_trigger_pct: settings.partial_tp_1_trigger_pct || 2.0,
+                        partial_tp_1_close_pct: settings.partial_tp_1_close_pct || 30,
+                        partial_tp_2_trigger_pct: settings.partial_tp_2_trigger_pct || 5.0,
+                        partial_tp_2_close_pct: settings.partial_tp_2_close_pct || 30,
+                        direction: settings.direction || 'all',
+                        coins_group: settings.coins_group || 'ALL',
+                        max_positions: settings.max_positions || 0,
+                        limit_offset_pct: settings.limit_offset_pct || 0.1,
                     };
                     
                     await fetch(`/api/users/strategy-settings/mobile/${currentStrategy}`, {
@@ -961,18 +1123,32 @@
                             side: side,
                             exchange: target.exchange,
                             account_type: target.account_type,
+                            source: 'webapp',
                             enabled: settings.enabled !== false,
                             percent: settings.percent || 1,
-                            tp_percent: settings.tp_percent || 8,
-                            sl_percent: settings.sl_percent || 3,
+                            tp_percent: settings.tp_percent || 25,
+                            sl_percent: settings.sl_percent || 30,
                             leverage: settings.leverage || 10,
                             order_type: settings.order_type || 'market',
                             use_atr: settings.use_atr === true,
-                            atr_trigger_pct: settings.atr_trigger_pct || 0.5,
-                            atr_step_pct: settings.atr_step_pct || 0.25,
+                            atr_trigger_pct: settings.atr_trigger_pct || 3.0,
+                            atr_step_pct: settings.atr_step_pct || 0.5,
+                            atr_periods: settings.atr_periods || 7,
+                            atr_multiplier_sl: settings.atr_multiplier_sl || 0.5,
                             dca_enabled: settings.dca_enabled === true,
                             dca_pct_1: settings.dca_pct_1 || 10,
-                            dca_pct_2: settings.dca_pct_2 || 25
+                            dca_pct_2: settings.dca_pct_2 || 25,
+                            be_enabled: settings.be_enabled === true,
+                            be_trigger_pct: settings.be_trigger_pct || 1.0,
+                            partial_tp_enabled: settings.partial_tp_enabled === true,
+                            partial_tp_1_trigger_pct: settings.partial_tp_1_trigger_pct || 2.0,
+                            partial_tp_1_close_pct: settings.partial_tp_1_close_pct || 30,
+                            partial_tp_2_trigger_pct: settings.partial_tp_2_trigger_pct || 5.0,
+                            partial_tp_2_close_pct: settings.partial_tp_2_close_pct || 30,
+                            direction: settings.direction || 'all',
+                            coins_group: settings.coins_group || 'ALL',
+                            max_positions: settings.max_positions || 0,
+                            limit_offset_pct: settings.limit_offset_pct || 0.1,
                         };
                         
                         const res = await fetch(`/api/users/strategy-settings/mobile/${currentStrategy}`, {
@@ -1009,8 +1185,21 @@
             document.getElementById('dcaContent').classList.toggle('active', toggle.classList.contains('active'));
         }
         
+        function toggleBe() {
+            const toggle = document.getElementById('beToggle');
+            toggle.classList.toggle('active');
+            document.getElementById('beContent').classList.toggle('active', toggle.classList.contains('active'));
+        }
+        
+        function togglePtp() {
+            const toggle = document.getElementById('ptpToggle');
+            toggle.classList.toggle('active');
+            document.getElementById('ptpContent').classList.toggle('active', toggle.classList.contains('active'));
+        }
+        
         function toggleSection(section) {
-            // Just expand/collapse - toggle handles enable/disable
+            const content = document.getElementById(section + 'Content');
+            if (content) content.classList.toggle('expanded');
         }
         
         // Helpers

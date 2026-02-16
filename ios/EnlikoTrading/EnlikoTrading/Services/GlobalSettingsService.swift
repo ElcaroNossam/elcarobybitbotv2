@@ -35,11 +35,11 @@ struct GlobalSettings: Codable {
     var spotDcaEnabled: Bool { _spotDcaEnabled ?? false }
     var spotDcaPct: Double { _spotDcaPct ?? 5.0 }
     var spotEnabled: Bool { _spotEnabled ?? false }
-    var useAtr: Bool { _useAtr ?? false }
-    var atrPeriods: Int { _atrPeriods ?? 14 }
-    var atrMultiplierSl: Double { _atrMultiplierSl ?? 1.5 }
-    var atrTriggerPct: Double { _atrTriggerPct ?? 0.5 }
-    var atrStepPct: Double { _atrStepPct ?? 0.25 }
+    var useAtr: Bool { _useAtr ?? true }
+    var atrPeriods: Int { _atrPeriods ?? 7 }
+    var atrMultiplierSl: Double { _atrMultiplierSl ?? 0.5 }
+    var atrTriggerPct: Double { _atrTriggerPct ?? 3.0 }
+    var atrStepPct: Double { _atrStepPct ?? 0.5 }
     
     enum CodingKeys: String, CodingKey {
         case _dcaEnabled = "dca_enabled"
@@ -236,10 +236,10 @@ class GlobalSettingsService: ObservableObject {
     @MainActor
     func updateATRSettings(
         useAtr: Bool,
-        periods: Int = 14,
-        multiplierSl: Double = 1.5,
-        triggerPct: Double = 0.5,
-        stepPct: Double = 0.25
+        periods: Int = 7,
+        multiplierSl: Double = 0.5,
+        triggerPct: Double = 3.0,
+        stepPct: Double = 0.5
     ) async -> Bool {
         do {
             let update = ATRSettingsUpdate(

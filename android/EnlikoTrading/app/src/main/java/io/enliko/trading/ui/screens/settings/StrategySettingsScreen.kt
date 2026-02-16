@@ -47,7 +47,7 @@ data class StrategyInfo(
             StrategyInfo("oi", "Open Interest", "OI divergence signals", Icons.Default.BarChart, Color(0xFF2196F3)),
             StrategyInfo("scryptomera", "Scryptomera", "Volume delta analysis", Icons.Default.GraphicEq, Color(0xFF9C27B0)),
             StrategyInfo("scalper", "Scalper", "Momentum breakouts", Icons.Default.FlashOn, Color(0xFFFF9800)),
-            StrategyInfo("elcaro", "ENLIKO AI", "AI-powered signals", Icons.Default.Psychology, Color(0xFF4CAF50), supportsAtr = false, supportsDca = false),
+            StrategyInfo("elcaro", "ENLIKO AI", "AI-powered signals", Icons.Default.Psychology, Color(0xFF4CAF50)),
             StrategyInfo("fibonacci", "Fibonacci", "Fib retracement levels", Icons.Default.Functions, Color(0xFF00BCD4)),
             StrategyInfo("rsi_bb", "RSI + BB", "RSI & Bollinger Bands", Icons.Default.ShowChart, Color(0xFFE91E63))
         )
@@ -60,13 +60,17 @@ data class SideSettings(
     var tpPercent: Double = 25.0,
     var slPercent: Double = 30.0,
     var leverage: Int = 10,
-    var useAtr: Boolean = false,
-    var atrTriggerPct: Double = 0.5,
-    var atrStepPct: Double = 0.25,
+    var useAtr: Boolean = true,
+    var atrPeriods: Int = 7,
+    var atrMultiplierSl: Double = 0.5,
+    var atrTriggerPct: Double = 3.0,
+    var atrStepPct: Double = 0.5,
     var dcaEnabled: Boolean = false,
     var dcaPct1: Double = 10.0,
     var dcaPct2: Double = 25.0,
     var orderType: String = "market",
+    var limitOffsetPct: Double = 0.1,
+    var direction: String = "all",
     var maxPositions: Int = 0,
     var coinsGroup: String = "ALL",
     // Break-Even
@@ -77,7 +81,7 @@ data class SideSettings(
     var partialTp1TriggerPct: Double = 2.0,
     var partialTp1ClosePct: Double = 30.0,
     var partialTp2TriggerPct: Double = 5.0,
-    var partialTp2ClosePct: Double = 50.0
+    var partialTp2ClosePct: Double = 30.0
 )
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -96,6 +100,24 @@ fun StrategySettingsScreen(
     var shortSettings by remember { mutableStateOf(SideSettings()) }
     var isLoading by remember { mutableStateOf(false) }
     var showSaveSuccess by remember { mutableStateOf(false) }
+    
+    // Load settings from API on first composition
+    LaunchedEffect(strategyCode) {
+        viewModel.loadSettings(strategyCode)
+    }
+    
+    // Observe ViewModel state
+    val vmLongSettings by viewModel.longSettings.collectAsState()
+    val vmShortSettings by viewModel.shortSettings.collectAsState()
+    val vmIsLoading by viewModel.isLoading.collectAsState()
+    val vmSaveSuccess by viewModel.saveSuccess.collectAsState()
+    val vmError by viewModel.error.collectAsState()
+    
+    // Update local state from ViewModel
+    LaunchedEffect(vmLongSettings) { longSettings = vmLongSettings }
+    LaunchedEffect(vmShortSettings) { shortSettings = vmShortSettings }
+    LaunchedEffect(vmIsLoading) { isLoading = vmIsLoading }
+    LaunchedEffect(vmSaveSuccess) { showSaveSuccess = vmSaveSuccess }
     
     val currentSettings = if (selectedSide == "long") longSettings else shortSettings
     
@@ -171,6 +193,8 @@ fun StrategySettingsScreen(
                 item {
                     AtrSettingsCard(
                         useAtr = currentSettings.useAtr,
+                        atrPeriods = currentSettings.atrPeriods,
+                        atrMultiplierSl = currentSettings.atrMultiplierSl,
                         atrTriggerPct = currentSettings.atrTriggerPct,
                         atrStepPct = currentSettings.atrStepPct,
                         onUseAtrChange = { useAtr ->
@@ -178,6 +202,20 @@ fun StrategySettingsScreen(
                                 longSettings = longSettings.copy(useAtr = useAtr)
                             } else {
                                 shortSettings = shortSettings.copy(useAtr = useAtr)
+                            }
+                        },
+                        onPeriodsChange = { periods ->
+                            if (selectedSide == "long") {
+                                longSettings = longSettings.copy(atrPeriods = periods)
+                            } else {
+                                shortSettings = shortSettings.copy(atrPeriods = periods)
+                            }
+                        },
+                        onMultiplierChange = { multiplier ->
+                            if (selectedSide == "long") {
+                                longSettings = longSettings.copy(atrMultiplierSl = multiplier)
+                            } else {
+                                shortSettings = shortSettings.copy(atrMultiplierSl = multiplier)
                             }
                         },
                         onTriggerChange = { trigger ->
@@ -274,8 +312,9 @@ fun StrategySettingsScreen(
             item {
                 Button(
                     onClick = {
-                        // TODO: Save to API
-                        showSaveSuccess = true
+                        viewModel.updateLongSettings(longSettings)
+                        viewModel.updateShortSettings(shortSettings)
+                        viewModel.saveSettings(strategyCode)
                     },
                     modifier = Modifier
                         .fillMaxWidth()
@@ -505,7 +544,7 @@ private fun CoreSettingsCard(
                 label = Localization.get("take_profit_pct"),
                 value = settings.tpPercent.toFloat(),
                 onValueChange = { onSettingsChange(settings.copy(tpPercent = it.toDouble())) },
-                valueRange = 0.5f..50f,
+                valueRange = 0.5f..100f,
                 suffix = "%"
             )
             
@@ -514,7 +553,7 @@ private fun CoreSettingsCard(
                 label = Localization.get("stop_loss_pct"),
                 value = settings.slPercent.toFloat(),
                 onValueChange = { onSettingsChange(settings.copy(slPercent = it.toDouble())) },
-                valueRange = 0.5f..20f,
+                valueRange = 0.5f..100f,
                 suffix = "%"
             )
             
@@ -574,9 +613,13 @@ private fun SettingSlider(
 @Composable
 private fun AtrSettingsCard(
     useAtr: Boolean,
+    atrPeriods: Int,
+    atrMultiplierSl: Double,
     atrTriggerPct: Double,
     atrStepPct: Double,
     onUseAtrChange: (Boolean) -> Unit,
+    onPeriodsChange: (Int) -> Unit,
+    onMultiplierChange: (Double) -> Unit,
     onTriggerChange: (Double) -> Unit,
     onStepChange: (Double) -> Unit
 ) {
@@ -586,10 +629,27 @@ private fun AtrSettingsCard(
         onToggle = { onUseAtrChange(!useAtr) }
     ) {
         SettingSlider(
+            label = "ATR Periods",
+            value = atrPeriods.toFloat(),
+            onValueChange = { onPeriodsChange(it.toInt()) },
+            valueRange = 3f..50f,
+            suffix = "",
+            steps = 47
+        )
+        
+        SettingSlider(
+            label = "ATR Multiplier SL",
+            value = atrMultiplierSl.toFloat(),
+            onValueChange = { onMultiplierChange(it.toDouble()) },
+            valueRange = 0.1f..5f,
+            suffix = "x"
+        )
+        
+        SettingSlider(
             label = "Trigger %",
             value = atrTriggerPct.toFloat(),
             onValueChange = { onTriggerChange(it.toDouble()) },
-            valueRange = 0.1f..5f,
+            valueRange = 0.1f..10f,
             suffix = "%"
         )
         
@@ -597,7 +657,7 @@ private fun AtrSettingsCard(
             label = "Step %",
             value = atrStepPct.toFloat(),
             onValueChange = { onStepChange(it.toDouble()) },
-            valueRange = 0.05f..2f,
+            valueRange = 0.05f..5f,
             suffix = "%"
         )
     }

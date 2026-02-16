@@ -144,11 +144,11 @@ data class StrategySettingsEntity(
     val tpPercent: Double = 25.0,
     val slPercent: Double = 30.0,
     val leverage: Int = 10,
-    val useAtr: Boolean = false,
-    val atrPeriods: Int = 14,
-    val atrMultiplierSl: Double = 1.5,
-    val atrTriggerPct: Double = 0.5,
-    val atrStepPct: Double = 0.3,
+    val useAtr: Boolean = true,
+    val atrPeriods: Int = 7,
+    val atrMultiplierSl: Double = 0.5,
+    val atrTriggerPct: Double = 3.0,
+    val atrStepPct: Double = 0.5,
     val orderType: String = "market",
     val limitOffsetPct: Double = 0.1,
     val direction: String = "all", // "all", "long", "short"
@@ -163,7 +163,7 @@ data class StrategySettingsEntity(
     val partialTp1TriggerPct: Double = 2.0,
     val partialTp1ClosePct: Double = 30.0,
     val partialTp2TriggerPct: Double = 5.0,
-    val partialTp2ClosePct: Double = 50.0,
+    val partialTp2ClosePct: Double = 30.0,
     val updatedAt: Long = System.currentTimeMillis()
 )
 

@@ -25,7 +25,7 @@ struct StrategyInfo: Identifiable {
         StrategyInfo(code: "oi", name: "Open Interest", description: "OI divergence signals", icon: "chart.bar.fill", color: .blue, supportsAtr: true, supportsDca: true, supportsBE: true, supportsPartialTP: true),
         StrategyInfo(code: "scryptomera", name: "Scryptomera", description: "Volume delta analysis", icon: "waveform.path.ecg", color: .purple, supportsAtr: true, supportsDca: true, supportsBE: true, supportsPartialTP: true),
         StrategyInfo(code: "scalper", name: "Scalper", description: "Momentum breakouts", icon: "bolt.fill", color: .orange, supportsAtr: true, supportsDca: true, supportsBE: true, supportsPartialTP: true),
-        StrategyInfo(code: "elcaro", name: "ENLIKO AI", description: "AI-powered signals", icon: "brain.head.profile", color: .green, supportsAtr: false, supportsDca: false, supportsBE: true, supportsPartialTP: true),
+        StrategyInfo(code: "elcaro", name: "ENLIKO AI", description: "AI-powered signals", icon: "brain.head.profile", color: .green, supportsAtr: true, supportsDca: true, supportsBE: true, supportsPartialTP: true),
         StrategyInfo(code: "fibonacci", name: "Fibonacci", description: "Fib retracement levels", icon: "ruler.fill", color: .cyan, supportsAtr: true, supportsDca: true, supportsBE: true, supportsPartialTP: true),
         StrategyInfo(code: "rsi_bb", name: "RSI + BB", description: "RSI & Bollinger Bands", icon: "chart.line.uptrend.xyaxis", color: .pink, supportsAtr: true, supportsDca: true, supportsBE: true, supportsPartialTP: true)
     ]
@@ -41,12 +41,16 @@ struct SideSettings: Codable {
     var useAtr: Bool
     var atrTriggerPct: Double?
     var atrStepPct: Double?
+    var atrPeriods: Int?
+    var atrMultiplierSl: Double?
     var dcaEnabled: Bool
     var dcaPct1: Double
     var dcaPct2: Double
     var orderType: String
     var maxPositions: Int
     var coinsGroup: String
+    var direction: String
+    var limitOffsetPct: Double?
     // Break-Even
     var beEnabled: Bool
     var beTriggerPct: Double
@@ -64,12 +68,16 @@ struct SideSettings: Codable {
         case useAtr = "use_atr"
         case atrTriggerPct = "atr_trigger_pct"
         case atrStepPct = "atr_step_pct"
+        case atrPeriods = "atr_periods"
+        case atrMultiplierSl = "atr_multiplier_sl"
         case dcaEnabled = "dca_enabled"
         case dcaPct1 = "dca_pct_1"
         case dcaPct2 = "dca_pct_2"
         case orderType = "order_type"
         case maxPositions = "max_positions"
         case coinsGroup = "coins_group"
+        case direction
+        case limitOffsetPct = "limit_offset_pct"
         case beEnabled = "be_enabled"
         case beTriggerPct = "be_trigger_pct"
         case partialTpEnabled = "partial_tp_enabled"
@@ -86,22 +94,26 @@ struct SideSettings: Codable {
             tpPercent: 25.0,
             slPercent: 30.0,
             leverage: 10,
-            useAtr: false,
-            atrTriggerPct: 0.5,
-            atrStepPct: 0.25,
+            useAtr: true,
+            atrTriggerPct: 3.0,
+            atrStepPct: 0.5,
+            atrPeriods: 7,
+            atrMultiplierSl: 0.5,
             dcaEnabled: false,
             dcaPct1: 10.0,
             dcaPct2: 25.0,
             orderType: "market",
             maxPositions: 0,
             coinsGroup: "ALL",
+            direction: "all",
+            limitOffsetPct: 0.1,
             beEnabled: false,
             beTriggerPct: 1.0,
             partialTpEnabled: false,
             partialTp1TriggerPct: 2.0,
             partialTp1ClosePct: 30.0,
             partialTp2TriggerPct: 5.0,
-            partialTp2ClosePct: 50.0
+            partialTp2ClosePct: 30.0
         )
     }
 }
@@ -349,7 +361,7 @@ struct StrategySettingsView: View {
             AnimatedSettingsRow(
                 label: "entry_percent".localized, 
                 value: currentSettings.percent, 
-                range: 0.1...100, 
+                range: 0.1...10, 
                 step: 0.1, 
                 suffix: "%",
                 color: .enlikoPrimary
@@ -418,7 +430,7 @@ struct StrategySettingsView: View {
                     .foregroundColor(.enlikoTextSecondary)
                 Spacer()
                 Menu {
-                    ForEach(["ALL", "TOP10", "TOP30", "TOP50", "ALTS"], id: \.self) { group in
+                    ForEach(["ALL", "TOP", "TOP100", "VOLATILE"], id: \.self) { group in
                         Button(action: { currentSettings.wrappedValue.coinsGroup = group }) {
                             HStack {
                                 Text(group)
@@ -460,7 +472,7 @@ struct StrategySettingsView: View {
                 AnimatedSettingsRow(
                     label: "atr_trigger".localized,
                     value: Binding(
-                        get: { currentSettings.wrappedValue.atrTriggerPct ?? 0.5 },
+                        get: { currentSettings.wrappedValue.atrTriggerPct ?? 3.0 },
                         set: { currentSettings.wrappedValue.atrTriggerPct = $0 }
                     ),
                     range: 0.1...10,
@@ -472,12 +484,36 @@ struct StrategySettingsView: View {
                 AnimatedSettingsRow(
                     label: "atr_step".localized,
                     value: Binding(
-                        get: { currentSettings.wrappedValue.atrStepPct ?? 0.25 },
+                        get: { currentSettings.wrappedValue.atrStepPct ?? 0.5 },
                         set: { currentSettings.wrappedValue.atrStepPct = $0 }
                     ),
                     range: 0.1...5,
                     step: 0.05,
                     suffix: "%",
+                    color: .enlikoAccent
+                )
+                
+                AnimatedSettingsRow(
+                    label: "ATR Periods",
+                    value: Binding(
+                        get: { Double(currentSettings.wrappedValue.atrPeriods ?? 7) },
+                        set: { currentSettings.wrappedValue.atrPeriods = Int($0) }
+                    ),
+                    range: 3...50,
+                    step: 1,
+                    suffix: "",
+                    color: .enlikoAccent
+                )
+                
+                AnimatedSettingsRow(
+                    label: "ATR Multiplier SL",
+                    value: Binding(
+                        get: { currentSettings.wrappedValue.atrMultiplierSl ?? 0.5 },
+                        set: { currentSettings.wrappedValue.atrMultiplierSl = $0 }
+                    ),
+                    range: 0.1...5,
+                    step: 0.1,
+                    suffix: "x",
                     color: .enlikoAccent
                 )
             }
@@ -672,21 +708,25 @@ struct StrategySettingsView: View {
                     slPercent: setting.slPercent,
                     leverage: setting.leverage,
                     useAtr: setting.useAtr,
-                    atrTriggerPct: setting.atrTriggerPct,
-                    atrStepPct: setting.atrStepPct,
+                    atrTriggerPct: setting.atrTriggerPct ?? 3.0,
+                    atrStepPct: setting.atrStepPct ?? 0.5,
+                    atrPeriods: setting.atrPeriods ?? 7,
+                    atrMultiplierSl: setting.atrMultiplierSl ?? 0.5,
                     dcaEnabled: setting.dcaEnabled,
                     dcaPct1: setting.dcaPct1,
                     dcaPct2: setting.dcaPct2,
                     orderType: setting.orderType,
                     maxPositions: setting.maxPositions ?? 0,
                     coinsGroup: setting.coinsGroup ?? "ALL",
+                    direction: setting.direction ?? "all",
+                    limitOffsetPct: setting.limitOffsetPct ?? 0.1,
                     beEnabled: setting.beEnabled ?? false,
                     beTriggerPct: setting.beTriggerPct ?? 1.0,
                     partialTpEnabled: setting.partialTpEnabled ?? false,
                     partialTp1TriggerPct: setting.partialTp1TriggerPct ?? 2.0,
                     partialTp1ClosePct: setting.partialTp1ClosePct ?? 30.0,
                     partialTp2TriggerPct: setting.partialTp2TriggerPct ?? 5.0,
-                    partialTp2ClosePct: setting.partialTp2ClosePct ?? 50.0
+                    partialTp2ClosePct: setting.partialTp2ClosePct ?? 30.0
                 )
                 
                 if setting.side == "long" {
@@ -722,12 +762,16 @@ struct StrategySettingsView: View {
                         slPercent: settings.slPercent,
                         leverage: settings.leverage,
                         useAtr: settings.useAtr,
-                        atrTriggerPct: settings.atrTriggerPct ?? 0.5,
-                        atrStepPct: settings.atrStepPct ?? 0.25,
+                        atrTriggerPct: settings.atrTriggerPct ?? 3.0,
+                        atrStepPct: settings.atrStepPct ?? 0.5,
+                        atrPeriods: settings.atrPeriods ?? 7,
+                        atrMultiplierSl: settings.atrMultiplierSl ?? 0.5,
                         dcaEnabled: settings.dcaEnabled,
                         dcaPct1: settings.dcaPct1,
                         dcaPct2: settings.dcaPct2,
                         orderType: settings.orderType,
+                        limitOffsetPct: settings.limitOffsetPct ?? 0.1,
+                        direction: settings.direction,
                         maxPositions: settings.maxPositions,
                         coinsGroup: settings.coinsGroup,
                         beEnabled: settings.beEnabled,
@@ -773,12 +817,16 @@ struct StrategySideSettings: Codable {
     let useAtr: Bool
     let atrTriggerPct: Double?
     let atrStepPct: Double?
+    let atrPeriods: Int?
+    let atrMultiplierSl: Double?
     let dcaEnabled: Bool
     let dcaPct1: Double
     let dcaPct2: Double
     let orderType: String
     let maxPositions: Int?
     let coinsGroup: String?
+    let direction: String?
+    let limitOffsetPct: Double?
     // Break-Even
     let beEnabled: Bool?
     let beTriggerPct: Double?
@@ -790,19 +838,22 @@ struct StrategySideSettings: Codable {
     let partialTp2ClosePct: Double?
     
     enum CodingKeys: String, CodingKey {
-        case strategy, side, exchange, enabled, percent, leverage
+        case strategy, side, exchange, enabled, percent, leverage, direction
         case accountType = "account_type"
         case tpPercent = "tp_percent"
         case slPercent = "sl_percent"
         case useAtr = "use_atr"
         case atrTriggerPct = "atr_trigger_pct"
         case atrStepPct = "atr_step_pct"
+        case atrPeriods = "atr_periods"
+        case atrMultiplierSl = "atr_multiplier_sl"
         case dcaEnabled = "dca_enabled"
         case dcaPct1 = "dca_pct_1"
         case dcaPct2 = "dca_pct_2"
         case orderType = "order_type"
         case maxPositions = "max_positions"
         case coinsGroup = "coins_group"
+        case limitOffsetPct = "limit_offset_pct"
         case beEnabled = "be_enabled"
         case beTriggerPct = "be_trigger_pct"
         case partialTpEnabled = "partial_tp_enabled"

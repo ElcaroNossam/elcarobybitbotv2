@@ -96,17 +96,18 @@ interface EnlikoApi {
         @Body request: ModifyTpSlRequest
     ): Response<ModifyTpSlResponse>
 
-    // ==================== STRATEGY SETTINGS ====================
-    @GET("/api/trading/strategy-settings")
-    suspend fun getStrategySettings(
-        @Query("strategy") strategy: String? = null
-    ): Response<List<StrategySettings>>
+    // ==================== STRATEGY SETTINGS (Mobile API) ====================
+    @GET("/api/users/strategy-settings/mobile")
+    suspend fun getStrategySettingsMobile(
+        @Query("strategy") strategy: String? = null,
+        @Query("exchange") exchange: String = "bybit"
+    ): Response<List<MobileStrategySettings>>
 
-    @PUT("/api/trading/strategy-settings/{strategy}")
-    suspend fun updateStrategySettings(
+    @PUT("/api/users/strategy-settings/mobile/{strategy}")
+    suspend fun updateStrategySettingsMobile(
         @Path("strategy") strategy: String,
         @Body settings: Map<String, @JvmSuppressWildcards Any>
-    ): Response<StrategySettings>
+    ): Response<Map<String, @JvmSuppressWildcards Any>>
 
     // ==================== USER SETTINGS ====================
     @PUT("/api/users/exchange")

@@ -818,7 +818,7 @@
             <div class="form-grid">
                 <div class="form-group">
                     <label class="form-label">Position Size (%)</label>
-                    <input type="number" id="percent" class="form-input" value="5" min="1" max="100">
+                    <input type="number" id="percent" class="form-input" value="1" min="1" max="100">
                 </div>
                 <div class="form-group">
                     <label class="form-label">Leverage</label>
@@ -826,11 +826,11 @@
                 </div>
                 <div class="form-group">
                     <label class="form-label">Take Profit (%)</label>
-                    <input type="number" id="tp_percent" class="form-input" value="2" min="0.1" max="100" step="0.1">
+                    <input type="number" id="tp_percent" class="form-input" value="25" min="0.1" max="100" step="0.1">
                 </div>
                 <div class="form-group">
                     <label class="form-label">Stop Loss (%)</label>
-                    <input type="number" id="sl_percent" class="form-input" value="1" min="0.1" max="50" step="0.1">
+                    <input type="number" id="sl_percent" class="form-input" value="30" min="0.1" max="50" step="0.1">
                 </div>
                 <div class="form-group">
                     <label class="form-label">Trading Mode</label>
@@ -892,14 +892,33 @@
                 <div class="strategy-enable">
                     <div class="toggle-label">
                         <span>Enable Elcaro AI</span>
-                        <small>AI-powered signals with ATR trailing - Settings from signals</small>
+                        <small>AI-powered signals with ATR trailing</small>
                     </div>
                     <div class="toggle" id="toggle_elcaro" onclick="toggleStrategyEnabled('elcaro')"></div>
                 </div>
                 <div class="form-grid strategy-params">
                     <div class="form-group">
                         <label class="form-label">Position Size %</label>
-                        <input type="number" id="elcaro_percent" class="form-input" value="5" min="0.1" max="100" step="0.1">
+                        <input type="number" id="elcaro_percent" class="form-input" value="1" min="0.1" max="100" step="0.1">
+                    </div>
+                    <div class="form-group">
+                        <label class="form-label">Leverage</label>
+                        <input type="number" id="elcaro_leverage" class="form-input" value="10" min="1" max="125">
+                    </div>
+                    <div class="form-group">
+                        <label class="form-label">Take Profit %</label>
+                        <input type="number" id="elcaro_tp_percent" class="form-input" value="25" min="0.1" max="100" step="0.1">
+                    </div>
+                    <div class="form-group">
+                        <label class="form-label">Stop Loss %</label>
+                        <input type="number" id="elcaro_sl_percent" class="form-input" value="30" min="0.1" max="100" step="0.1">
+                    </div>
+                    <div class="form-group">
+                        <label class="form-label">Order Type</label>
+                        <select id="elcaro_order_type" class="form-select">
+                            <option value="market">Market</option>
+                            <option value="limit">Limit</option>
+                        </select>
                     </div>
                     <div class="form-group">
                         <label class="form-label">Direction</label>
@@ -910,9 +929,63 @@
                         </select>
                     </div>
                 </div>
-                <div class="strategy-note">
-                    <i class="fas fa-info-circle"></i>
-                    <span>TP/SL, Leverage, and ATR settings are managed by AI signals</span>
+                <div class="strategy-atr-section">
+                    <div class="strategy-enable">
+                        <div class="toggle-label">
+                            <span>ATR Trailing Stop</span>
+                            <small>Dynamic stop-loss based on volatility</small>
+                        </div>
+                        <div class="toggle" id="toggle_elcaro_use_atr" onclick="toggleStrategyATR('elcaro')"></div>
+                    </div>
+                    <div class="form-grid strategy-params atr-params">
+                        <div class="form-group">
+                            <label class="form-label">ATR Periods</label>
+                            <input type="number" id="elcaro_atr_periods" class="form-input" value="7" min="1" max="50">
+                        </div>
+                        <div class="form-group">
+                            <label class="form-label">ATR Multiplier SL</label>
+                            <input type="number" id="elcaro_atr_multiplier_sl" class="form-input" value="0.5" min="0.1" max="5" step="0.1">
+                        </div>
+                        <div class="form-group">
+                            <label class="form-label">ATR Trigger %</label>
+                            <input type="number" id="elcaro_atr_trigger_pct" class="form-input" value="3.0" min="0.1" max="10" step="0.1">
+                        </div>
+                        <div class="form-group">
+                            <label class="form-label">ATR Step %</label>
+                            <input type="number" id="elcaro_atr_step_pct" class="form-input" value="0.5" min="0.1" max="5" step="0.1">
+                        </div>
+                    </div>
+                </div>
+                <div class="strategy-atr-section">
+                    <div class="strategy-enable">
+                        <div class="toggle-label"><span>DCA (Dollar Cost Average)</span><small>Add to position at drawdown levels</small></div>
+                        <div class="toggle" id="toggle_elcaro_dca" onclick="toggleSectionToggle('elcaro', 'dca')"></div>
+                    </div>
+                    <div class="form-grid strategy-params atr-params">
+                        <div class="form-group"><label class="form-label">DCA Level 1 %</label><input type="number" id="elcaro_dca_pct_1" class="form-input" value="10" min="1" max="50"></div>
+                        <div class="form-group"><label class="form-label">DCA Level 2 %</label><input type="number" id="elcaro_dca_pct_2" class="form-input" value="25" min="1" max="50"></div>
+                    </div>
+                </div>
+                <div class="strategy-atr-section">
+                    <div class="strategy-enable">
+                        <div class="toggle-label"><span>Break-Even</span><small>Move SL to entry after profit trigger</small></div>
+                        <div class="toggle" id="toggle_elcaro_be" onclick="toggleSectionToggle('elcaro', 'be')"></div>
+                    </div>
+                    <div class="form-grid strategy-params atr-params">
+                        <div class="form-group"><label class="form-label">BE Trigger %</label><input type="number" id="elcaro_be_trigger_pct" class="form-input" value="1.0" min="0.1" max="10" step="0.1"></div>
+                    </div>
+                </div>
+                <div class="strategy-atr-section">
+                    <div class="strategy-enable">
+                        <div class="toggle-label"><span>Partial Take Profit</span><small>Close % of position at profit targets</small></div>
+                        <div class="toggle" id="toggle_elcaro_ptp" onclick="toggleSectionToggle('elcaro', 'ptp')"></div>
+                    </div>
+                    <div class="form-grid strategy-params atr-params">
+                        <div class="form-group"><label class="form-label">Step 1 Close %</label><input type="number" id="elcaro_partial_tp_1_close_pct" class="form-input" value="30" min="1" max="99"></div>
+                        <div class="form-group"><label class="form-label">Step 1 Trigger %</label><input type="number" id="elcaro_partial_tp_1_trigger_pct" class="form-input" value="2.0" min="0.1" max="50" step="0.1"></div>
+                        <div class="form-group"><label class="form-label">Step 2 Close %</label><input type="number" id="elcaro_partial_tp_2_close_pct" class="form-input" value="30" min="1" max="99"></div>
+                        <div class="form-group"><label class="form-label">Step 2 Trigger %</label><input type="number" id="elcaro_partial_tp_2_trigger_pct" class="form-input" value="5.0" min="0.1" max="50" step="0.1"></div>
+                    </div>
                 </div>
             </div>
             
@@ -928,7 +1001,7 @@
                 <div class="form-grid strategy-params">
                     <div class="form-group">
                         <label class="form-label">Position Size %</label>
-                        <input type="number" id="scryptomera_percent" class="form-input" value="5" min="0.1" max="100" step="0.1">
+                        <input type="number" id="scryptomera_percent" class="form-input" value="1" min="0.1" max="100" step="0.1">
                     </div>
                     <div class="form-group">
                         <label class="form-label">Leverage</label>
@@ -936,11 +1009,11 @@
                     </div>
                     <div class="form-group">
                         <label class="form-label">Take Profit %</label>
-                        <input type="number" id="scryptomera_tp_percent" class="form-input" value="8" min="0.1" max="50" step="0.1">
+                        <input type="number" id="scryptomera_tp_percent" class="form-input" value="25" min="0.1" max="100" step="0.1">
                     </div>
                     <div class="form-group">
                         <label class="form-label">Stop Loss %</label>
-                        <input type="number" id="scryptomera_sl_percent" class="form-input" value="3" min="0.1" max="25" step="0.1">
+                        <input type="number" id="scryptomera_sl_percent" class="form-input" value="30" min="0.1" max="100" step="0.1">
                     </div>
                     <div class="form-group">
                         <label class="form-label">Order Type</label>
@@ -973,18 +1046,22 @@
                         </div>
                         <div class="form-group">
                             <label class="form-label">ATR Multiplier SL</label>
-                            <input type="number" id="scryptomera_atr_multiplier_sl" class="form-input" value="1.0" min="0.1" max="5" step="0.1">
+                            <input type="number" id="scryptomera_atr_multiplier_sl" class="form-input" value="0.5" min="0.1" max="5" step="0.1">
                         </div>
                         <div class="form-group">
                             <label class="form-label">ATR Trigger %</label>
-                            <input type="number" id="scryptomera_atr_trigger_pct" class="form-input" value="2.0" min="0.1" max="10" step="0.1">
+                            <input type="number" id="scryptomera_atr_trigger_pct" class="form-input" value="3.0" min="0.1" max="10" step="0.1">
+                        </div>
+                        <div class="form-group">
+                            <label class="form-label">ATR Step %</label>
+                            <input type="number" id="scryptomera_atr_step_pct" class="form-input" value="0.5" min="0.1" max="5" step="0.1">
                         </div>
                     </div>
                 </div>
                 <div class="strategy-atr-section">
                     <div class="strategy-enable">
                         <div class="toggle-label"><span>DCA (Dollar Cost Average)</span><small>Add to position at drawdown levels</small></div>
-                        <div class="toggle" id="toggle_scryptomera_dca" onclick="this.classList.toggle('active')"></div>
+                        <div class="toggle" id="toggle_scryptomera_dca" onclick="toggleSectionToggle('scryptomera', 'dca')"></div>
                     </div>
                     <div class="form-grid strategy-params atr-params">
                         <div class="form-group"><label class="form-label">DCA Level 1 %</label><input type="number" id="scryptomera_dca_pct_1" class="form-input" value="10" min="1" max="50"></div>
@@ -994,7 +1071,7 @@
                 <div class="strategy-atr-section">
                     <div class="strategy-enable">
                         <div class="toggle-label"><span>Break-Even</span><small>Move SL to entry after profit trigger</small></div>
-                        <div class="toggle" id="toggle_scryptomera_be" onclick="this.classList.toggle('active')"></div>
+                        <div class="toggle" id="toggle_scryptomera_be" onclick="toggleSectionToggle('scryptomera', 'be')"></div>
                     </div>
                     <div class="form-grid strategy-params atr-params">
                         <div class="form-group"><label class="form-label">BE Trigger %</label><input type="number" id="scryptomera_be_trigger_pct" class="form-input" value="1.0" min="0.1" max="10" step="0.1"></div>
@@ -1003,12 +1080,12 @@
                 <div class="strategy-atr-section">
                     <div class="strategy-enable">
                         <div class="toggle-label"><span>Partial Take Profit</span><small>Close % of position at profit targets</small></div>
-                        <div class="toggle" id="toggle_scryptomera_ptp" onclick="this.classList.toggle('active')"></div>
+                        <div class="toggle" id="toggle_scryptomera_ptp" onclick="toggleSectionToggle('scryptomera', 'ptp')"></div>
                     </div>
                     <div class="form-grid strategy-params atr-params">
                         <div class="form-group"><label class="form-label">Step 1 Close %</label><input type="number" id="scryptomera_partial_tp_1_close_pct" class="form-input" value="30" min="1" max="99"></div>
                         <div class="form-group"><label class="form-label">Step 1 Trigger %</label><input type="number" id="scryptomera_partial_tp_1_trigger_pct" class="form-input" value="2.0" min="0.1" max="50" step="0.1"></div>
-                        <div class="form-group"><label class="form-label">Step 2 Close %</label><input type="number" id="scryptomera_partial_tp_2_close_pct" class="form-input" value="50" min="1" max="99"></div>
+                        <div class="form-group"><label class="form-label">Step 2 Close %</label><input type="number" id="scryptomera_partial_tp_2_close_pct" class="form-input" value="30" min="1" max="99"></div>
                         <div class="form-group"><label class="form-label">Step 2 Trigger %</label><input type="number" id="scryptomera_partial_tp_2_trigger_pct" class="form-input" value="5.0" min="0.1" max="50" step="0.1"></div>
                     </div>
                 </div>
@@ -1026,7 +1103,7 @@
                 <div class="form-grid strategy-params">
                     <div class="form-group">
                         <label class="form-label">Position Size %</label>
-                        <input type="number" id="scalper_percent" class="form-input" value="5" min="0.1" max="100" step="0.1">
+                        <input type="number" id="scalper_percent" class="form-input" value="1" min="0.1" max="100" step="0.1">
                     </div>
                     <div class="form-group">
                         <label class="form-label">Leverage</label>
@@ -1034,11 +1111,11 @@
                     </div>
                     <div class="form-group">
                         <label class="form-label">Take Profit %</label>
-                        <input type="number" id="scalper_tp_percent" class="form-input" value="8" min="0.1" max="50" step="0.1">
+                        <input type="number" id="scalper_tp_percent" class="form-input" value="25" min="0.1" max="100" step="0.1">
                     </div>
                     <div class="form-group">
                         <label class="form-label">Stop Loss %</label>
-                        <input type="number" id="scalper_sl_percent" class="form-input" value="3" min="0.1" max="25" step="0.1">
+                        <input type="number" id="scalper_sl_percent" class="form-input" value="30" min="0.1" max="100" step="0.1">
                     </div>
                     <div class="form-group">
                         <label class="form-label">Order Type</label>
@@ -1071,18 +1148,22 @@
                         </div>
                         <div class="form-group">
                             <label class="form-label">ATR Multiplier SL</label>
-                            <input type="number" id="scalper_atr_multiplier_sl" class="form-input" value="1.0" min="0.1" max="5" step="0.1">
+                            <input type="number" id="scalper_atr_multiplier_sl" class="form-input" value="0.5" min="0.1" max="5" step="0.1">
                         </div>
                         <div class="form-group">
                             <label class="form-label">ATR Trigger %</label>
-                            <input type="number" id="scalper_atr_trigger_pct" class="form-input" value="2.0" min="0.1" max="10" step="0.1">
+                            <input type="number" id="scalper_atr_trigger_pct" class="form-input" value="3.0" min="0.1" max="10" step="0.1">
+                        </div>
+                        <div class="form-group">
+                            <label class="form-label">ATR Step %</label>
+                            <input type="number" id="scalper_atr_step_pct" class="form-input" value="0.5" min="0.1" max="5" step="0.1">
                         </div>
                     </div>
                 </div>
                 <div class="strategy-atr-section">
                     <div class="strategy-enable">
                         <div class="toggle-label"><span>DCA (Dollar Cost Average)</span><small>Add to position at drawdown levels</small></div>
-                        <div class="toggle" id="toggle_scalper_dca" onclick="this.classList.toggle('active')"></div>
+                        <div class="toggle" id="toggle_scalper_dca" onclick="toggleSectionToggle('scalper', 'dca')"></div>
                     </div>
                     <div class="form-grid strategy-params atr-params">
                         <div class="form-group"><label class="form-label">DCA Level 1 %</label><input type="number" id="scalper_dca_pct_1" class="form-input" value="10" min="1" max="50"></div>
@@ -1092,7 +1173,7 @@
                 <div class="strategy-atr-section">
                     <div class="strategy-enable">
                         <div class="toggle-label"><span>Break-Even</span><small>Move SL to entry after profit trigger</small></div>
-                        <div class="toggle" id="toggle_scalper_be" onclick="this.classList.toggle('active')"></div>
+                        <div class="toggle" id="toggle_scalper_be" onclick="toggleSectionToggle('scalper', 'be')"></div>
                     </div>
                     <div class="form-grid strategy-params atr-params">
                         <div class="form-group"><label class="form-label">BE Trigger %</label><input type="number" id="scalper_be_trigger_pct" class="form-input" value="1.0" min="0.1" max="10" step="0.1"></div>
@@ -1101,12 +1182,12 @@
                 <div class="strategy-atr-section">
                     <div class="strategy-enable">
                         <div class="toggle-label"><span>Partial Take Profit</span><small>Close % of position at profit targets</small></div>
-                        <div class="toggle" id="toggle_scalper_ptp" onclick="this.classList.toggle('active')"></div>
+                        <div class="toggle" id="toggle_scalper_ptp" onclick="toggleSectionToggle('scalper', 'ptp')"></div>
                     </div>
                     <div class="form-grid strategy-params atr-params">
                         <div class="form-group"><label class="form-label">Step 1 Close %</label><input type="number" id="scalper_partial_tp_1_close_pct" class="form-input" value="30" min="1" max="99"></div>
                         <div class="form-group"><label class="form-label">Step 1 Trigger %</label><input type="number" id="scalper_partial_tp_1_trigger_pct" class="form-input" value="2.0" min="0.1" max="50" step="0.1"></div>
-                        <div class="form-group"><label class="form-label">Step 2 Close %</label><input type="number" id="scalper_partial_tp_2_close_pct" class="form-input" value="50" min="1" max="99"></div>
+                        <div class="form-group"><label class="form-label">Step 2 Close %</label><input type="number" id="scalper_partial_tp_2_close_pct" class="form-input" value="30" min="1" max="99"></div>
                         <div class="form-group"><label class="form-label">Step 2 Trigger %</label><input type="number" id="scalper_partial_tp_2_trigger_pct" class="form-input" value="5.0" min="0.1" max="50" step="0.1"></div>
                     </div>
                 </div>
@@ -1124,7 +1205,7 @@
                 <div class="form-grid strategy-params">
                     <div class="form-group">
                         <label class="form-label">Position Size %</label>
-                        <input type="number" id="fibonacci_percent" class="form-input" value="5" min="0.1" max="100" step="0.1">
+                        <input type="number" id="fibonacci_percent" class="form-input" value="1" min="0.1" max="100" step="0.1">
                     </div>
                     <div class="form-group">
                         <label class="form-label">Leverage</label>
@@ -1132,11 +1213,11 @@
                     </div>
                     <div class="form-group">
                         <label class="form-label">Take Profit %</label>
-                        <input type="number" id="fibonacci_tp_percent" class="form-input" value="8" min="0.1" max="50" step="0.1">
+                        <input type="number" id="fibonacci_tp_percent" class="form-input" value="25" min="0.1" max="100" step="0.1">
                     </div>
                     <div class="form-group">
                         <label class="form-label">Stop Loss %</label>
-                        <input type="number" id="fibonacci_sl_percent" class="form-input" value="3" min="0.1" max="25" step="0.1">
+                        <input type="number" id="fibonacci_sl_percent" class="form-input" value="30" min="0.1" max="100" step="0.1">
                     </div>
                     <div class="form-group">
                         <label class="form-label">Order Type</label>
@@ -1173,18 +1254,22 @@
                         </div>
                         <div class="form-group">
                             <label class="form-label">ATR Multiplier SL</label>
-                            <input type="number" id="fibonacci_atr_multiplier_sl" class="form-input" value="1.0" min="0.1" max="5" step="0.1">
+                            <input type="number" id="fibonacci_atr_multiplier_sl" class="form-input" value="0.5" min="0.1" max="5" step="0.1">
                         </div>
                         <div class="form-group">
                             <label class="form-label">ATR Trigger %</label>
-                            <input type="number" id="fibonacci_atr_trigger_pct" class="form-input" value="2.0" min="0.1" max="10" step="0.1">
+                            <input type="number" id="fibonacci_atr_trigger_pct" class="form-input" value="3.0" min="0.1" max="10" step="0.1">
+                        </div>
+                        <div class="form-group">
+                            <label class="form-label">ATR Step %</label>
+                            <input type="number" id="fibonacci_atr_step_pct" class="form-input" value="0.5" min="0.1" max="5" step="0.1">
                         </div>
                     </div>
                 </div>
                 <div class="strategy-atr-section">
                     <div class="strategy-enable">
                         <div class="toggle-label"><span>DCA (Dollar Cost Average)</span><small>Add to position at drawdown levels</small></div>
-                        <div class="toggle" id="toggle_fibonacci_dca" onclick="this.classList.toggle('active')"></div>
+                        <div class="toggle" id="toggle_fibonacci_dca" onclick="toggleSectionToggle('fibonacci', 'dca')"></div>
                     </div>
                     <div class="form-grid strategy-params atr-params">
                         <div class="form-group"><label class="form-label">DCA Level 1 %</label><input type="number" id="fibonacci_dca_pct_1" class="form-input" value="10" min="1" max="50"></div>
@@ -1194,7 +1279,7 @@
                 <div class="strategy-atr-section">
                     <div class="strategy-enable">
                         <div class="toggle-label"><span>Break-Even</span><small>Move SL to entry after profit trigger</small></div>
-                        <div class="toggle" id="toggle_fibonacci_be" onclick="this.classList.toggle('active')"></div>
+                        <div class="toggle" id="toggle_fibonacci_be" onclick="toggleSectionToggle('fibonacci', 'be')"></div>
                     </div>
                     <div class="form-grid strategy-params atr-params">
                         <div class="form-group"><label class="form-label">BE Trigger %</label><input type="number" id="fibonacci_be_trigger_pct" class="form-input" value="1.0" min="0.1" max="10" step="0.1"></div>
@@ -1203,12 +1288,12 @@
                 <div class="strategy-atr-section">
                     <div class="strategy-enable">
                         <div class="toggle-label"><span>Partial Take Profit</span><small>Close % of position at profit targets</small></div>
-                        <div class="toggle" id="toggle_fibonacci_ptp" onclick="this.classList.toggle('active')"></div>
+                        <div class="toggle" id="toggle_fibonacci_ptp" onclick="toggleSectionToggle('fibonacci', 'ptp')"></div>
                     </div>
                     <div class="form-grid strategy-params atr-params">
                         <div class="form-group"><label class="form-label">Step 1 Close %</label><input type="number" id="fibonacci_partial_tp_1_close_pct" class="form-input" value="30" min="1" max="99"></div>
                         <div class="form-group"><label class="form-label">Step 1 Trigger %</label><input type="number" id="fibonacci_partial_tp_1_trigger_pct" class="form-input" value="2.0" min="0.1" max="50" step="0.1"></div>
-                        <div class="form-group"><label class="form-label">Step 2 Close %</label><input type="number" id="fibonacci_partial_tp_2_close_pct" class="form-input" value="50" min="1" max="99"></div>
+                        <div class="form-group"><label class="form-label">Step 2 Close %</label><input type="number" id="fibonacci_partial_tp_2_close_pct" class="form-input" value="30" min="1" max="99"></div>
                         <div class="form-group"><label class="form-label">Step 2 Trigger %</label><input type="number" id="fibonacci_partial_tp_2_trigger_pct" class="form-input" value="5.0" min="0.1" max="50" step="0.1"></div>
                     </div>
                 </div>
@@ -1226,7 +1311,7 @@
                 <div class="form-grid strategy-params">
                     <div class="form-group">
                         <label class="form-label">Position Size %</label>
-                        <input type="number" id="rsi_bb_percent" class="form-input" value="5" min="0.1" max="100" step="0.1">
+                        <input type="number" id="rsi_bb_percent" class="form-input" value="1" min="0.1" max="100" step="0.1">
                     </div>
                     <div class="form-group">
                         <label class="form-label">Leverage</label>
@@ -1234,11 +1319,11 @@
                     </div>
                     <div class="form-group">
                         <label class="form-label">Take Profit %</label>
-                        <input type="number" id="rsi_bb_tp_percent" class="form-input" value="8" min="0.1" max="50" step="0.1">
+                        <input type="number" id="rsi_bb_tp_percent" class="form-input" value="25" min="0.1" max="100" step="0.1">
                     </div>
                     <div class="form-group">
                         <label class="form-label">Stop Loss %</label>
-                        <input type="number" id="rsi_bb_sl_percent" class="form-input" value="3" min="0.1" max="25" step="0.1">
+                        <input type="number" id="rsi_bb_sl_percent" class="form-input" value="30" min="0.1" max="100" step="0.1">
                     </div>
                     <div class="form-group">
                         <label class="form-label">Order Type</label>
@@ -1271,18 +1356,22 @@
                         </div>
                         <div class="form-group">
                             <label class="form-label">ATR Multiplier SL</label>
-                            <input type="number" id="rsi_bb_atr_multiplier_sl" class="form-input" value="1.0" min="0.1" max="5" step="0.1">
+                            <input type="number" id="rsi_bb_atr_multiplier_sl" class="form-input" value="0.5" min="0.1" max="5" step="0.1">
                         </div>
                         <div class="form-group">
                             <label class="form-label">ATR Trigger %</label>
-                            <input type="number" id="rsi_bb_atr_trigger_pct" class="form-input" value="2.0" min="0.1" max="10" step="0.1">
+                            <input type="number" id="rsi_bb_atr_trigger_pct" class="form-input" value="3.0" min="0.1" max="10" step="0.1">
+                        </div>
+                        <div class="form-group">
+                            <label class="form-label">ATR Step %</label>
+                            <input type="number" id="rsi_bb_atr_step_pct" class="form-input" value="0.5" min="0.1" max="5" step="0.1">
                         </div>
                     </div>
                 </div>
                 <div class="strategy-atr-section">
                     <div class="strategy-enable">
                         <div class="toggle-label"><span>DCA (Dollar Cost Average)</span><small>Add to position at drawdown levels</small></div>
-                        <div class="toggle" id="toggle_rsi_bb_dca" onclick="this.classList.toggle('active')"></div>
+                        <div class="toggle" id="toggle_rsi_bb_dca" onclick="toggleSectionToggle('rsi_bb', 'dca')"></div>
                     </div>
                     <div class="form-grid strategy-params atr-params">
                         <div class="form-group"><label class="form-label">DCA Level 1 %</label><input type="number" id="rsi_bb_dca_pct_1" class="form-input" value="10" min="1" max="50"></div>
@@ -1292,7 +1381,7 @@
                 <div class="strategy-atr-section">
                     <div class="strategy-enable">
                         <div class="toggle-label"><span>Break-Even</span><small>Move SL to entry after profit trigger</small></div>
-                        <div class="toggle" id="toggle_rsi_bb_be" onclick="this.classList.toggle('active')"></div>
+                        <div class="toggle" id="toggle_rsi_bb_be" onclick="toggleSectionToggle('rsi_bb', 'be')"></div>
                     </div>
                     <div class="form-grid strategy-params atr-params">
                         <div class="form-group"><label class="form-label">BE Trigger %</label><input type="number" id="rsi_bb_be_trigger_pct" class="form-input" value="1.0" min="0.1" max="10" step="0.1"></div>
@@ -1301,12 +1390,12 @@
                 <div class="strategy-atr-section">
                     <div class="strategy-enable">
                         <div class="toggle-label"><span>Partial Take Profit</span><small>Close % of position at profit targets</small></div>
-                        <div class="toggle" id="toggle_rsi_bb_ptp" onclick="this.classList.toggle('active')"></div>
+                        <div class="toggle" id="toggle_rsi_bb_ptp" onclick="toggleSectionToggle('rsi_bb', 'ptp')"></div>
                     </div>
                     <div class="form-grid strategy-params atr-params">
                         <div class="form-group"><label class="form-label">Step 1 Close %</label><input type="number" id="rsi_bb_partial_tp_1_close_pct" class="form-input" value="30" min="1" max="99"></div>
                         <div class="form-group"><label class="form-label">Step 1 Trigger %</label><input type="number" id="rsi_bb_partial_tp_1_trigger_pct" class="form-input" value="2.0" min="0.1" max="50" step="0.1"></div>
-                        <div class="form-group"><label class="form-label">Step 2 Close %</label><input type="number" id="rsi_bb_partial_tp_2_close_pct" class="form-input" value="50" min="1" max="99"></div>
+                        <div class="form-group"><label class="form-label">Step 2 Close %</label><input type="number" id="rsi_bb_partial_tp_2_close_pct" class="form-input" value="30" min="1" max="99"></div>
                         <div class="form-group"><label class="form-label">Step 2 Trigger %</label><input type="number" id="rsi_bb_partial_tp_2_trigger_pct" class="form-input" value="5.0" min="0.1" max="50" step="0.1"></div>
                     </div>
                 </div>
@@ -1324,7 +1413,7 @@
                 <div class="form-grid strategy-params">
                     <div class="form-group">
                         <label class="form-label">Position Size %</label>
-                        <input type="number" id="oi_percent" class="form-input" value="5" min="0.1" max="100" step="0.1">
+                        <input type="number" id="oi_percent" class="form-input" value="1" min="0.1" max="100" step="0.1">
                     </div>
                     <div class="form-group">
                         <label class="form-label">Leverage</label>
@@ -1332,11 +1421,11 @@
                     </div>
                     <div class="form-group">
                         <label class="form-label">Take Profit %</label>
-                        <input type="number" id="oi_tp_percent" class="form-input" value="8" min="0.1" max="50" step="0.1">
+                        <input type="number" id="oi_tp_percent" class="form-input" value="25" min="0.1" max="100" step="0.1">
                     </div>
                     <div class="form-group">
                         <label class="form-label">Stop Loss %</label>
-                        <input type="number" id="oi_sl_percent" class="form-input" value="3" min="0.1" max="25" step="0.1">
+                        <input type="number" id="oi_sl_percent" class="form-input" value="30" min="0.1" max="100" step="0.1">
                     </div>
                     <div class="form-group">
                         <label class="form-label">Order Type</label>
@@ -1369,18 +1458,22 @@
                         </div>
                         <div class="form-group">
                             <label class="form-label">ATR Multiplier SL</label>
-                            <input type="number" id="oi_atr_multiplier_sl" class="form-input" value="1.0" min="0.1" max="5" step="0.1">
+                            <input type="number" id="oi_atr_multiplier_sl" class="form-input" value="0.5" min="0.1" max="5" step="0.1">
                         </div>
                         <div class="form-group">
                             <label class="form-label">ATR Trigger %</label>
-                            <input type="number" id="oi_atr_trigger_pct" class="form-input" value="2.0" min="0.1" max="10" step="0.1">
+                            <input type="number" id="oi_atr_trigger_pct" class="form-input" value="3.0" min="0.1" max="10" step="0.1">
+                        </div>
+                        <div class="form-group">
+                            <label class="form-label">ATR Step %</label>
+                            <input type="number" id="oi_atr_step_pct" class="form-input" value="0.5" min="0.1" max="5" step="0.1">
                         </div>
                     </div>
                 </div>
                 <div class="strategy-atr-section">
                     <div class="strategy-enable">
                         <div class="toggle-label"><span>DCA (Dollar Cost Average)</span><small>Add to position at drawdown levels</small></div>
-                        <div class="toggle" id="toggle_oi_dca" onclick="this.classList.toggle('active')"></div>
+                        <div class="toggle" id="toggle_oi_dca" onclick="toggleSectionToggle('oi', 'dca')"></div>
                     </div>
                     <div class="form-grid strategy-params atr-params">
                         <div class="form-group"><label class="form-label">DCA Level 1 %</label><input type="number" id="oi_dca_pct_1" class="form-input" value="10" min="1" max="50"></div>
@@ -1390,7 +1483,7 @@
                 <div class="strategy-atr-section">
                     <div class="strategy-enable">
                         <div class="toggle-label"><span>Break-Even</span><small>Move SL to entry after profit trigger</small></div>
-                        <div class="toggle" id="toggle_oi_be" onclick="this.classList.toggle('active')"></div>
+                        <div class="toggle" id="toggle_oi_be" onclick="toggleSectionToggle('oi', 'be')"></div>
                     </div>
                     <div class="form-grid strategy-params atr-params">
                         <div class="form-group"><label class="form-label">BE Trigger %</label><input type="number" id="oi_be_trigger_pct" class="form-input" value="1.0" min="0.1" max="10" step="0.1"></div>
@@ -1399,12 +1492,12 @@
                 <div class="strategy-atr-section">
                     <div class="strategy-enable">
                         <div class="toggle-label"><span>Partial Take Profit</span><small>Close % of position at profit targets</small></div>
-                        <div class="toggle" id="toggle_oi_ptp" onclick="this.classList.toggle('active')"></div>
+                        <div class="toggle" id="toggle_oi_ptp" onclick="toggleSectionToggle('oi', 'ptp')"></div>
                     </div>
                     <div class="form-grid strategy-params atr-params">
                         <div class="form-group"><label class="form-label">Step 1 Close %</label><input type="number" id="oi_partial_tp_1_close_pct" class="form-input" value="30" min="1" max="99"></div>
                         <div class="form-group"><label class="form-label">Step 1 Trigger %</label><input type="number" id="oi_partial_tp_1_trigger_pct" class="form-input" value="2.0" min="0.1" max="50" step="0.1"></div>
-                        <div class="form-group"><label class="form-label">Step 2 Close %</label><input type="number" id="oi_partial_tp_2_close_pct" class="form-input" value="50" min="1" max="99"></div>
+                        <div class="form-group"><label class="form-label">Step 2 Close %</label><input type="number" id="oi_partial_tp_2_close_pct" class="form-input" value="30" min="1" max="99"></div>
                         <div class="form-group"><label class="form-label">Step 2 Trigger %</label><input type="number" id="oi_partial_tp_2_trigger_pct" class="form-input" value="5.0" min="0.1" max="50" step="0.1"></div>
                     </div>
                 </div>
@@ -1526,10 +1619,10 @@
         
         function updateUI() {
             // Update form values
-            document.getElementById('percent').value = settings.percent || 5;
+            document.getElementById('percent').value = settings.percent || 1;
             document.getElementById('leverage').value = settings.leverage || 10;
-            document.getElementById('tp_percent').value = settings.tp_percent || 2;
-            document.getElementById('sl_percent').value = settings.sl_percent || 1;
+            document.getElementById('tp_percent').value = settings.tp_percent || 25;
+            document.getElementById('sl_percent').value = settings.sl_percent || 30;
             
             // Trading mode
             const tradingModeEl = document.getElementById('trading_mode');
@@ -1905,20 +1998,23 @@
                         const atrToggle = document.getElementById(`toggle_${strategy}_use_atr`);
                         if (atrToggle) {
                             updateToggle(`toggle_${strategy}_use_atr`, value);
-                            updateATRParamsState(strategy, value);
+                            updateSectionParamsState(strategy, 'use_atr', value);
                         }
                         continue;
                     }
                     if (key === 'dca_enabled') {
                         updateToggle(`toggle_${strategy}_dca`, value);
+                        updateSectionParamsState(strategy, 'dca', value);
                         continue;
                     }
                     if (key === 'be_enabled') {
                         updateToggle(`toggle_${strategy}_be`, value);
+                        updateSectionParamsState(strategy, 'be', value);
                         continue;
                     }
                     if (key === 'partial_tp_enabled') {
                         updateToggle(`toggle_${strategy}_ptp`, value);
+                        updateSectionParamsState(strategy, 'ptp', value);
                         continue;
                     }
                     
@@ -1943,13 +2039,40 @@
             const toggle = document.getElementById(`toggle_${strategy}_use_atr`);
             toggle.classList.toggle('active');
             const isActive = toggle.classList.contains('active');
-            updateATRParamsState(strategy, isActive);
+            updateSectionParamsState(strategy, 'use_atr', isActive);
         }
         
         function updateATRParamsState(strategy, active) {
-            const atrParams = document.querySelector(`#strategy-${strategy} .atr-params`);
-            if (atrParams) {
-                atrParams.classList.toggle('active', active);
+            // ATR is always the FIRST .atr-params in the strategy panel
+            const panel = document.getElementById(`strategy-${strategy}`);
+            if (panel) {
+                const firstAtrParams = panel.querySelector('.strategy-atr-section:first-of-type .atr-params');
+                if (firstAtrParams) {
+                    firstAtrParams.classList.toggle('active', active);
+                }
+            }
+        }
+        
+        function toggleSectionToggle(strategy, section) {
+            const toggle = document.getElementById(`toggle_${strategy}_${section}`);
+            if (toggle) {
+                toggle.classList.toggle('active');
+                const isActive = toggle.classList.contains('active');
+                updateSectionParamsState(strategy, section, isActive);
+            }
+        }
+        
+        function updateSectionParamsState(strategy, section, active) {
+            // Find the toggle element, then its parent .strategy-atr-section, then the .atr-params sibling
+            const toggle = document.getElementById(`toggle_${strategy}_${section}`);
+            if (toggle) {
+                const sectionDiv = toggle.closest('.strategy-atr-section');
+                if (sectionDiv) {
+                    const params = sectionDiv.querySelector('.atr-params');
+                    if (params) {
+                        params.classList.toggle('active', active);
+                    }
+                }
             }
         }
         

@@ -22,10 +22,11 @@ struct TradingSettingsView: View {
     @State private var spotDcaEnabled = false
     @State private var spotDcaPct = 5.0
     
-    @State private var useAtr = false
-    @State private var atrPeriods = 14
-    @State private var atrTriggerPct = 0.5
-    @State private var atrStepPct = 0.25
+    @State private var useAtr = true
+    @State private var atrPeriods = 7
+    @State private var atrMultiplierSl = 0.5
+    @State private var atrTriggerPct = 3.0
+    @State private var atrStepPct = 0.5
     
     @State private var bybitEnabled = true
     @State private var hyperliquidEnabled = false
@@ -121,12 +122,22 @@ struct TradingSettingsView: View {
                 Toggle("use_atr".localized, isOn: $useAtr)
                 
                 if useAtr {
-                    Stepper("atr_periods".localized + ": \(atrPeriods)", value: $atrPeriods, in: 5...50)
+                    Stepper("atr_periods".localized + ": \(atrPeriods)", value: $atrPeriods, in: 3...50)
+                    
+                    HStack {
+                        Text("atr_multiplier".localized)
+                        Spacer()
+                        TextField("0.5", value: $atrMultiplierSl, format: .number)
+                            .keyboardType(.decimalPad)
+                            .multilineTextAlignment(.trailing)
+                            .frame(width: 60)
+                        Text("x")
+                    }
                     
                     HStack {
                         Text("atr_trigger".localized)
                         Spacer()
-                        TextField("0.5", value: $atrTriggerPct, format: .number)
+                        TextField("3.0", value: $atrTriggerPct, format: .number)
                             .keyboardType(.decimalPad)
                             .multilineTextAlignment(.trailing)
                             .frame(width: 60)
@@ -136,7 +147,7 @@ struct TradingSettingsView: View {
                     HStack {
                         Text("atr_step".localized)
                         Spacer()
-                        TextField("0.25", value: $atrStepPct, format: .number)
+                        TextField("0.5", value: $atrStepPct, format: .number)
                             .keyboardType(.decimalPad)
                             .multilineTextAlignment(.trailing)
                             .frame(width: 60)
@@ -230,6 +241,7 @@ struct TradingSettingsView: View {
         spotDcaPct = settings.spotDcaPct
         useAtr = settings.useAtr
         atrPeriods = settings.atrPeriods
+        atrMultiplierSl = settings.atrMultiplierSl
         atrTriggerPct = settings.atrTriggerPct
         atrStepPct = settings.atrStepPct
         
@@ -264,7 +276,7 @@ struct TradingSettingsView: View {
             success = await service.updateATRSettings(
                 useAtr: useAtr,
                 periods: atrPeriods,
-                multiplierSl: 1.5,  // Default multiplier
+                multiplierSl: atrMultiplierSl,
                 triggerPct: atrTriggerPct,
                 stepPct: atrStepPct
             ) && success

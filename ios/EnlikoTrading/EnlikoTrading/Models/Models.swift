@@ -1022,6 +1022,8 @@ struct StrategySettings: Codable, Identifiable {
     let useAtr: Bool
     let atrTriggerPct: Double?
     let atrStepPct: Double?
+    let atrPeriods: Int?
+    let atrMultiplierSl: Double?
     let dcaEnabled: Bool
     let dcaPct1: Double?
     let dcaPct2: Double?
@@ -1029,6 +1031,7 @@ struct StrategySettings: Codable, Identifiable {
     let coinsGroup: String
     let direction: String
     let orderType: String
+    let limitOffsetPct: Double?
     let enabled: Bool
     // Break-Even fields
     let beEnabled: Bool
@@ -1052,6 +1055,8 @@ struct StrategySettings: Codable, Identifiable {
         case useAtr = "use_atr"
         case atrTriggerPct = "atr_trigger_pct"
         case atrStepPct = "atr_step_pct"
+        case atrPeriods = "atr_periods"
+        case atrMultiplierSl = "atr_multiplier_sl"
         case dcaEnabled = "dca_enabled"
         case dcaPct1 = "dca_pct_1"
         case dcaPct2 = "dca_pct_2"
@@ -1059,6 +1064,7 @@ struct StrategySettings: Codable, Identifiable {
         case coinsGroup = "coins_group"
         case direction
         case orderType = "order_type"
+        case limitOffsetPct = "limit_offset_pct"
         case enabled
         case beEnabled = "be_enabled"
         case beTriggerPct = "be_trigger_pct"
@@ -1080,9 +1086,11 @@ struct StrategySettings: Codable, Identifiable {
         tpPercent = try container.decodeIfPresent(Double.self, forKey: .tpPercent) ?? 25.0
         slPercent = try container.decodeIfPresent(Double.self, forKey: .slPercent) ?? 30.0
         leverage = try container.decodeIfPresent(Int.self, forKey: .leverage) ?? 10
-        useAtr = try container.decodeIfPresent(Bool.self, forKey: .useAtr) ?? false
+        useAtr = try container.decodeIfPresent(Bool.self, forKey: .useAtr) ?? true
         atrTriggerPct = try container.decodeIfPresent(Double.self, forKey: .atrTriggerPct)
         atrStepPct = try container.decodeIfPresent(Double.self, forKey: .atrStepPct)
+        atrPeriods = try container.decodeIfPresent(Int.self, forKey: .atrPeriods)
+        atrMultiplierSl = try container.decodeIfPresent(Double.self, forKey: .atrMultiplierSl)
         dcaEnabled = try container.decodeIfPresent(Bool.self, forKey: .dcaEnabled) ?? false
         dcaPct1 = try container.decodeIfPresent(Double.self, forKey: .dcaPct1)
         dcaPct2 = try container.decodeIfPresent(Double.self, forKey: .dcaPct2)
@@ -1090,6 +1098,7 @@ struct StrategySettings: Codable, Identifiable {
         coinsGroup = try container.decodeIfPresent(String.self, forKey: .coinsGroup) ?? "ALL"
         direction = try container.decodeIfPresent(String.self, forKey: .direction) ?? "all"
         orderType = try container.decodeIfPresent(String.self, forKey: .orderType) ?? "market"
+        limitOffsetPct = try container.decodeIfPresent(Double.self, forKey: .limitOffsetPct)
         enabled = try container.decodeIfPresent(Bool.self, forKey: .enabled) ?? true
         beEnabled = try container.decodeIfPresent(Bool.self, forKey: .beEnabled) ?? false
         beTriggerPct = try container.decodeIfPresent(Double.self, forKey: .beTriggerPct)
@@ -1491,10 +1500,14 @@ struct StrategySettingsUpdateRequest: Codable {
     let useAtr: Bool
     let atrTriggerPct: Double
     let atrStepPct: Double
+    let atrPeriods: Int
+    let atrMultiplierSl: Double
     let dcaEnabled: Bool
     let dcaPct1: Double
     let dcaPct2: Double
     let orderType: String
+    let limitOffsetPct: Double
+    let direction: String
     // Order limits
     let maxPositions: Int
     let coinsGroup: String
@@ -1509,17 +1522,20 @@ struct StrategySettingsUpdateRequest: Codable {
     let partialTp2ClosePct: Double
     
     enum CodingKeys: String, CodingKey {
-        case side, exchange, enabled, percent, leverage
+        case side, exchange, enabled, percent, leverage, direction
         case accountType = "account_type"
         case tpPercent = "tp_percent"
         case slPercent = "sl_percent"
         case useAtr = "use_atr"
         case atrTriggerPct = "atr_trigger_pct"
         case atrStepPct = "atr_step_pct"
+        case atrPeriods = "atr_periods"
+        case atrMultiplierSl = "atr_multiplier_sl"
         case dcaEnabled = "dca_enabled"
         case dcaPct1 = "dca_pct_1"
         case dcaPct2 = "dca_pct_2"
         case orderType = "order_type"
+        case limitOffsetPct = "limit_offset_pct"
         case maxPositions = "max_positions"
         case coinsGroup = "coins_group"
         case beEnabled = "be_enabled"
