@@ -8063,26 +8063,14 @@ async def _place_order_impl(
         notional = qty * current_price
         
         if notional < MIN_NOTIONAL:
-            logger.warning(
-                f"[{user_id}] Order notional ${notional:.2f} < ${MIN_NOTIONAL} min for {symbol}. "
-                f"Skipping order (qty={qty:.4f}, price={current_price:.4f})"
+            # Auto-bump qty to meet minimum notional instead of rejecting
+            old_qty = qty
+            qty = MIN_NOTIONAL / current_price * 1.05  # 5% buffer
+            notional = qty * current_price
+            logger.info(
+                f"[{user_id}] {symbol} auto-bumped qty {old_qty:.4f} → {qty:.4f} "
+                f"to meet ${MIN_NOTIONAL} minimum (notional ${notional:.2f}) [{account_type}]"
             )
-            # Record error for admin reporting
-            asyncio.create_task(error_monitor.record_error(
-                user_id=user_id,
-                error_type="ORDER_TOO_SMALL",
-                error_message=f"notional ${notional:.2f} < ${MIN_NOTIONAL} min",
-                function_name="_place_order_impl",
-                symbol=symbol,
-                account_type=account_type,
-                notify_user=True,
-                qty=qty,
-                price=current_price,
-                notional=notional
-            ))
-            raise ValueError(f"ORDER_TOO_SMALL: notional ${notional:.2f} < ${MIN_NOTIONAL} minimum")
-    except ValueError:
-        raise  # Re-raise our ORDER_TOO_SMALL error
     except Exception as e:
         logger.warning(f"[{user_id}] Could not check notional for {symbol}: {e}")
         # Continue anyway - Bybit will reject if too small
@@ -8419,13 +8407,18 @@ async def place_order_for_targets(
                     notional_value = target_qty * entry_price
                     
                     if notional_value < MIN_NOTIONAL_HL:
-                        logger.warning(
-                            f"[{user_id}] {symbol} HL notional ${notional_value:.2f} < ${MIN_NOTIONAL_HL} minimum. "
-                            f"SKIPPING trade (equity too low or risk% too small). "
-                            f"qty={target_qty:.4f}, leverage={target_leverage}x, risk={risk_pct}%, sl={sl_pct}%"
+                        # Auto-bump qty to meet minimum notional instead of skipping
+                        old_qty = target_qty
+                        from hyperliquid.constants import get_size_decimals
+                        coin = symbol.upper().replace("USDT", "").replace("USDC", "").replace("PERP", "")
+                        sz_decimals = get_size_decimals(coin)
+                        min_qty_needed = MIN_NOTIONAL_HL / entry_price * 1.1  # 10% buffer for rounding
+                        target_qty = math.ceil(min_qty_needed * 10**sz_decimals) / 10**sz_decimals
+                        notional_value = target_qty * entry_price
+                        logger.info(
+                            f"[{user_id}] {symbol} HL notional was ${old_qty * entry_price:.2f} < ${MIN_NOTIONAL_HL} min. "
+                            f"Auto-bumped qty {old_qty:.4f} → {target_qty:.4f} (notional ${notional_value:.2f})"
                         )
-                        errors.append(f"[{target_key.upper()}] Notional ${notional_value:.2f} below ${MIN_NOTIONAL_HL} minimum - increase risk% or equity")
-                        continue
                     
                     logger.info(
                         f"[{user_id}] HL per-target qty for {target_key}: "
@@ -8439,18 +8432,18 @@ async def place_order_for_targets(
                     )
                     
                     # Check minimum notional value ($5 on Bybit)
-                    # If position is too small, SKIP the trade instead of increasing leverage
                     MIN_NOTIONAL_BYBIT = 5.0   # Bybit's minimum
                     notional_value = target_qty * entry_price
                     
                     if notional_value < MIN_NOTIONAL_BYBIT:
-                        logger.warning(
-                            f"[{user_id}] {symbol} notional ${notional_value:.2f} < ${MIN_NOTIONAL_BYBIT} minimum. "
-                            f"SKIPPING trade (equity too low or risk% too small). "
-                            f"qty={target_qty:.4f}, leverage={target_leverage}x, risk={risk_pct}%, sl={sl_pct}%"
+                        # Auto-bump qty to meet minimum notional instead of skipping
+                        old_qty = target_qty
+                        target_qty = MIN_NOTIONAL_BYBIT / entry_price * 1.1  # 10% buffer for step rounding
+                        notional_value = target_qty * entry_price
+                        logger.info(
+                            f"[{user_id}] {symbol} Bybit notional was ${old_qty * entry_price:.2f} < ${MIN_NOTIONAL_BYBIT} min. "
+                            f"Auto-bumped qty {old_qty:.4f} → {target_qty:.4f} (notional ${notional_value:.2f})"
                         )
-                        errors.append(f"[{target_key.upper()}] Notional ${notional_value:.2f} below ${MIN_NOTIONAL_BYBIT} minimum - increase risk% or equity")
-                        continue  # Skip this target, don't open position
                     
                     logger.info(
                         f"[{user_id}] Per-target qty for {target_key}: "
