@@ -148,7 +148,7 @@ BLACKLIST = {"FUSDT", "SKLUSDT", "BNBUSDT"}
 
 # состояния конверса
 ORDER_TYPE, ORDER_PARAMS = range(2)
-CHECK_INTERVAL = 15  # секунда интервала проверки
+CHECK_INTERVAL = 25  # секунда интервала проверки (was 15, optimized to reduce API/log load with 300+ positions)
 
 # Проценты TP и SL для каждой монеты.
 # Если монеты нет в этом словаре, будет подставлен default = 3%

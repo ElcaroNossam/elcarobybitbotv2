@@ -5016,7 +5016,7 @@ def resolve_sl_tp_pct(cfg: dict, symbol: str, strategy: str | None = None, user_
             side_sl = strat_settings.get(f"{side_prefix}_sl_percent")
             side_tp = strat_settings.get(f"{side_prefix}_tp_percent")
             # DEBUG: Log side resolution
-            logger.info(f"[RESOLVE-SL-TP] uid={user_id} symbol={symbol} strategy={strategy} side={side} side_prefix={side_prefix} side_sl={side_sl} side_tp={side_tp}")
+            logger.debug(f"[RESOLVE-SL-TP] uid={user_id} symbol={symbol} strategy={strategy} side={side} side_prefix={side_prefix} side_sl={side_sl} side_tp={side_tp}")
             
             if side_sl is not None and side_sl > 0:
                 strat_sl = side_sl
@@ -8360,6 +8360,21 @@ async def place_order_for_targets(
         client_order_id = f"{signal_id or 'manual'}-{target_exchange[:2]}-{target_env[:1]}-{int(time.time())}"
         
         # ═══════════════════════════════════════════════════════════════════
+        # Pre-check: skip target if equity is too low to trade
+        # ═══════════════════════════════════════════════════════════════════
+        MIN_EQUITY_TO_TRADE = 1.0  # $1 minimum — prevents spam orders with near-zero balance
+        if calc_qty_per_target and entry_price:
+            pre_check_acc = target_account_type or ("demo" if target_env == "paper" else "real")
+            try:
+                pre_equity = await fetch_usdt_balance(user_id, account_type=pre_check_acc, use_equity=True, exchange=target_exchange)
+                if pre_equity < MIN_EQUITY_TO_TRADE:
+                    logger.info(f"[{user_id}] Skipping {target_key} — equity ${pre_equity:.2f} < ${MIN_EQUITY_TO_TRADE} minimum")
+                    results[target_key] = {"success": False, "skipped": True, "reason": f"Equity too low (${pre_equity:.2f})", "exchange": target_exchange}
+                    continue
+            except Exception as eq_err:
+                logger.warning(f"[{user_id}] Pre-check equity failed for {target_key}: {eq_err}")
+
+        # ═══════════════════════════════════════════════════════════════════
         # Per-target qty calculation: get settings and calculate qty for THIS target
         # ═══════════════════════════════════════════════════════════════════
         target_qty = qty  # Default to passed qty
@@ -8439,6 +8454,13 @@ async def place_order_for_targets(
                         # Auto-bump qty to meet minimum notional instead of skipping
                         old_qty = target_qty
                         target_qty = MIN_NOTIONAL_BYBIT / entry_price * 1.1  # 10% buffer for step rounding
+                        # CRITICAL FIX: Round bumped qty to instrument step size
+                        try:
+                            filters = await get_symbol_filters(user_id, symbol, exchange="bybit")
+                            step_qty = filters.get("qtyStep", 0.001)
+                            target_qty = math.ceil(target_qty / step_qty) * step_qty
+                        except Exception:
+                            pass  # normalize_qty_price downstream will handle rounding
                         notional_value = target_qty * entry_price
                         logger.info(
                             f"[{user_id}] {symbol} Bybit notional was ${old_qty * entry_price:.2f} < ${MIN_NOTIONAL_BYBIT} min. "
@@ -22512,7 +22534,7 @@ async def monitor_positions_loop(app: Application):
                             
                             # HyperLiquid workaround: HL API doesn't return stopLoss in position data
                             # Use cached SL value if available (set by our set_tp_sl calls)
-                            logger.info(f"[{uid}] {sym}: current_exchange={current_exchange}, raw_sl='{raw_sl}', current_sl={current_sl}")
+                            logger.debug(f"[{uid}] {sym}: current_exchange={current_exchange}, raw_sl='{raw_sl}', current_sl={current_sl}")
                             if current_sl is None and current_exchange == "hyperliquid":
                                 cached_sl = _hl_sl_cache.get((uid, sym))
                                 if cached_sl is not None:
@@ -22680,8 +22702,8 @@ async def monitor_positions_loop(app: Application):
                                 else:
                                     position_use_atr = use_atr  # Use global setting
 
-                            # Log ATR params being used (INFO for production visibility)
-                            logger.info(f"[{uid}] {sym}: ATR use_atr={position_use_atr} trigger={trigger_pct}% strategy={pos_strategy} side={side}")
+                            # Log ATR params being used (DEBUG to reduce log noise)
+                            logger.debug(f"[{uid}] {sym}: ATR use_atr={position_use_atr} trigger={trigger_pct}% strategy={pos_strategy} side={side}")
 
                             # Get Break-Even (BE) params: priority is side-specific > strategy settings > global
                             if pos_strategy:
@@ -23291,8 +23313,8 @@ async def monitor_positions_loop(app: Application):
                                 # Mark ATR as enabled for this position (for detecting when it gets disabled later)
                                 _atr_was_enabled[key] = True
                                 
-                                # Log current ATR state (INFO level for production visibility)
-                                logger.info(f"[ATR-CHECK] {sym} uid={uid} move_pct={move_pct:+.2f}% trigger={trigger_pct}% triggered={_atr_triggered.get(key, False)} sl={current_sl} tp={current_tp}")
+                                # Log current ATR state (DEBUG to reduce log noise — INFO only when triggered)
+                                logger.debug(f"[ATR-CHECK] {sym} uid={uid} move_pct={move_pct:+.2f}% trigger={trigger_pct}% triggered={_atr_triggered.get(key, False)} sl={current_sl} tp={current_tp}")
                                 
                                 # CRITICAL FIX (Feb 11, 2026): Attempt TP removal when ATR is triggered
                                 # and TP still exists on exchange. Bybit may return retCode 34040 ("not modified")
@@ -23310,7 +23332,7 @@ async def monitor_positions_loop(app: Application):
                                 
                                 if move_pct < trigger_pct and not _atr_triggered.get(key, False):
                                     # ATR waiting for trigger - position needs both SL AND TP as safety net
-                                    logger.info(f"[ATR-WAIT] {sym} uid={uid} move_pct={move_pct:+.2f}% < trigger={trigger_pct}% - waiting, ensuring SL+TP set")
+                                    logger.debug(f"[ATR-WAIT] {sym} uid={uid} move_pct={move_pct:+.2f}% < trigger={trigger_pct}% - waiting, ensuring SL+TP set")
                                 
                                     # Use strategy-specific SL% if available (already calculated above)
                                     base_sl = entry * (1 - sl_pct/100) if side == "Buy" else entry * (1 + sl_pct/100)
