@@ -1,6 +1,6 @@
 0x211a5a4bfb4d86b3ceeb9081410513cf9502058c7503e8ea7b7126b604714f9e# Enliko Trading Platform - AI Coding Guidelines
 # =============================================
-# Версия: 3.64.0 | Обновлено: 12 февраля 2026
+# Версия: 3.65.0 | Обновлено: 16 февраля 2026
 # BlackRock-Level Deep Audit: PASSED ✅ (Feb 7, 2026) - FULL RE-AUDIT
 # Deep Audit #1 (Phase 7): ~30 bugs fixed incl. CRITICAL DCA nonlocal ✅ (Feb 10, 2026)
 # Deep Audit #2 (Phase 8): 11 HLAdapter resource leak fixes ✅ (Feb 11, 2026)
@@ -8,6 +8,7 @@
 # Deep Audit #3 (Phase 10): 8 bugs fixed — reduce_only, SL mutation, 4D PKs ✅ (Feb 12, 2026)
 # iOS Sync Audit (Phase 11): 14 sync bugs fixed across 7 files ✅ (Feb 12, 2026)
 # iOS Data Display Audit (Phase 12): 7 bugs fixed — optional models, orders fallback ✅ (Feb 12, 2026)
+# Full Trading Logic Audit (Phase 13): 2 bugs fixed — DCA Leg2 guard, PTP stale size ✅ (Feb 16, 2026)
 # HyperLiquid Auto-Discovery: FULL SUPPORT ✅ (Feb 7, 2026)
 # HyperLiquid SPOT TRADING: FULL INTEGRATION ✅ (Feb 10, 2026) - ALL bot.py functions
 # API Settings BLOCK UI: COMPLETE ✅ (Feb 8, 2026)
@@ -1345,6 +1346,37 @@ except Exception as e:
 ---
 
 # 🔧 RECENT FIXES (Январь-Февраль 2026)
+
+### ✅ HIGH: Full Trading Logic Audit - 2 Bugs Fixed (Feb 16, 2026) — Phase 13
+- **Аудит:** Полный аудит торговой логики для всех 6 стратегий + manual — signal flow, side_enabled, calc_qty, set_trading_stop, DCA, PTP, BE, ATR, HLAdapter, 4D multitenancy
+- **Найдено:** 2 бага (1 HIGH, 1 MEDIUM), 3 LOW observations (не исправлены, latent)
+- **Исправленные баги:**
+  | # | Severity | Файл | Баг | Fix |
+  |---|----------|------|-----|-----|
+  | 1 | **HIGH** | bot.py L22832 | DCA Leg 2 fires without checking Leg 1 done — during flash crashes both legs fire in same monitor cycle, doubling DCA accumulation (2x risk exposure) | Added `get_dca_flag(uid, sym, 10, ...)` guard: Leg 2 only fires when Leg 1 is already complete |
+  | 2 | **MEDIUM** | bot.py L23066 | PTP Step 2 reads stale `open_positions` after Step 1 fired — `current_size` still has pre-Step1 value, causing Step 2 to close more than intended | Added adjustment: when Step 1 was done in same cycle AND `current_size ≈ pos_size` (stale), subtracts Step 1 closed qty |
+- **Не исправленные (LOW/информационные):**
+  | # | Severity | Описание | Почему не исправлено |
+  |---|----------|----------|---------------------|
+  | 1 | LOW | RSI_BB TP uses `if user_tp_pct` guard, other 5 strategies compute TP unconditionally — if tp_pct=0, others set TP at entry price | В практике tp_pct всегда >0 из defaults |
+  | 2 | LOW | `atr_step_pct` setting resolved + shown in UI + saveable, but NEVER used in ATR trailing calculation (dead setting) | Требует решения: либо использовать, либо удалить из UI |
+  | 3 | LOW | Legacy DCA `split_market_plus_one_limit` hardcodes `exchange="bybit"` | Код вызывается только для Bybit, latent defect |
+- **Верифицированные компоненты (все OK):**
+  | Компонент | Статус |
+  |-----------|--------|
+  | Signal processing (on_channel_post) | ✅ 6 parsers → 6 triggers correctly |
+  | side_enabled check (all 6 strategies) | ✅ Identical pattern, default=True |
+  | direction filter (all 6 strategies) | ✅ all/long/short correctly filtered |
+  | calc_qty (equity-based) | ✅ Uses walletBalance, not available |
+  | set_trading_stop (all 6 strategies) | ✅ Called for each target when !ATR |
+  | Break-Even (BE) | ✅ No bugs, well-implemented |
+  | ATR trailing stop | ✅ Only-tighten logic correct |
+  | HLAdapter cleanup | ✅ All 22+ sites use try/finally |
+  | exchange_router.py | ✅ All Phase 10 fixes verified |
+  | 4D multitenancy PKs | ✅ Migrations match UPSERT/DELETE |
+  | Monitor loop close detection | ✅ Dedup cache + 4D key correct |
+  | webapp/api/trading.py | ✅ reduceOnly, exchange filter, HLAdapter cleanup |
+- **Commit:** `1385151`
 
 ### ✅ PERF: Server Optimization - CPU 10%→97% idle (Feb 11, 2026) — Phase 9
 - **Проблема:** Production сервер (t3.micro, 2GB RAM) использовал 90%+ CPU при 0 подключённых WebSocket клиентах
@@ -4243,8 +4275,8 @@ xcodebuild -project EnlikoTrading.xcodeproj \
 
 ---
 
-*Last updated: 12 февраля 2026*
-*Version: 3.64.0*
+*Last updated: 16 февраля 2026*
+*Version: 3.65.0*
 *Database: PostgreSQL 14 (SQLite removed)*
 *WebApp API: All files migrated to PostgreSQL (marketplace, admin, backtest)*
 *Multitenancy: 4D isolation (user_id, strategy, side, exchange)*
@@ -4281,4 +4313,5 @@ xcodebuild -project EnlikoTrading.xcodeproj \
 *HLAdapter Pattern: ALWAYS use try/finally with adapter.close() — prevents aiohttp session leaks*
 *Bybit PTP Pattern: ALWAYS pass reduce_only=True when closing partial positions to prevent counter-position in hedge mode*
 *iOS Codable Pattern: ALL data fields MUST be optional with computed safe accessors (var pnlValue: Double { pnl ?? 0 })*
+*Full Trading Logic Audit (Phase 13): 2 bugs fixed — DCA Leg2 guard, PTP stale size (Feb 16, 2026) ✅*
 
