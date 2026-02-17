@@ -924,13 +924,18 @@
         
         // Initialize
         document.addEventListener('DOMContentLoaded', () => {
-            // Restore account type from localStorage
+            // Restore exchange and account type from localStorage
+            const savedExchange = localStorage.getItem('exchange_type');
+            if (savedExchange && ['bybit', 'hyperliquid'].includes(savedExchange)) {
+                state.exchange = savedExchange;
+                document.getElementById('exchangeSelect').value = savedExchange;
+            }
             const savedAccountType = localStorage.getItem('account_type');
             if (savedAccountType && ['demo', 'real', 'testnet', 'mainnet'].includes(savedAccountType)) {
                 state.accountType = savedAccountType;
-                document.getElementById('accountSelect').value = savedAccountType;
-                updateAccountBadge();
             }
+            // Update dropdown options based on exchange, then set value
+            updateAccountTypeOptions();
             
             initTickerTape();
             initTradingView();
@@ -2956,10 +2961,9 @@
                         state.accountType = data.user.trading_mode || 'demo';
                         state.leverage = data.user.leverage || 10;
                         
-                        // Update UI
+                        // Update UI — MUST update dropdown options BEFORE setting value
                         document.getElementById('exchangeSelect').value = state.exchange;
-                        document.getElementById('accountSelect').value = state.accountType;
-                        updateAccountBadge();
+                        updateAccountTypeOptions();  // Populates correct options (demo/real vs testnet/mainnet)
                         updateExchangeUI();
                         setLeverage(state.leverage);
                     }
@@ -2998,8 +3002,12 @@
                 
                 if (res.ok && data.success) {
                     showNotification(`Switched to ${newExchange.toUpperCase()}`, 'success');
+                    localStorage.setItem('exchange_type', newExchange);
                     updateExchangeUI();
                     updateAccountTypeOptions();
+                    
+                    // Also sync new account type to server (demo→testnet, real→mainnet)
+                    syncAccountTypeToServer();
                     
                     // Reconnect WebSocket for new exchange
                     reconnectWebSockets();
@@ -3107,7 +3115,29 @@
             }
             
             select.value = state.accountType;
+            localStorage.setItem('account_type', state.accountType);
             updateAccountBadge();
+        }
+        
+        // Silently sync the mapped account type to the server after exchange switch
+        async function syncAccountTypeToServer() {
+            try {
+                const token = localStorage.getItem('enliko_token');
+                if (!token) return;
+                await fetch('/api/users/switch-account-type', {
+                    method: 'POST',
+                    headers: { 
+                        'Content-Type': 'application/json',
+                        'Authorization': 'Bearer ' + token 
+                    },
+                    body: JSON.stringify({ 
+                        account_type: state.accountType,
+                        exchange: state.exchange
+                    })
+                });
+            } catch (e) {
+                console.error('Failed to sync account type:', e);
+            }
         }
         
         function updateExchangeUI() {
