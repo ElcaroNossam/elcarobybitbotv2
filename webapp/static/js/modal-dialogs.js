@@ -82,8 +82,8 @@ class ModalDialogs {
             }
             
             .modal-icon.info {
-                background: linear-gradient(135deg, rgba(37, 99, 235, 0.15) 0%, rgba(37, 99, 235, 0.05) 100%);
-                color: var(--accent, #2563eb);
+                background: linear-gradient(135deg, rgba(124, 58, 237, 0.15) 0%, rgba(124, 58, 237, 0.05) 100%);
+                color: var(--accent, #7C3AED);
             }
             
             .modal-icon.success {
@@ -145,13 +145,13 @@ class ModalDialogs {
             }
             
             .modal-btn-primary {
-                background: var(--gradient-purple, linear-gradient(135deg, #1e40af 0%, #2563eb 100%));
+                background: var(--gradient-purple, linear-gradient(135deg, #5B21B6 0%, #7C3AED 100%));
                 color: white;
             }
             
             .modal-btn-primary:hover {
                 transform: translateY(-1px);
-                box-shadow: 0 8px 16px rgba(37, 99, 235, 0.3);
+                box-shadow: 0 8px 16px rgba(124, 58, 237, 0.3);
             }
             
             .modal-btn-danger {
@@ -183,8 +183,8 @@ class ModalDialogs {
             
             .modal-input:focus {
                 outline: none;
-                border-color: var(--accent, #2563eb);
-                box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.1);
+                border-color: var(--accent, #7C3AED);
+                box-shadow: 0 0 0 3px rgba(124, 58, 237, 0.1);
             }
             
             /* Mobile */

@@ -25,8 +25,8 @@
         :root {
             --bg-primary: #050505;
             --bg-secondary: #12121a;
-            --accent: #2563eb;
-            --accent-glow: rgba(37, 99, 235, 0.5);
+            --accent: #7C3AED;
+            --accent-glow: rgba(124, 58, 237, 0.5);
             --green: #22c55e;
             --red: #ef4444;
             --text-primary: #f8fafc;
@@ -47,7 +47,7 @@
             position: fixed;
             inset: 0;
             background: 
-                radial-gradient(circle at 20% 50%, rgba(37, 99, 235, 0.1) 0%, transparent 50%),
+                radial-gradient(circle at 20% 50%, rgba(124, 58, 237, 0.1) 0%, transparent 50%),
                 radial-gradient(circle at 80% 50%, rgba(34, 197, 94, 0.08) 0%, transparent 50%),
                 var(--bg-primary);
             z-index: -1;
@@ -108,7 +108,7 @@
         .logo-icon {
             width: 40px;
             height: 40px;
-            background: linear-gradient(135deg, var(--accent), #1e40af);
+            background: linear-gradient(135deg, var(--accent), #5B21B6);
             border-radius: 12px;
             display: flex;
             align-items: center;
@@ -132,7 +132,7 @@
         
         .nav-btn {
             padding: 12px 24px;
-            background: linear-gradient(135deg, var(--accent), #1e40af);
+            background: linear-gradient(135deg, var(--accent), #5B21B6);
             border: none;
             border-radius: 10px;
             color: white;
@@ -166,8 +166,8 @@
             align-items: center;
             gap: 8px;
             padding: 8px 16px;
-            background: rgba(37, 99, 235, 0.1);
-            border: 1px solid rgba(37, 99, 235, 0.3);
+            background: rgba(124, 58, 237, 0.1);
+            border: 1px solid rgba(124, 58, 237, 0.3);
             border-radius: 50px;
             font-size: 0.85rem;
             color: var(--accent);
@@ -199,7 +199,7 @@
         
         .btn-primary {
             padding: 16px 32px;
-            background: linear-gradient(135deg, var(--accent), #1e40af);
+            background: linear-gradient(135deg, var(--accent), #5B21B6);
             border: none;
             border-radius: 12px;
             color: white;
@@ -393,13 +393,13 @@
         .feature-card:hover {
             transform: translateY(-8px);
             border-color: var(--accent);
-            box-shadow: 0 20px 40px rgba(37, 99, 235, 0.1);
+            box-shadow: 0 20px 40px rgba(124, 58, 237, 0.1);
         }
         
         .feature-icon {
             width: 56px;
             height: 56px;
-            background: linear-gradient(135deg, rgba(37, 99, 235, 0.2), rgba(153, 27, 27, 0.2));
+            background: linear-gradient(135deg, rgba(124, 58, 237, 0.2), rgba(153, 27, 27, 0.2));
             border-radius: 14px;
             display: flex;
             align-items: center;
@@ -576,7 +576,7 @@
                         <li style="padding: 8px 0; display: flex; align-items: center; gap: 8px;"><span style="color: var(--green);">✓</span> Copy 5 traders</li>
                         <li style="padding: 8px 0; display: flex; align-items: center; gap: 8px;"><span style="color: var(--green);">✓</span> Priority support</li>
                     </ul>
-                    <button style="width: 100%; padding: 14px; background: linear-gradient(135deg, var(--accent), #1e40af); border: none; border-radius: 12px; color: white; font-weight: 600; font-size: 1rem; cursor: pointer;">
+                    <button style="width: 100%; padding: 14px; background: linear-gradient(135deg, var(--accent), #5B21B6); border: none; border-radius: 12px; color: white; font-weight: 600; font-size: 1rem; cursor: pointer;">
                         <i class="fas fa-crown"></i> Get Premium →
                     </button>
                 </div>
@@ -614,7 +614,7 @@
                     <input type="number" id="quickTrcAmount" value="100" min="10" max="10000" 
                            style="width: 100px; padding: 12px; background: rgba(0,0,0,0.5); border: 1px solid rgba(220,38,38,0.5); border-radius: 8px; color: white; font-size: 1.1rem; text-align: center;">
                     <span style="color: var(--text-secondary);">ELC</span>
-                    <button onclick="purchaseELC()" style="padding: 12px 25px; background: linear-gradient(135deg, var(--accent), #1e40af); border: none; border-radius: 10px; color: white; font-weight: 600; cursor: pointer;">
+                    <button onclick="purchaseELC()" style="padding: 12px 25px; background: linear-gradient(135deg, var(--accent), #5B21B6); border: none; border-radius: 10px; color: white; font-weight: 600; cursor: pointer;">
                         Buy ELC →
                     </button>
                 </div>
@@ -1038,12 +1038,12 @@
                         <button onclick="closePaymentModal()" style="color:#666;font-size:1.5rem;background:none;border:none;cursor:pointer;">&times;</button>
                     </div>
                     <div style="text-align:center;margin-bottom:25px;">
-                        <p style="font-size:2.5rem;font-weight:700;color:#2563eb;">${amount} ELC</p>
+                        <p style="font-size:2.5rem;font-weight:700;color:#7C3AED;">${amount} ELC</p>
                         <p style="color:#666;">≈ $${amount} USDT</p>
                     </div>
                     <div style="display:flex;flex-direction:column;gap:10px;">
                         <button onclick="processPayment('${type}',${amount},'${plan}','trc_balance')" 
-                                style="padding:15px;background:linear-gradient(135deg,#2563eb,#1e40af);border:none;border-radius:8px;color:white;cursor:pointer;font-weight:600;">
+                                style="padding:15px;background:linear-gradient(135deg,#7C3AED,#5B21B6);border:none;border-radius:8px;color:white;cursor:pointer;font-weight:600;">
                             💎 Pay with ELC Balance
                         </button>
                         <button onclick="processPayment('${type}',${amount},'${plan}','usdt_trc20')" 
@@ -1111,7 +1111,7 @@
                                 style="width:100%;margin-top:10px;padding:8px;background:#333;border:none;border-radius:4px;color:#fff;cursor:pointer;">📋 Copy</button>
                     </div>
                     <p style="color:#f59e0b;font-size:0.75rem;text-align:center;">⚠️ Auto-detected in 1-5 min</p>
-                    <button onclick="closePaymentModal()" style="width:100%;margin-top:15px;padding:12px;background:#2563eb;border:none;border-radius:8px;color:#fff;cursor:pointer;">Close</button>
+                    <button onclick="closePaymentModal()" style="width:100%;margin-top:15px;padding:12px;background:#7C3AED;border:none;border-radius:8px;color:#fff;cursor:pointer;">Close</button>
                 </div>
             `;
             document.body.appendChild(modal);
@@ -1194,7 +1194,7 @@
                                    style="width:100%;padding:14px;background:#111;border:1px solid #333;border-radius:10px;color:white;font-size:1rem;">
                         </div>
                         <button type="submit" id="authSubmitBtn"
-                                style="width:100%;padding:14px;background:linear-gradient(135deg,var(--accent),#1e40af);border:none;border-radius:10px;color:white;font-size:1rem;font-weight:600;cursor:pointer;">
+                                style="width:100%;padding:14px;background:linear-gradient(135deg,var(--accent),#5B21B6);border:none;border-radius:10px;color:white;font-size:1rem;font-weight:600;cursor:pointer;">
                             ${isLogin ? 'Login' : 'Create Account'}
                         </button>
                     </form>

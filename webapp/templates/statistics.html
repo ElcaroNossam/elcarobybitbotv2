@@ -29,7 +29,7 @@
             --bg-secondary: #111111;
             --bg-card: #141414;
             --bg-hover: #1f1f1f;
-            --accent: #2563eb;
+            --accent: #7C3AED;
             --accent-gold: #d4a017;
             --green: #22c55e;
             --red: #ef4444;
@@ -38,7 +38,7 @@
             --text-secondary: #a1a1a1;
             --text-muted: #6b6b6b;
             --border: rgba(255, 255, 255, 0.06);
-            --gradient-stark: linear-gradient(135deg, #2563eb 0%, #1e3a8a 50%, #172554 100%);
+            --gradient-stark: linear-gradient(135deg, #7C3AED 0%, #4C1D95 50%, #2E1065 100%);
             --gradient-gold: linear-gradient(135deg, #d4a017 0%, #b8860b 100%);
             --gradient-green: linear-gradient(135deg, #22c55e, #16a34a);
             --gradient-red: linear-gradient(135deg, #ef4444, #dc2626);
@@ -59,8 +59,8 @@
             position: fixed;
             inset: 0;
             background: 
-                radial-gradient(ellipse at 50% 0%, rgba(37, 99, 235, 0.08) 0%, transparent 50%),
-                radial-gradient(circle at 0% 0%, rgba(37, 99, 235, 0.05) 0%, transparent 30%),
+                radial-gradient(ellipse at 50% 0%, rgba(124, 58, 237, 0.08) 0%, transparent 50%),
+                radial-gradient(circle at 0% 0%, rgba(124, 58, 237, 0.05) 0%, transparent 30%),
                 radial-gradient(circle at 100% 100%, rgba(212, 160, 23, 0.04) 0%, transparent 30%),
                 linear-gradient(rgba(255,255,255,0.01) 1px, transparent 1px),
                 linear-gradient(90deg, rgba(255,255,255,0.01) 1px, transparent 1px);
@@ -90,7 +90,7 @@
         .page-title {
             font-size: 28px;
             font-weight: 700;
-            background: linear-gradient(135deg, #ffffff 0%, #2563eb 100%);
+            background: linear-gradient(135deg, #ffffff 0%, #7C3AED 100%);
             -webkit-background-clip: text;
             -webkit-text-fill-color: transparent;
             display: flex;
@@ -98,7 +98,7 @@
             gap: 12px;
         }
         
-        .page-title i { -webkit-text-fill-color: #2563eb; }
+        .page-title i { -webkit-text-fill-color: #7C3AED; }
         
         /* Back Button */
         .back-btn {
@@ -161,7 +161,7 @@
         }
         
         .filter-select:hover { border-color: var(--accent); }
-        .filter-select:focus { outline: none; border-color: var(--accent); box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.15); }
+        .filter-select:focus { outline: none; border-color: var(--accent); box-shadow: 0 0 0 3px rgba(124, 58, 237, 0.15); }
         
         .filter-select option {
             background: var(--bg-secondary);
@@ -201,7 +201,7 @@
         .period-tab.active {
             background: var(--gradient-stark);
             color: white;
-            box-shadow: 0 2px 10px rgba(37, 99, 235, 0.3);
+            box-shadow: 0 2px 10px rgba(124, 58, 237, 0.3);
         }
         
         /* Summary Cards */
@@ -229,22 +229,22 @@
             left: 0;
             right: 0;
             height: 1px;
-            background: linear-gradient(90deg, transparent, rgba(37, 99, 235, 0.3), transparent);
+            background: linear-gradient(90deg, transparent, rgba(124, 58, 237, 0.3), transparent);
         }
         
         .summary-card:hover {
             transform: translateY(-2px);
             box-shadow: 0 8px 32px rgba(0, 0, 0, 0.4);
-            border-color: rgba(37, 99, 235, 0.3);
+            border-color: rgba(124, 58, 237, 0.3);
         }
         
         .summary-card.highlight {
-            background: linear-gradient(135deg, rgba(37, 99, 235, 0.12), rgba(127, 29, 29, 0.08));
-            border-color: rgba(37, 99, 235, 0.3);
+            background: linear-gradient(135deg, rgba(124, 58, 237, 0.12), rgba(127, 29, 29, 0.08));
+            border-color: rgba(124, 58, 237, 0.3);
         }
         
         .summary-card.highlight::before {
-            background: linear-gradient(90deg, transparent, rgba(37, 99, 235, 0.6), transparent);
+            background: linear-gradient(90deg, transparent, rgba(124, 58, 237, 0.6), transparent);
         }
         
         .summary-label {
@@ -308,7 +308,7 @@
             left: 0;
             right: 0;
             height: 1px;
-            background: linear-gradient(90deg, transparent, rgba(37, 99, 235, 0.3), transparent);
+            background: linear-gradient(90deg, transparent, rgba(124, 58, 237, 0.3), transparent);
         }
         
         .chart-header {
@@ -376,11 +376,11 @@
             left: 0;
             right: 0;
             height: 1px;
-            background: linear-gradient(90deg, transparent, rgba(37, 99, 235, 0.2), transparent);
+            background: linear-gradient(90deg, transparent, rgba(124, 58, 237, 0.2), transparent);
         }
         
         .strategy-card:hover {
-            border-color: rgba(37, 99, 235, 0.3);
+            border-color: rgba(124, 58, 237, 0.3);
             transform: translateY(-2px);
             box-shadow: 0 8px 32px rgba(0, 0, 0, 0.3);
         }
@@ -479,7 +479,7 @@
             left: 0;
             right: 0;
             height: 1px;
-            background: linear-gradient(90deg, transparent, rgba(37, 99, 235, 0.3), transparent);
+            background: linear-gradient(90deg, transparent, rgba(124, 58, 237, 0.3), transparent);
         }
         
         .trades-header {
@@ -548,11 +548,11 @@
         
         .trade-strategy {
             padding: 4px 10px;
-            background: rgba(37, 99, 235, 0.12);
+            background: rgba(124, 58, 237, 0.12);
             border-radius: 6px;
             font-size: 12px;
             color: var(--accent);
-            border: 1px solid rgba(37, 99, 235, 0.2);
+            border: 1px solid rgba(124, 58, 237, 0.2);
         }
         
         /* Loading State */
@@ -957,8 +957,8 @@
                     datasets: [{
                         label: 'Cumulative PnL',
                         data: cumulative,
-                        borderColor: '#2563eb',
-                        backgroundColor: 'rgba(37, 99, 235, 0.1)',
+                        borderColor: '#7C3AED',
+                        backgroundColor: 'rgba(124, 58, 237, 0.1)',
                         fill: true,
                         tension: 0.4,
                         borderWidth: 2,
@@ -973,7 +973,7 @@
                         legend: { display: false },
                         tooltip: {
                             backgroundColor: '#141414',
-                            borderColor: '#2563eb',
+                            borderColor: '#7C3AED',
                             borderWidth: 1,
                             titleColor: '#f5f5f5',
                             bodyColor: '#a1a1a1',
@@ -1011,7 +1011,7 @@
             
             // Unique colors for each strategy - more distinct palette
             const strategyColorMap = {
-                'scryptomera': '#2563eb',   // Red
+                'scryptomera': '#7C3AED',   // Red
                 'scalper': '#d4a017',        // Gold
                 'oi': '#22c55e',             // Green
                 'elcaro': '#3b82f6',         // Blue
@@ -1048,7 +1048,7 @@
                         },
                         tooltip: {
                             backgroundColor: '#141414',
-                            borderColor: '#2563eb',
+                            borderColor: '#7C3AED',
                             borderWidth: 1,
                             callbacks: {
                                 label: (ctx) => {
@@ -1084,7 +1084,7 @@
             
             // Unique accent colors for each strategy
             const strategyAccentColors = {
-                'scryptomera': '#2563eb',
+                'scryptomera': '#7C3AED',
                 'scalper': '#d4a017',
                 'oi': '#22c55e',
                 'elcaro': '#3b82f6',

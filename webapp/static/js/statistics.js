@@ -194,9 +194,9 @@ class StatsDashboard {
 
         // Cumulative PnL
         const areaSeries = chart.addAreaSeries({
-            topColor: 'rgba(37, 99, 235, 0.4)',
-            bottomColor: 'rgba(37, 99, 235, 0.0)',
-            lineColor: '#2563eb',
+            topColor: 'rgba(124, 58, 237, 0.4)',
+            bottomColor: 'rgba(124, 58, 237, 0.0)',
+            lineColor: '#7C3AED',
             lineWidth: 2
         });
 
@@ -207,7 +207,7 @@ class StatsDashboard {
 
         // Daily PnL bars
         const histogramSeries = chart.addHistogramSeries({
-            color: '#2563eb',
+            color: '#7C3AED',
             priceFormat: { type: 'price' },
             priceScaleId: 'daily'
         });
@@ -289,9 +289,9 @@ class StatsDashboard {
         };
 
         container.innerHTML = Object.entries(this.data.byExchange).map(([name, stats]) => `
-            <div class="exchange-card" style="border-color: ${exchangeColors[name] || '#2563eb'}">
+            <div class="exchange-card" style="border-color: ${exchangeColors[name] || '#7C3AED'}">
                 <div class="exchange-header">
-                    <span class="exchange-name" style="color: ${exchangeColors[name] || '#2563eb'}">
+                    <span class="exchange-name" style="color: ${exchangeColors[name] || '#7C3AED'}">
                         ${name === 'bybit' ? '🟠' : '🔷'} ${name.charAt(0).toUpperCase() + name.slice(1)}
                     </span>
                 </div>
@@ -419,8 +419,8 @@ class StatsDashboard {
 
     getStrategyColor(name) {
         const colors = {
-            elcaro: '#2563eb',
-            scryptomera: '#1e40af',
+            elcaro: '#7C3AED',
+            scryptomera: '#5B21B6',
             scalper: '#d4a017',
             wyckoff: '#f59e0b',
             rsi_bb: '#10b981'

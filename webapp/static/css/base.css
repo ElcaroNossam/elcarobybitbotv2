@@ -31,13 +31,16 @@ html {
     --bg-active: #2a2a2a;
     --bg-graphite: #2a2a2a;
     
-    /* === Primary Accent (Blue) === */
-    --accent: #2563eb;
-    --accent-primary: #2563eb;
+    /* === Primary Accent (Violet 2026) === */
+    --accent: #7C3AED;
+    --accent-primary: #7C3AED;
+    --accent-secondary: #A78BFA;
+    --accent-light: #C084FC;
+    --accent-fuchsia: #D946EF;
     --accent-red: #ef4444;
-    --accent-crimson: #1d4ed8;
-    --accent-dark: #1e40af;
-    --accent-darker: #1e3a8a;
+    --accent-crimson: #6D28D9;
+    --accent-dark: #5B21B6;
+    --accent-darker: #4C1D95;
     
     /* === Secondary Accent (Gold) === */
     --accent-gold: #d4a017;
@@ -47,14 +50,14 @@ html {
     /* === Utility Accent === */
     --accent-arc: #00d4ff;
     --accent-cyan: #00d4ff;
-    --accent-purple: #2563eb;
-    --accent-blue: #2563eb;
+    --accent-purple: #8B5CF6;
+    --accent-blue: #3B82F6;
     
     /* === Semantic Colors === */
-    --green: #22c55e;
-    --accent-green: #22c55e;
+    --green: #10B981;
+    --accent-green: #10B981;
     --accent-success: #10b981;
-    --green-dim: rgba(34, 197, 94, 0.12);
+    --green-dim: rgba(16, 185, 129, 0.12);
     
     --red: #ef4444;
     --accent-danger: #ef4444;
@@ -65,10 +68,10 @@ html {
     --yellow-dim: rgba(212, 160, 23, 0.12);
     
     /* === Text Colors === */
-    --text-primary: #f5f5f5;
-    --text-secondary: #a1a1a1;
-    --text-muted: #6b6b6b;
-    --text-disabled: #52525b;
+    --text-primary: #FAFAFA;
+    --text-secondary: #9CA3AF;
+    --text-muted: #6B7280;
+    --text-disabled: #4B5563;
     --text-gold: #d4a017;
     
     /* === Border Colors === */
@@ -76,22 +79,23 @@ html {
     --border-color: rgba(255, 255, 255, 0.06);
     --border-primary: #27272a;
     --border-secondary: #3f3f46;
-    --border-hover: rgba(37, 99, 235, 0.4);
+    --border-hover: rgba(124, 58, 237, 0.4);
     --border-gold: rgba(212, 160, 23, 0.3);
-    --border-accent: #2563eb;
+    --border-accent: #7C3AED;
     
     /* === Fonts === */
     --font-sans: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
     --font-mono: 'JetBrains Mono', 'Fira Code', monospace;
     
     /* === Gradients === */
-    --gradient-primary: linear-gradient(135deg, #2563eb 0%, #1e40af 100%);
-    --gradient-stark: linear-gradient(135deg, #2563eb 0%, #1e3a8a 50%, #172554 100%);
-    --gradient-iron: linear-gradient(135deg, #2563eb 0%, #d4a017 100%);
+    --gradient-primary: linear-gradient(135deg, #7C3AED 0%, #C084FC 100%);
+    --gradient-stark: linear-gradient(135deg, #7C3AED 0%, #4C1D95 50%, #2E1065 100%);
+    --gradient-premium: linear-gradient(135deg, #7C3AED 0%, #D946EF 100%);
+    --gradient-iron: linear-gradient(135deg, #7C3AED 0%, #d4a017 100%);
     --gradient-gold: linear-gradient(135deg, #d4a017 0%, #b8860b 100%);
     --gradient-graphite: linear-gradient(135deg, #2a2a2a 0%, #1a1a1a 100%);
     --gradient-arc: linear-gradient(135deg, #00d4ff 0%, #0099cc 100%);
-    --gradient-green: linear-gradient(135deg, #22c55e 0%, #16a34a 100%);
+    --gradient-green: linear-gradient(135deg, #10B981 0%, #059669 100%);
     --gradient-red: linear-gradient(135deg, #ef4444 0%, #dc2626 100%);
     --gradient-success: linear-gradient(135deg, #10b981 0%, #059669 100%);
     --gradient-metal: linear-gradient(180deg, #2a2a2a 0%, #1a1a1a 50%, #050505 100%);
@@ -99,7 +103,8 @@ html {
     --gradient-shine: linear-gradient(90deg, transparent 0%, rgba(255,255,255,0.05) 50%, transparent 100%);
     
     /* === Glow Effects === */
-    --glow-blue: 0 0 40px rgba(37, 99, 235, 0.4), 0 0 80px rgba(37, 99, 235, 0.2);
+    --glow-violet: 0 0 40px rgba(124, 58, 237, 0.4), 0 0 80px rgba(124, 58, 237, 0.2);
+    --glow-blue: 0 0 40px rgba(124, 58, 237, 0.4), 0 0 80px rgba(124, 58, 237, 0.2);
     --glow-red: 0 0 40px rgba(239, 68, 68, 0.4), 0 0 80px rgba(239, 68, 68, 0.2);
     --glow-gold: 0 0 30px rgba(212, 160, 23, 0.3);
     --glow-arc: 0 0 40px rgba(0, 212, 255, 0.4), 0 0 80px rgba(0, 212, 255, 0.2);
@@ -110,7 +115,7 @@ html {
     --shadow-sm: 0 1px 2px rgba(0, 0, 0, 0.4);
     --shadow-md: 0 4px 6px rgba(0, 0, 0, 0.5);
     --shadow-lg: 0 10px 15px rgba(0, 0, 0, 0.6);
-    --shadow-glow: 0 0 20px rgba(37, 99, 235, 0.4);
+    --shadow-glow: 0 0 20px rgba(124, 58, 237, 0.4);
     
     /* === Exchange-Specific Colors === */
     --bybit-color: #f7a600;
@@ -163,9 +168,9 @@ body {
     position: fixed;
     inset: 0;
     background: 
-        radial-gradient(ellipse at 10% 20%, rgba(37, 99, 235, 0.08) 0%, transparent 40%),
-        radial-gradient(ellipse at 90% 80%, rgba(34, 197, 94, 0.06) 0%, transparent 40%),
-        radial-gradient(ellipse at 50% 50%, rgba(153, 27, 27, 0.04) 0%, transparent 60%);
+        radial-gradient(ellipse at 10% 20%, rgba(124, 58, 237, 0.08) 0%, transparent 40%),
+        radial-gradient(ellipse at 90% 80%, rgba(16, 185, 129, 0.06) 0%, transparent 40%),
+        radial-gradient(ellipse at 50% 50%, rgba(139, 92, 246, 0.04) 0%, transparent 60%);
     pointer-events: none;
     z-index: 0;
 }
@@ -191,7 +196,7 @@ body {
 
 /* ===== SELECTION ===== */
 ::selection {
-    background: rgba(37, 99, 235, 0.3);
+    background: rgba(124, 58, 237, 0.3);
     color: var(--text-primary);
 }
 
@@ -307,7 +312,7 @@ a:hover {
 .input:focus {
     outline: none;
     border-color: var(--accent);
-    box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.1);
+    box-shadow: 0 0 0 3px rgba(124, 58, 237, 0.1);
 }
 
 .input::placeholder {
@@ -342,7 +347,7 @@ a:hover {
 }
 
 .badge-primary {
-    background: rgba(37, 99, 235, 0.12);
+    background: rgba(124, 58, 237, 0.12);
     color: var(--accent);
 }
 

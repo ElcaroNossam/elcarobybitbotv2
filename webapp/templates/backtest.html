@@ -19,9 +19,9 @@
             --bg-tertiary: #1a1a1a;
             --bg-card: #1a1a1a;
             --bg-hover: #1f1f1f;
-            --accent: #2563eb;
-            --accent-purple: #2563eb;
-            --accent-blue: #2563eb;
+            --accent: #7C3AED;
+            --accent-purple: #7C3AED;
+            --accent-blue: #7C3AED;
             --green: #22c55e;
             --accent-green: #22c55e;
             --green-dim: rgba(34, 197, 94, 0.15);
@@ -38,7 +38,7 @@
             --border-color: rgba(255, 255, 255, 0.06);
             --font-sans: 'Inter', sans-serif;
             --font-mono: 'JetBrains Mono', monospace;
-            --gradient-purple: linear-gradient(135deg, #1e40af 0%, #2563eb 100%);
+            --gradient-purple: linear-gradient(135deg, #5B21B6 0%, #7C3AED 100%);
             --gradient-green: linear-gradient(135deg, #22c55e 0%, #16a34a 100%);
             --gradient-red: linear-gradient(135deg, #ef4444 0%, #dc2626 100%);
             /* Exchange-specific colors */
@@ -852,7 +852,7 @@
         
         .strategy-tag {
             padding: 3px 8px;
-            background: rgba(37, 99, 235, 0.15);
+            background: rgba(124, 58, 237, 0.15);
             color: var(--accent);
             border-radius: 4px;
             font-size: 10px;
@@ -2549,7 +2549,7 @@
             grid.innerHTML = '';
             
             Object.entries(results).forEach(([name, result]) => {
-                const strategy = strategies.find(s => s.id === name) || { name, icon: '📊', color: '#1e40af' };
+                const strategy = strategies.find(s => s.id === name) || { name, icon: '📊', color: '#5B21B6' };
                 
                 const card = document.createElement('div');
                 card.className = 'comparison-card';
@@ -2721,7 +2721,7 @@
             if (equityChart) equityChart.destroy();
             
             const datasets = [];
-            const colors = ['#1e40af', '#22c55e', '#2563eb', '#f59e0b', '#ef4444', '#d4a017', '#ec4899'];
+            const colors = ['#5B21B6', '#22c55e', '#7C3AED', '#f59e0b', '#ef4444', '#d4a017', '#ec4899'];
             
             let colorIdx = 0;
             Object.entries(results).forEach(([name, result]) => {
@@ -2778,7 +2778,7 @@
                         label: 'Frequency',
                         data: histogram.map(h => h.percent),
                         backgroundColor: 'rgba(153, 27, 27, 0.6)',
-                        borderColor: '#1e40af',
+                        borderColor: '#5B21B6',
                         borderWidth: 1
                     }]
                 },
