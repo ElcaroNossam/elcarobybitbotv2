@@ -654,3 +654,114 @@ async def get_positions_summary(
         logger.error(f"Positions summary error: {e}")
         return {"success": False, "error": str(e), "positions": [], "summary": {}}
 
+
+@router.get("/leaderboard")
+async def get_strategy_leaderboard(
+    period: str = Query("30d"),   # 7d, 30d, 90d, all
+    exchange: str = Query("all")  # all, bybit, hyperliquid
+):
+    """
+    Public strategy leaderboard — aggregated performance of the 7 built-in
+    strategies across ALL users.  No auth required.
+    """
+    try:
+        from core.db_postgres import get_conn
+
+        days_map = {"7d": 7, "30d": 30, "90d": 90, "all": 3650}
+        days = days_map.get(period, 30)
+        start_ts = datetime.now() - timedelta(days=days)
+
+        # Build WHERE clause
+        where_parts = ["ts >= %s"]
+        params: list = [start_ts]
+        if exchange and exchange != "all":
+            where_parts.append("exchange = %s")
+            params.append(exchange)
+        where_sql = " AND ".join(where_parts)
+
+        sql = f"""
+            SELECT
+                COALESCE(NULLIF(strategy, ''), 'manual') AS strategy,
+                COUNT(*)                                 AS total_trades,
+                COUNT(DISTINCT user_id)                  AS traders,
+                SUM(CASE WHEN pnl > 0 THEN 1 ELSE 0 END) AS wins,
+                SUM(CASE WHEN pnl < 0 THEN 1 ELSE 0 END) AS losses,
+                COALESCE(SUM(pnl), 0)                    AS total_pnl,
+                COALESCE(SUM(CASE WHEN pnl > 0 THEN pnl ELSE 0 END), 0)  AS gross_profit,
+                COALESCE(SUM(CASE WHEN pnl < 0 THEN ABS(pnl) ELSE 0 END), 0) AS gross_loss,
+                COALESCE(AVG(pnl), 0)                    AS avg_pnl,
+                MAX(pnl)                                 AS best_trade,
+                MIN(pnl)                                 AS worst_trade,
+                COALESCE(AVG(pnl_pct), 0)                AS avg_pnl_pct,
+                COALESCE(SUM(pnl_pct), 0)                AS total_pnl_pct
+            FROM trade_logs
+            WHERE {where_sql}
+              AND strategy IS NOT NULL
+              AND strategy NOT IN ('unknown', '')
+            GROUP BY COALESCE(NULLIF(strategy, ''), 'manual')
+            ORDER BY COALESCE(SUM(pnl), 0) DESC
+        """
+
+        with get_conn() as conn:
+            cur = conn.cursor()
+            cur.execute(sql, params)
+            cols = [d[0] for d in cur.description]
+            rows = [dict(zip(cols, r)) for r in cur.fetchall()]
+
+        # Pretty names
+        display = {
+            "oi": "OI Strategy",
+            "scryptomera": "Scryptomera",
+            "scalper": "Scalper",
+            "elcaro": "Elcaro",
+            "fibonacci": "Fibonacci",
+            "rsi_bb": "RSI + BB",
+            "manual": "Manual Trading",
+        }
+
+        strategies = []
+        for i, row in enumerate(rows, 1):
+            total = int(row["total_trades"])
+            wins = int(row["wins"])
+            gross_profit = float(row["gross_profit"])
+            gross_loss = float(row["gross_loss"])
+            pnl = float(row["total_pnl"])
+            pnl_pct = float(row["total_pnl_pct"])
+            win_rate = (wins / total * 100) if total > 0 else 0
+            profit_factor = gross_profit / gross_loss if gross_loss > 0 else (gross_profit if gross_profit > 0 else 0)
+
+            strategies.append({
+                "rank": i,
+                "strategy": row["strategy"],
+                "name": display.get(row["strategy"], row["strategy"].replace("_", " ").title()),
+                "avatar": display.get(row["strategy"], row["strategy"])[0].upper(),
+                "total_trades": total,
+                "traders": int(row["traders"]),
+                "wins": wins,
+                "losses": int(row["losses"]),
+                "win_rate": round(win_rate, 1),
+                "total_pnl": round(pnl, 2),
+                "total_pnl_pct": round(pnl_pct, 1),
+                "avg_pnl": round(float(row["avg_pnl"]), 2),
+                "avg_pnl_pct": round(float(row["avg_pnl_pct"]), 2),
+                "profit_factor": round(profit_factor, 2),
+                "best_trade": round(float(row["best_trade"]) if row["best_trade"] else 0, 2),
+                "worst_trade": round(float(row["worst_trade"]) if row["worst_trade"] else 0, 2),
+            })
+
+        # Totals
+        total_trades = sum(s["total_trades"] for s in strategies)
+        total_wins = sum(s["wins"] for s in strategies)
+        totals = {
+            "total_trades": total_trades,
+            "total_pnl": round(sum(s["total_pnl"] for s in strategies), 2),
+            "overall_win_rate": round(total_wins / total_trades * 100, 1) if total_trades else 0,
+            "strategies_count": len(strategies),
+        }
+
+        return {"success": True, "strategies": strategies, "totals": totals, "period": period, "exchange": exchange}
+
+    except Exception as e:
+        logger.error(f"Strategy leaderboard error: {e}")
+        return {"success": False, "error": str(e), "strategies": [], "totals": {}}
+
