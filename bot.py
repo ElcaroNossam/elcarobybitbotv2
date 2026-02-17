@@ -1590,6 +1590,31 @@ def _stricter_sl(side_: str, new_sl: float, cur_sl):
     else:    
         return new_sl if new_sl < cur else None
 
+# ------------------------------------------------------------------------------------
+# Safe edit_message_text helper — silently handles "Message is not modified"
+# ------------------------------------------------------------------------------------
+async def _safe_edit(query_or_msg, text: str, **kwargs):
+    """Wrapper for edit_message_text that silently ignores 'Message is not modified' BadRequest."""
+    try:
+        return await query_or_msg.edit_message_text(text, **kwargs)
+    except BadRequest as e:
+        if "not modified" not in str(e).lower():
+            raise
+
+
+def _catch_not_modified(func):
+    """Decorator: silently catches 'Message is not modified' BadRequest in callback handlers."""
+    import functools
+    @functools.wraps(func)
+    async def wrapper(*args, **kwargs):
+        try:
+            return await func(*args, **kwargs)
+        except BadRequest as e:
+            if "not modified" not in str(e).lower():
+                raise
+    return wrapper
+
+
 @with_texts
 async def cmd_lang(update: Update, ctx: ContextTypes.DEFAULT_TYPE):
     buttons = []
@@ -1890,31 +1915,6 @@ async def on_2fa_app_login_cb(update: Update, ctx: ContextTypes.DEFAULT_TYPE):
             )
         except BadRequest:
             pass
-
-
-# ------------------------------------------------------------------------------------
-# Safe edit_message_text helper — silently handles "Message is not modified"
-# ------------------------------------------------------------------------------------
-async def _safe_edit(query_or_msg, text: str, **kwargs):
-    """Wrapper for edit_message_text that silently ignores 'Message is not modified' BadRequest."""
-    try:
-        return await query_or_msg.edit_message_text(text, **kwargs)
-    except BadRequest as e:
-        if "not modified" not in str(e).lower():
-            raise
-
-
-def _catch_not_modified(func):
-    """Decorator: silently catches 'Message is not modified' BadRequest in callback handlers."""
-    import functools
-    @functools.wraps(func)
-    async def wrapper(*args, **kwargs):
-        try:
-            return await func(*args, **kwargs)
-        except BadRequest as e:
-            if "not modified" not in str(e).lower():
-                raise
-    return wrapper
 
 
 # ------------------------------------------------------------------------------------
