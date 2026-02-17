@@ -1605,6 +1605,7 @@ async def cmd_lang(update: Update, ctx: ContextTypes.DEFAULT_TYPE):
     )
 
 @with_texts
+@_catch_not_modified
 async def on_setlang_cb(update: Update, ctx: ContextTypes.DEFAULT_TYPE):
     q = update.callback_query
     try:
@@ -1641,6 +1642,7 @@ async def cmd_terms(update: Update, ctx: ContextTypes.DEFAULT_TYPE):
 
 @with_texts
 @log_calls
+@_catch_not_modified
 async def on_terms_cb(update: Update, ctx: ContextTypes.DEFAULT_TYPE):
     q = update.callback_query
     await q.answer()
@@ -1703,6 +1705,7 @@ async def on_terms_cb(update: Update, ctx: ContextTypes.DEFAULT_TYPE):
 # ============================================================================
 @with_texts
 @log_calls
+@_catch_not_modified
 async def on_disclaimer_cb(update: Update, ctx: ContextTypes.DEFAULT_TYPE):
     """Handle disclaimer acceptance/decline. Required for legal compliance."""
     q = update.callback_query
@@ -1749,6 +1752,7 @@ async def on_disclaimer_cb(update: Update, ctx: ContextTypes.DEFAULT_TYPE):
 # 2FA Login Confirmation Handler
 # ============================================================================
 @log_calls
+@_catch_not_modified
 async def on_twofa_cb(update: Update, ctx: ContextTypes.DEFAULT_TYPE):
     """Handle 2FA approval/denial from bot buttons."""
     q = update.callback_query
@@ -1801,9 +1805,13 @@ async def on_twofa_cb(update: Update, ctx: ContextTypes.DEFAULT_TYPE):
         logger.error(f"2FA callback error: {e}", exc_info=True)
         # Use ctx for translations (already loaded lang above)
         t = get_texts(ctx)
-        await q.edit_message_text(t.get("login_error", "⚠️ Processing error. Please try again later."))
+        try:
+            await q.edit_message_text(t.get("login_error", "⚠️ Processing error. Please try again later."))
+        except BadRequest:
+            pass
 
 
+@_catch_not_modified
 async def on_2fa_app_login_cb(update: Update, ctx: ContextTypes.DEFAULT_TYPE):
     """
     Handle 2FA confirmation for iOS/Android/Web app login.
@@ -1875,10 +1883,38 @@ async def on_2fa_app_login_cb(update: Update, ctx: ContextTypes.DEFAULT_TYPE):
                     
     except Exception as e:
         logger.error(f"2FA app login callback error: {e}")
-        await q.edit_message_text(
-            t.get("app_login_error", "⚠️ Ошибка обработки. Попробуйте позже."),
-            parse_mode="HTML"
-        )
+        try:
+            await q.edit_message_text(
+                t.get("app_login_error", "⚠️ Ошибка обработки. Попробуйте позже."),
+                parse_mode="HTML"
+            )
+        except BadRequest:
+            pass
+
+
+# ------------------------------------------------------------------------------------
+# Safe edit_message_text helper — silently handles "Message is not modified"
+# ------------------------------------------------------------------------------------
+async def _safe_edit(query_or_msg, text: str, **kwargs):
+    """Wrapper for edit_message_text that silently ignores 'Message is not modified' BadRequest."""
+    try:
+        return await query_or_msg.edit_message_text(text, **kwargs)
+    except BadRequest as e:
+        if "not modified" not in str(e).lower():
+            raise
+
+
+def _catch_not_modified(func):
+    """Decorator: silently catches 'Message is not modified' BadRequest in callback handlers."""
+    import functools
+    @functools.wraps(func)
+    async def wrapper(*args, **kwargs):
+        try:
+            return await func(*args, **kwargs)
+        except BadRequest as e:
+            if "not modified" not in str(e).lower():
+                raise
+    return wrapper
 
 
 # ------------------------------------------------------------------------------------
@@ -2195,6 +2231,7 @@ async def cmd_api_settings(update: Update, ctx: ContextTypes.DEFAULT_TYPE):
 
 @with_texts
 @log_calls
+@_catch_not_modified
 async def on_api_settings_cb(update: Update, ctx: ContextTypes.DEFAULT_TYPE):
     """Handle API settings callbacks."""
     q = update.callback_query
@@ -3099,6 +3136,7 @@ async def cmd_spot_settings(update: Update, ctx: ContextTypes.DEFAULT_TYPE):
 
 @with_texts
 @log_calls
+@_catch_not_modified
 async def on_spot_settings_cb(update: Update, ctx: ContextTypes.DEFAULT_TYPE):
     """Callback handler for Spot settings inline buttons."""
     q = update.callback_query
@@ -7404,6 +7442,7 @@ async def on_error(update, context):
 
 @with_texts
 @log_calls
+@_catch_not_modified
 async def on_order_type_cb(update: Update, ctx: ContextTypes.DEFAULT_TYPE):
     q = update.callback_query
     asyncio.create_task(q.answer(cache_time=1))
@@ -14866,7 +14905,10 @@ async def show_orders_for_account(update: Update, ctx: ContextTypes.DEFAULT_TYPE
         if hasattr(update, 'message'):
             await update.message.reply_text(error_text)
         else:
-            await update.callback_query.edit_message_text(error_text)
+            try:
+                await update.callback_query.edit_message_text(error_text)
+            except BadRequest:
+                pass
 
 
 async def show_all_orders(update: Update, ctx: ContextTypes.DEFAULT_TYPE):
@@ -16387,6 +16429,7 @@ async def show_orders_direct(update: Update, ctx: ContextTypes.DEFAULT_TYPE, acc
 
 @log_calls
 @with_texts  
+@_catch_not_modified
 async def handle_balance_callback(update: Update, ctx: ContextTypes.DEFAULT_TYPE):
     """Handle balance mode selection callbacks.
     
@@ -16720,12 +16763,12 @@ async def on_positions_cb(update: Update, ctx: ContextTypes.DEFAULT_TYPE):
             mode_emoji, mode_label = _get_account_label(new_account_type, exchange)
             text = f"{mode_emoji} *{mode_label}* 📊 {t.get('open_positions', 'Open Positions')} (0)\n\n{t.get('no_positions', '🚫 No open positions')}"
             keyboard = get_positions_list_keyboard([], 0, t, account_type=new_account_type, show_switcher=show_switcher, exchange=exchange)
-            await query.edit_message_text(text, parse_mode="Markdown", reply_markup=keyboard)
+            await _safe_edit(query, text, parse_mode="Markdown", reply_markup=keyboard)
             return
         
         text = format_positions_list_header(positions, 0, t, account_type=new_account_type, exchange=exchange)
         keyboard = get_positions_list_keyboard(positions, 0, t, account_type=new_account_type, show_switcher=show_switcher, exchange=exchange)
-        await query.edit_message_text(text, parse_mode="Markdown", reply_markup=keyboard)
+        await _safe_edit(query, text, parse_mode="Markdown", reply_markup=keyboard)
         return
     
     if data.startswith("pos:refresh"):
@@ -16739,7 +16782,7 @@ async def on_positions_cb(update: Update, ctx: ContextTypes.DEFAULT_TYPE):
             mode_emoji, mode_label = _get_account_label(account_type, exchange)
             text = f"{mode_emoji} *{mode_label}* 📊 {t.get('open_positions', 'Open Positions')} (0)\n\n{t.get('no_positions', '🚫 No open positions')}"
             keyboard = get_positions_list_keyboard([], 0, t, account_type=account_type, show_switcher=show_switcher, exchange=exchange)
-            await query.edit_message_text(text, parse_mode="Markdown", reply_markup=keyboard)
+            await _safe_edit(query, text, parse_mode="Markdown", reply_markup=keyboard)
             return
         
         # Validate page is still valid after position changes
@@ -16749,7 +16792,7 @@ async def on_positions_cb(update: Update, ctx: ContextTypes.DEFAULT_TYPE):
         
         text = format_positions_list_header(positions, page, t, account_type=account_type, exchange=exchange)
         keyboard = get_positions_list_keyboard(positions, page, t, account_type=account_type, show_switcher=show_switcher, exchange=exchange)
-        await query.edit_message_text(text, parse_mode="Markdown", reply_markup=keyboard)
+        await _safe_edit(query, text, parse_mode="Markdown", reply_markup=keyboard)
         return
     
     if data.startswith("pos:list:"):
@@ -16760,7 +16803,7 @@ async def on_positions_cb(update: Update, ctx: ContextTypes.DEFAULT_TYPE):
             mode_emoji, mode_label = _get_account_label(account_type, exchange)
             text = f"{mode_emoji} *{mode_label}* 📊 {t.get('open_positions', 'Open Positions')} (0)\n\n{t.get('no_positions', '🚫 No open positions')}"
             keyboard = get_positions_list_keyboard([], 0, t, account_type=account_type, show_switcher=show_switcher, exchange=exchange)
-            await query.edit_message_text(text, parse_mode="Markdown", reply_markup=keyboard)
+            await _safe_edit(query, text, parse_mode="Markdown", reply_markup=keyboard)
             return
         
         # Ensure valid page
@@ -16772,7 +16815,7 @@ async def on_positions_cb(update: Update, ctx: ContextTypes.DEFAULT_TYPE):
         
         text = format_positions_list_header(positions, page, t, account_type=account_type, exchange=exchange)
         keyboard = get_positions_list_keyboard(positions, page, t, account_type=account_type, show_switcher=show_switcher, exchange=exchange)
-        await query.edit_message_text(text, parse_mode="Markdown", reply_markup=keyboard)
+        await _safe_edit(query, text, parse_mode="Markdown", reply_markup=keyboard)
         return
     
     if data.startswith("pos:page:"):
@@ -16783,7 +16826,7 @@ async def on_positions_cb(update: Update, ctx: ContextTypes.DEFAULT_TYPE):
             mode_emoji, mode_label = _get_account_label(account_type, exchange)
             text = f"{mode_emoji} *{mode_label}* 📊 {t.get('open_positions', 'Open Positions')} (0)\n\n{t.get('no_positions', '🚫 No open positions')}"
             keyboard = get_positions_list_keyboard([], 0, t, account_type=account_type, show_switcher=show_switcher, exchange=exchange)
-            await query.edit_message_text(text, parse_mode="Markdown", reply_markup=keyboard)
+            await _safe_edit(query, text, parse_mode="Markdown", reply_markup=keyboard)
             return
         
         # Ensure valid index
@@ -16794,7 +16837,7 @@ async def on_positions_cb(update: Update, ctx: ContextTypes.DEFAULT_TYPE):
         
         text = format_single_position(positions[page_idx], page_idx, len(positions), t)
         keyboard = get_positions_paginated_keyboard(positions, page_idx, t, page=saved_page)
-        await query.edit_message_text(text, parse_mode="Markdown", reply_markup=keyboard)
+        await _safe_edit(query, text, parse_mode="Markdown", reply_markup=keyboard)
         return
     
     if data.startswith("pos:view:"):
@@ -16807,7 +16850,7 @@ async def on_positions_cb(update: Update, ctx: ContextTypes.DEFAULT_TYPE):
         saved_page = ctx.user_data.get('positions_page', 0)
         
         if not pos:
-            await query.edit_message_text(
+            await _safe_edit(query, 
                 t.get('position_already_closed', '❌ Position {symbol} already closed.').format(symbol=symbol),
                 reply_markup=InlineKeyboardMarkup([[
                     InlineKeyboardButton(t.get('btn_back', '🔙 Back'), callback_data=f"pos:refresh:{saved_page}")
@@ -16820,7 +16863,7 @@ async def on_positions_cb(update: Update, ctx: ContextTypes.DEFAULT_TYPE):
             [InlineKeyboardButton(f"❌ {t.get('btn_close_position', 'Close position')}", callback_data=f"pos:close:{symbol}")],
             [InlineKeyboardButton(t.get('btn_back', '🔙 Back'), callback_data=f"pos:refresh:{saved_page}")]
         ])
-        await query.edit_message_text(text, parse_mode="Markdown", reply_markup=keyboard)
+        await _safe_edit(query, text, parse_mode="Markdown", reply_markup=keyboard)
         return
     
     if data.startswith("pos:close:"):
@@ -16833,7 +16876,7 @@ async def on_positions_cb(update: Update, ctx: ContextTypes.DEFAULT_TYPE):
         saved_page = ctx.user_data.get('positions_page', 0)
         
         if not pos:
-            await query.edit_message_text(
+            await _safe_edit(query,
                 t.get('position_already_closed', '❌ Position {symbol} already closed.').format(symbol=symbol),
                 reply_markup=InlineKeyboardMarkup([[
                     InlineKeyboardButton(t.get('btn_back', '🔙 Back'), callback_data=f"pos:refresh:{saved_page}")
@@ -16852,7 +16895,7 @@ async def on_positions_cb(update: Update, ctx: ContextTypes.DEFAULT_TYPE):
         pnl_emoji = "📈" if pnl >= 0 else "📉"
         quote_currency = "USDC" if exchange == "hyperliquid" else "USDT"
         
-        await query.edit_message_text(
+        await _safe_edit(query,
             f"⚠️ {t.get('confirm_close_position', 'Close position')}?\n\n"
             f"*{symbol}* {side_text}\n"
             f"Size: {size}\n"
@@ -16872,7 +16915,7 @@ async def on_positions_cb(update: Update, ctx: ContextTypes.DEFAULT_TYPE):
         
         # Show loading indicator IMMEDIATELY to prevent double-clicks
         try:
-            await query.edit_message_text(
+            await _safe_edit(query,
                 f"⏳ *{t.get('closing_position', 'Closing position')}...*\n\n"
                 f"📊 {symbol}",
                 parse_mode="Markdown"
@@ -16884,7 +16927,7 @@ async def on_positions_cb(update: Update, ctx: ContextTypes.DEFAULT_TYPE):
         pos = next((p for p in positions if p["symbol"] == symbol), None)
         
         if not pos:
-            await query.edit_message_text(
+            await _safe_edit(query,
                 t.get('position_already_closed', '❌ Position {symbol} already closed.').format(symbol=symbol),
                 reply_markup=InlineKeyboardMarkup([[
                     InlineKeyboardButton(t.get('btn_back', '🔙 Back'), callback_data=f"pos:refresh:{saved_page}")
@@ -17026,20 +17069,23 @@ async def on_positions_cb(update: Update, ctx: ContextTypes.DEFAULT_TYPE):
             logger.error(f"Close position {symbol} failed: {e}")
             error_msg = str(e)
             # Handle "No position found" gracefully — position was likely closed by SL/TP
-            if "no position found" in error_msg.lower():
-                await query.edit_message_text(
-                    t.get('position_already_closed', '❌ Position already closed').format(symbol=symbol),
-                    reply_markup=InlineKeyboardMarkup([[
-                        InlineKeyboardButton(t.get('btn_back', '🔙 Back'), callback_data=f"pos:refresh:{saved_page}")
-                    ]])
-                )
-            else:
-                await query.edit_message_text(
-                    t.get('position_close_error', '❌ Error closing position: {error}').format(error=error_msg),
-                    reply_markup=InlineKeyboardMarkup([[
-                        InlineKeyboardButton(t.get('btn_back', '🔙 Back'), callback_data=f"pos:refresh:{saved_page}")
-                    ]])
-                )
+            try:
+                if "no position found" in error_msg.lower():
+                    await query.edit_message_text(
+                        t.get('position_already_closed', '❌ Position already closed').format(symbol=symbol),
+                        reply_markup=InlineKeyboardMarkup([[
+                            InlineKeyboardButton(t.get('btn_back', '🔙 Back'), callback_data=f"pos:refresh:{saved_page}")
+                        ]])
+                    )
+                else:
+                    await query.edit_message_text(
+                        t.get('position_close_error', '❌ Error closing position: {error}').format(error=error_msg),
+                        reply_markup=InlineKeyboardMarkup([[
+                            InlineKeyboardButton(t.get('btn_back', '🔙 Back'), callback_data=f"pos:refresh:{saved_page}")
+                        ]])
+                    )
+            except BadRequest:
+                pass
         return
     
     if data == "pos:close_all":
@@ -17049,7 +17095,7 @@ async def on_positions_cb(update: Update, ctx: ContextTypes.DEFAULT_TYPE):
             mode_emoji, mode_label = _get_account_label(account_type, exchange)
             text = f"{mode_emoji} *{mode_label}* 📊 {t.get('open_positions', 'Open Positions')} (0)\n\n{t.get('no_positions', '🚫 No open positions')}"
             keyboard = get_positions_list_keyboard([], 0, t, account_type=account_type, show_switcher=show_switcher, exchange=exchange)
-            await query.edit_message_text(text, parse_mode="Markdown", reply_markup=keyboard)
+            await _safe_edit(query, text, parse_mode="Markdown", reply_markup=keyboard)
             return
         
         total_pnl = sum(float(p.get("unrealisedPnl") or 0) for p in positions)
@@ -17063,7 +17109,7 @@ async def on_positions_cb(update: Update, ctx: ContextTypes.DEFAULT_TYPE):
             [InlineKeyboardButton(t.get('btn_cancel', '❌ Cancel'), callback_data=f"pos:refresh:{saved_page}")]
         ])
         
-        await query.edit_message_text(
+        await _safe_edit(query,
             f"⚠️ {t.get('confirm_close_all', 'Close ALL positions')}?\n\n"
             f"{mode_emoji} *{mode_label}*\n"
             f"{t.get('positions_count_total', 'Total positions')}: {len(positions)}\n"
@@ -17949,6 +17995,7 @@ async def cmd_trade_stats(update: Update, ctx: ContextTypes.DEFAULT_TYPE):
 # ═══════════════════════════════════════════════════════════
 
 @log_calls
+@_catch_not_modified
 async def on_digest_callback(update: Update, ctx: ContextTypes.DEFAULT_TYPE):
     """Handle daily digest navigation callbacks.
     
@@ -18284,7 +18331,7 @@ async def on_stats_callback(update: Update, ctx: ContextTypes.DEFAULT_TYPE):
     if strategy == "spot":
         text = await format_spot_stats(uid, t, period_label, account_type=account_type)
         keyboard = get_stats_keyboard(t, current_strategy=strategy, current_period=period, current_account=account_type, exchange=user_exchange)
-        await query.edit_message_text(text, parse_mode="Markdown", reply_markup=keyboard)
+        await _safe_edit(query, text, parse_mode="Markdown", reply_markup=keyboard)
         return
     
     # Special handling for Manual trades (NULL strategy)
@@ -18305,7 +18352,7 @@ async def on_stats_callback(update: Update, ctx: ContextTypes.DEFAULT_TYPE):
             f"_These are trades closed manually without strategy attribution._"
         )
         keyboard = get_stats_keyboard(t, current_strategy=strategy, current_period=period, current_account=account_type, exchange=user_exchange)
-        await query.edit_message_text(text, parse_mode="Markdown", reply_markup=keyboard)
+        await _safe_edit(query, text, parse_mode="Markdown", reply_markup=keyboard)
         return
     
     # Get stats based on selection
@@ -18348,7 +18395,7 @@ async def on_stats_callback(update: Update, ctx: ContextTypes.DEFAULT_TYPE):
     text = await format_trade_stats(stats, t, strategy_name=strategy, period_label=period_label, unrealized_pnl=unrealized_pnl, uid=uid, account_type=account_type, period=period, api_pnl=api_pnl)
     keyboard = get_stats_keyboard(t, current_strategy=strategy, current_period=period, current_account=account_type, exchange=user_exchange)
     
-    await query.edit_message_text(text, parse_mode="Markdown", reply_markup=keyboard)
+    await _safe_edit(query, text, parse_mode="Markdown", reply_markup=keyboard)
     logger.info(f"[{uid}] Stats callback completed in {time.time() - start_time:.2f}s")
 
 
@@ -18401,7 +18448,7 @@ async def on_trades_callback(update: Update, ctx: ContextTypes.DEFAULT_TYPE):
                                         period="all", api_pnl=None)
         keyboard = get_stats_keyboard(t, current_strategy="all", current_period="all",
                                       current_account=default_account, exchange=user_exchange)
-        await query.edit_message_text(text, parse_mode="Markdown", reply_markup=keyboard)
+        await _safe_edit(query, text, parse_mode="Markdown", reply_markup=keyboard)
         return
     
     if data == "noop":
@@ -18475,7 +18522,7 @@ async def on_trades_callback(update: Update, ctx: ContextTypes.DEFAULT_TYPE):
         page=page, total_pages=total_pages
     )
     
-    await query.edit_message_text(text, parse_mode="Markdown", reply_markup=keyboard)
+    await _safe_edit(query, text, parse_mode="Markdown", reply_markup=keyboard)
 
 
 async def format_spot_stats(uid: int, t: dict, period_label: str, account_type: str = "demo") -> str:
@@ -24112,6 +24159,7 @@ async def start_monitoring(app: Application):
 
 @with_texts
 @log_calls
+@_catch_not_modified
 async def on_users_cb(update: Update, ctx: ContextTypes.DEFAULT_TYPE):
     q = update.callback_query
     uid_admin = update.effective_user.id
@@ -24214,6 +24262,7 @@ async def cmd_update_tpsl(update: Update, ctx: ContextTypes.DEFAULT_TYPE):
 @require_access
 @with_texts
 @log_calls
+@_catch_not_modified
 async def on_coin_group_cb(update: Update, ctx: ContextTypes.DEFAULT_TYPE):
     q = update.callback_query
     try:
@@ -24447,6 +24496,7 @@ async def cmd_admin(update: Update, ctx: ContextTypes.DEFAULT_TYPE):
 
 @with_texts
 @log_calls
+@_catch_not_modified
 async def on_admin_cb(update: Update, ctx: ContextTypes.DEFAULT_TYPE):
     t   = ctx.t
     q   = update.callback_query
@@ -27385,6 +27435,7 @@ async def cmd_sovereign(update: Update, ctx: ContextTypes.DEFAULT_TYPE):
     await update.message.reply_text(text, parse_mode="Markdown", reply_markup=keyboard)
 
 
+@_catch_not_modified
 async def on_sovereign_cb(update: Update, ctx: ContextTypes.DEFAULT_TYPE):
     """Handle sovereign owner callbacks."""
     q = update.callback_query
@@ -27802,7 +27853,7 @@ async def on_wallet_cb(update: Update, ctx: ContextTypes.DEFAULT_TYPE):
         
         # Handle exceptions
         if isinstance(wallet, Exception):
-            await q.edit_message_text(f"❌ Error: {wallet}")
+            await _safe_edit(q, f"❌ Error: {wallet}")
             return
         if isinstance(balance_info, Exception):
             balance_info = {"available": 0, "staked": 0, "pending_rewards": 0, "total": 0}
@@ -27837,7 +27888,7 @@ async def on_wallet_cb(update: Update, ctx: ContextTypes.DEFAULT_TYPE):
             [InlineKeyboardButton("🔄 Refresh", callback_data="wallet:refresh")],
         ])
         
-        await q.edit_message_text(text, parse_mode="Markdown", reply_markup=keyboard)
+        await _safe_edit(q, text, parse_mode="Markdown", reply_markup=keyboard)
     
     elif action == "deposit":
         # Show deposit options
@@ -27860,7 +27911,7 @@ async def on_wallet_cb(update: Update, ctx: ContextTypes.DEFAULT_TYPE):
             [InlineKeyboardButton(t.get("btn_back", "« Back"), callback_data="wallet:refresh")],
         ])
         
-        await q.edit_message_text(text, parse_mode="Markdown", reply_markup=keyboard)
+        await _safe_edit(q, text, parse_mode="Markdown", reply_markup=keyboard)
     
     elif action == "demo_deposit":
         # Demo deposit - give 100 ELC for testing
@@ -27868,7 +27919,7 @@ async def on_wallet_cb(update: Update, ctx: ContextTypes.DEFAULT_TYPE):
         
         if success:
             new_balance = await get_elc_balance(uid)
-            await q.edit_message_text(
+            await _safe_edit(q,
                 f"✅ *Demo Deposit Successful!*\n\n🪙 +100 ELC credited\n💰 New Balance: {new_balance:.2f} ELC\n\n{message}",
                 parse_mode="Markdown",
                 reply_markup=InlineKeyboardMarkup([
@@ -27876,7 +27927,7 @@ async def on_wallet_cb(update: Update, ctx: ContextTypes.DEFAULT_TYPE):
                 ])
             )
         else:
-            await q.edit_message_text(
+            await _safe_edit(q,
                 f"❌ Deposit failed: {message}",
                 reply_markup=InlineKeyboardMarkup([
                     [InlineKeyboardButton(t.get("btn_back", "⬅️ Back"), callback_data="wallet:deposit")]
@@ -27909,14 +27960,14 @@ async def on_wallet_cb(update: Update, ctx: ContextTypes.DEFAULT_TYPE):
             [InlineKeyboardButton(t.get("btn_back", "« Back"), callback_data="wallet:deposit")],
         ])
         
-        await q.edit_message_text(text, parse_mode="Markdown", reply_markup=keyboard)
+        await _safe_edit(q, text, parse_mode="Markdown", reply_markup=keyboard)
     
     elif action == "buy":
         # Process ELC purchase with OxaPay
         amount_str = parts[2] if len(parts) > 2 else "50"
         
         if amount_str == "custom":
-            await q.edit_message_text(
+            await _safe_edit(q,
                 "💎 *Custom ELC Purchase*\n\nEnter the amount of ELC you want to buy (in USD):\n\nMinimum: $10\nMaximum: $10,000",
                 parse_mode="Markdown",
                 reply_markup=InlineKeyboardMarkup([
@@ -27950,7 +28001,7 @@ async def on_wallet_cb(update: Update, ctx: ContextTypes.DEFAULT_TYPE):
             [InlineKeyboardButton(t.get("btn_back", "« Back"), callback_data="wallet:buy_crypto")],
         ])
         
-        await q.edit_message_text(text, parse_mode="Markdown", reply_markup=keyboard)
+        await _safe_edit(q, text, parse_mode="Markdown", reply_markup=keyboard)
     
     elif action == "pay":
         # Create OxaPay payment for ELC purchase
@@ -27961,7 +28012,7 @@ async def on_wallet_cb(update: Update, ctx: ContextTypes.DEFAULT_TYPE):
         try:
             from services.oxapay_service import create_payment_for_elc
             
-            await q.edit_message_text("⏳ Creating payment...", parse_mode="Markdown")
+            await _safe_edit(q, "⏳ Creating payment...", parse_mode="Markdown")
             
             result = await create_payment_for_elc(uid, amount, currency, network)
             
@@ -27985,16 +28036,16 @@ async def on_wallet_cb(update: Update, ctx: ContextTypes.DEFAULT_TYPE):
                     [InlineKeyboardButton(t.get("btn_back", "« Back"), callback_data=f"wallet:buy:{amount}")],
                 ])
                 
-                await q.edit_message_text(text, parse_mode="Markdown", reply_markup=keyboard)
+                await _safe_edit(q, text, parse_mode="Markdown", reply_markup=keyboard)
             else:
-                await q.edit_message_text(
+                await _safe_edit(q,
                     f"❌ Failed to create payment: {result.get('error', 'Unknown error')}",
                     reply_markup=InlineKeyboardMarkup([
                         [InlineKeyboardButton(t.get("btn_back", "« Back"), callback_data="wallet:buy_crypto")]
                     ])
                 )
         except ImportError:
-            await q.edit_message_text(
+            await _safe_edit(q,
                 "❌ Payment service not available",
                 reply_markup=InlineKeyboardMarkup([
                     [InlineKeyboardButton(t.get("btn_back", "« Back"), callback_data="wallet:deposit")]
@@ -28002,12 +28053,15 @@ async def on_wallet_cb(update: Update, ctx: ContextTypes.DEFAULT_TYPE):
             )
         except Exception as e:
             logger.error(f"Payment creation error: {e}")
-            await q.edit_message_text(
-                f"❌ Error: {str(e)}",
-                reply_markup=InlineKeyboardMarkup([
-                    [InlineKeyboardButton(t.get("btn_back", "« Back"), callback_data="wallet:buy_crypto")]
-                ])
-            )
+            try:
+                await q.edit_message_text(
+                    f"❌ Error: {str(e)}",
+                    reply_markup=InlineKeyboardMarkup([
+                        [InlineKeyboardButton(t.get("btn_back", "« Back"), callback_data="wallet:buy_crypto")]
+                    ])
+                )
+            except BadRequest:
+                pass
     
     elif action == "check":
         # Check payment status
@@ -28023,7 +28077,7 @@ async def on_wallet_cb(update: Update, ctx: ContextTypes.DEFAULT_TYPE):
                 amount = result.get("amount", 0)
                 new_balance = await get_elc_balance(uid)
                 
-                await q.edit_message_text(
+                await _safe_edit(q,
                     f"✅ *Payment Confirmed!*\n\n🪙 +{amount} ELC credited\n💰 New Balance: {new_balance:.2f} ELC\n\nThank you! 🚀",
                     parse_mode="Markdown",
                     reply_markup=InlineKeyboardMarkup([
@@ -28033,7 +28087,7 @@ async def on_wallet_cb(update: Update, ctx: ContextTypes.DEFAULT_TYPE):
             elif status == "pending":
                 await q.answer("⏳ Payment pending... Please wait for blockchain confirmation.", show_alert=True)
             elif status == "expired":
-                await q.edit_message_text(
+                await _safe_edit(q,
                     "❌ *Payment Expired*\n\nThe invoice has expired. Please create a new payment.",
                     parse_mode="Markdown",
                     reply_markup=InlineKeyboardMarkup([
@@ -28074,7 +28128,7 @@ async def on_wallet_cb(update: Update, ctx: ContextTypes.DEFAULT_TYPE):
             [InlineKeyboardButton(t.get("btn_back", "⬅️ Back"), callback_data="wallet:refresh")],
         ])
         
-        await q.edit_message_text(text, parse_mode="Markdown", reply_markup=keyboard)
+        await _safe_edit(q, text, parse_mode="Markdown", reply_markup=keyboard)
     
     elif action == "wallet_info":
         # Convert ELC to ELC (1:1)
@@ -28102,7 +28156,7 @@ async def on_wallet_cb(update: Update, ctx: ContextTypes.DEFAULT_TYPE):
             keyboard_buttons.append([InlineKeyboardButton(f"🔄 All ({trc_balance:.0f} ELC)", callback_data=f"wallet:deposit:{int(trc_balance)}")])
         keyboard_buttons.append([InlineKeyboardButton(t.get("btn_back", "⬅️ Back"), callback_data="wallet:buy_elc")])
         
-        await q.edit_message_text(text, parse_mode="Markdown", reply_markup=InlineKeyboardMarkup(keyboard_buttons))
+        await _safe_edit(q, text, parse_mode="Markdown", reply_markup=InlineKeyboardMarkup(keyboard_buttons))
     
     elif action == "do_convert":
         # Execute ELC conversion
@@ -28124,7 +28178,7 @@ async def on_wallet_cb(update: Update, ctx: ContextTypes.DEFAULT_TYPE):
             # Add ELC
             new_elc_balance = add_elc_balance(uid, amount, f"Converted from {amount} ELC")
             
-            await q.edit_message_text(
+            await _safe_edit(q,
                 f"✅ *Deposit Successful!*\n\n"
                 f"🪙 Added: {amount} ELC\n"
                 f"💎 New ELC Balance: {new_elc_balance.get('available', 0):.2f} ELC",
@@ -28134,7 +28188,7 @@ async def on_wallet_cb(update: Update, ctx: ContextTypes.DEFAULT_TYPE):
                 ])
             )
         else:
-            await q.edit_message_text(
+            await _safe_edit(q,
                 f"❌ Conversion failed: {msg}",
                 reply_markup=InlineKeyboardMarkup([
                     [InlineKeyboardButton(t.get("btn_back", "⬅️ Back"), callback_data="wallet:buy_elc")]
@@ -28145,7 +28199,7 @@ async def on_wallet_cb(update: Update, ctx: ContextTypes.DEFAULT_TYPE):
         # Demo ELC deposit for testing
         new_balance = add_elc_balance(uid, 100, "Demo ELC deposit")
         
-        await q.edit_message_text(
+        await _safe_edit(q,
             f"✅ *Demo ELC Credited!*\n\n"
             f"💎 +100 ELC added to your balance\n"
             f"💰 New Balance: {new_balance.get('available', 0):.2f} ELC",
@@ -28173,14 +28227,14 @@ async def on_wallet_cb(update: Update, ctx: ContextTypes.DEFAULT_TYPE):
             [InlineKeyboardButton(t.get("btn_back", "⬅️ Back"), callback_data="wallet:buy_elc")]
         ])
         
-        await q.edit_message_text(text, parse_mode="Markdown", reply_markup=keyboard)
+        await _safe_edit(q, text, parse_mode="Markdown", reply_markup=keyboard)
     
     elif action == "buy_elc_amount":
         # Create OxaPay payment for ELC purchase
         usdt_amount = int(parts[2]) if len(parts) > 2 else 100
         elc_amount = usdt_amount * 0.995  # 0.5% fee
         
-        await q.edit_message_text("⏳ Creating payment invoice...", parse_mode="Markdown")
+        await _safe_edit(q, "⏳ Creating payment invoice...", parse_mode="Markdown")
         
         try:
             from services.oxapay_service import oxapay_service
@@ -28219,21 +28273,24 @@ async def on_wallet_cb(update: Update, ctx: ContextTypes.DEFAULT_TYPE):
                 [InlineKeyboardButton(t.get("btn_back", "⬅️ Back"), callback_data="wallet:buy_elc_usdt")]
             ])
             
-            await q.edit_message_text(text, parse_mode="Markdown", reply_markup=InlineKeyboardMarkup(keyboard_buttons))
+            await _safe_edit(q, text, parse_mode="Markdown", reply_markup=InlineKeyboardMarkup(keyboard_buttons))
             
         except Exception as e:
             logger.error(f"ELC purchase error: {e}")
-            await q.edit_message_text(
-                f"❌ Failed to create payment: {e}",
-                reply_markup=InlineKeyboardMarkup([
-                    [InlineKeyboardButton(t.get("btn_back", "⬅️ Back"), callback_data="wallet:buy_elc_usdt")]
-                ])
-            )
+            try:
+                await q.edit_message_text(
+                    f"❌ Failed to create payment: {e}",
+                    reply_markup=InlineKeyboardMarkup([
+                        [InlineKeyboardButton(t.get("btn_back", "⬅️ Back"), callback_data="wallet:buy_elc_usdt")]
+                    ])
+                )
+            except BadRequest:
+                pass
     
     elif action == "buy_elc_custom":
         # Custom amount input
         ctx.user_data["mode"] = "buy_elc_custom"
-        await q.edit_message_text(
+        await _safe_edit(q,
             "💵 *Enter USDT amount to buy ELC*\n\n"
             "Send the amount in USDT (minimum 10):\n"
             "Example: `100`",
@@ -28255,7 +28312,7 @@ async def on_wallet_cb(update: Update, ctx: ContextTypes.DEFAULT_TYPE):
             status = result.get("status", "unknown").lower()
             
             if status == "confirmed":
-                await q.edit_message_text(
+                await _safe_edit(q,
                     "✅ *Payment Confirmed!*\n\n"
                     "Your ELC has been credited to your wallet.\n"
                     "Check your balance with /wallet",
@@ -28267,7 +28324,7 @@ async def on_wallet_cb(update: Update, ctx: ContextTypes.DEFAULT_TYPE):
             elif status == "confirming":
                 await q.answer("⏳ Payment detected, waiting for confirmations...", show_alert=True)
             elif status == "expired":
-                await q.edit_message_text(
+                await _safe_edit(q,
                     "❌ Payment expired. Please create a new payment.",
                     reply_markup=InlineKeyboardMarkup([
                         [InlineKeyboardButton(t.get("btn_back", "⬅️ Back"), callback_data="wallet:buy_elc_usdt")]
@@ -28295,7 +28352,7 @@ async def on_wallet_cb(update: Update, ctx: ContextTypes.DEFAULT_TYPE):
             [InlineKeyboardButton(t.get("btn_back", "« Back"), callback_data="wallet:refresh")],
         ])
         
-        await q.edit_message_text(text, parse_mode="Markdown", reply_markup=keyboard)
+        await _safe_edit(q, text, parse_mode="Markdown", reply_markup=keyboard)
     
     elif action == "withdraw_usdt":
         # Withdrawal flow
@@ -28313,7 +28370,7 @@ async def on_wallet_cb(update: Update, ctx: ContextTypes.DEFAULT_TYPE):
         text += "@EnlikoSupport\n\n"
         text += "_Minimum: 10 ELC_"
         
-        await q.edit_message_text(
+        await _safe_edit(q,
             text,
             parse_mode="Markdown",
             reply_markup=InlineKeyboardMarkup([
@@ -28341,7 +28398,7 @@ async def on_wallet_cb(update: Update, ctx: ContextTypes.DEFAULT_TYPE):
             [InlineKeyboardButton(t.get("btn_back", "⬅️ Back"), callback_data="wallet:refresh")],
         ])
         
-        await q.edit_message_text(text, parse_mode="Markdown", reply_markup=keyboard)
+        await _safe_edit(q, text, parse_mode="Markdown", reply_markup=keyboard)
     
     elif action == "stake_all":
         balance = await get_elc_balance(uid)
@@ -28393,7 +28450,7 @@ async def on_wallet_cb(update: Update, ctx: ContextTypes.DEFAULT_TYPE):
             [InlineKeyboardButton(t.get("btn_back", "⬅️ Back"), callback_data="wallet:refresh")]
         ])
         
-        await q.edit_message_text(text, parse_mode="Markdown", reply_markup=keyboard)
+        await _safe_edit(q, text, parse_mode="Markdown", reply_markup=keyboard)
 
 
 @require_access
@@ -28429,6 +28486,7 @@ async def cmd_subscribe(update: Update, ctx: ContextTypes.DEFAULT_TYPE):
 
 
 @with_texts
+@_catch_not_modified
 async def on_subscribe_cb(update: Update, ctx: ContextTypes.DEFAULT_TYPE):
     """Handle subscription menu callbacks."""
     q = update.callback_query
@@ -29034,12 +29092,15 @@ async def on_subscribe_cb(update: Update, ctx: ContextTypes.DEFAULT_TYPE):
             )
         except Exception as e:
             logger.error(f"[{uid}] Error in my subscription: {e}")
-            await q.edit_message_text(
-                t.get("my_subscription_error", "❌ Error loading subscription info. Please try again."),
-                reply_markup=InlineKeyboardMarkup([
-                    [InlineKeyboardButton(t.get("btn_back", "⬅️ Back"), callback_data="sub:menu")]
-                ])
-            )
+            try:
+                await q.edit_message_text(
+                    t.get("my_subscription_error", "❌ Error loading subscription info. Please try again."),
+                    reply_markup=InlineKeyboardMarkup([
+                        [InlineKeyboardButton(t.get("btn_back", "⬅️ Back"), callback_data="sub:menu")]
+                    ])
+                )
+            except BadRequest:
+                pass
     
     elif action == "promo":
         # Ask user to enter promo code
@@ -29196,17 +29257,23 @@ async def on_subscribe_cb(update: Update, ctx: ContextTypes.DEFAULT_TYPE):
             except Exception as e:
                 # Fallback to text only
                 logger.warning(f"Failed to send QR photo: {e}")
-                await q.edit_message_text(text, parse_mode="Markdown", reply_markup=keyboard)
+                try:
+                    await q.edit_message_text(text, parse_mode="Markdown", reply_markup=keyboard)
+                except BadRequest:
+                    pass
                 
         except Exception as e:
             logger.error(f"OxaPay payment creation error: {e}")
-            await q.edit_message_text(
-                t.get("payment_error", "❌ Payment service error. Please try again later.\n\nError: {error}").format(error=str(e)[:100]),
-                reply_markup=InlineKeyboardMarkup([
-                    [InlineKeyboardButton(t.get("btn_retry", "🔄 Retry"), callback_data=f"sub:crypto:{plan}:{duration}")],
-                    [InlineKeyboardButton(t.get("btn_back", "⬅️ Back"), callback_data="sub:menu")]
-                ])
-            )
+            try:
+                await q.edit_message_text(
+                    t.get("payment_error", "❌ Payment service error. Please try again later.\n\nError: {error}").format(error=str(e)[:100]),
+                    reply_markup=InlineKeyboardMarkup([
+                        [InlineKeyboardButton(t.get("btn_retry", "🔄 Retry"), callback_data=f"sub:crypto:{plan}:{duration}")],
+                        [InlineKeyboardButton(t.get("btn_back", "⬅️ Back"), callback_data="sub:menu")]
+                    ])
+                )
+            except BadRequest:
+                pass
     
     elif action == "crypto_check":
         # Check OxaPay payment status
@@ -29234,17 +29301,20 @@ async def on_subscribe_cb(update: Update, ctx: ContextTypes.DEFAULT_TYPE):
                         ])
                     )
                 except Exception:
-                    await q.edit_message_text(
-                        text=t.get("crypto_payment_confirmed",
-                            "✅ *Payment Confirmed!*\n\n"
-                            "Your subscription has been activated.\n"
-                            "Thank you for using Enliko!"
-                        ),
-                        parse_mode="Markdown",
-                        reply_markup=InlineKeyboardMarkup([
-                            [InlineKeyboardButton(t.get("btn_back", "⬅️ Back"), callback_data="sub:menu")]
-                        ])
-                    )
+                    try:
+                        await q.edit_message_text(
+                            text=t.get("crypto_payment_confirmed",
+                                "✅ *Payment Confirmed!*\n\n"
+                                "Your subscription has been activated.\n"
+                                "Thank you for using Enliko!"
+                            ),
+                            parse_mode="Markdown",
+                            reply_markup=InlineKeyboardMarkup([
+                                [InlineKeyboardButton(t.get("btn_back", "⬅️ Back"), callback_data="sub:menu")]
+                            ])
+                        )
+                    except BadRequest:
+                        pass
             elif status == "confirming":
                 await q.answer(t.get("crypto_payment_confirming", "⏳ Payment detected, waiting for confirmations..."), show_alert=True)
             elif status == "expired":
@@ -29257,13 +29327,16 @@ async def on_subscribe_cb(update: Update, ctx: ContextTypes.DEFAULT_TYPE):
                         ])
                     )
                 except Exception:
-                    await q.edit_message_text(
-                        text=t.get("crypto_payment_expired", "❌ Payment expired. Please create a new payment."),
-                        parse_mode="Markdown",
-                        reply_markup=InlineKeyboardMarkup([
-                            [InlineKeyboardButton(t.get("btn_back", "⬅️ Back"), callback_data="sub:menu")]
-                        ])
-                    )
+                    try:
+                        await q.edit_message_text(
+                            text=t.get("crypto_payment_expired", "❌ Payment expired. Please create a new payment."),
+                            parse_mode="Markdown",
+                            reply_markup=InlineKeyboardMarkup([
+                                [InlineKeyboardButton(t.get("btn_back", "⬅️ Back"), callback_data="sub:menu")]
+                            ])
+                        )
+                    except BadRequest:
+                        pass
             else:
                 await q.answer(t.get("crypto_payment_pending", "⏳ Payment not yet received. Please complete the transfer."), show_alert=True)
                 
@@ -29335,6 +29408,7 @@ async def notify_admin_payment(bot, uid: int, username: str, plan: str, period: 
 
 
 @with_texts
+@_catch_not_modified
 async def on_admin_payment_cb(update: Update, ctx: ContextTypes.DEFAULT_TYPE):
     """Handle admin payment action callbacks."""
     q = update.callback_query
@@ -29454,7 +29528,10 @@ async def on_admin_payment_cb(update: Update, ctx: ContextTypes.DEFAULT_TYPE):
             delete_user(target_uid)
             await q.edit_message_text(f"🗑 User {target_uid} has been deleted!")
         except Exception as e:
-            await q.edit_message_text(f"❌ Failed to delete user: {e}")
+            try:
+                await q.edit_message_text(f"❌ Failed to delete user: {e}")
+            except BadRequest:
+                pass
 
 
 @with_texts
@@ -29549,6 +29626,7 @@ def get_admin_license_keyboard(t: dict) -> InlineKeyboardMarkup:
 
 
 @with_texts
+@_catch_not_modified
 async def on_admin_license_cb(update: Update, ctx: ContextTypes.DEFAULT_TYPE):
     """Handle admin license management callbacks."""
     q = update.callback_query
@@ -30715,6 +30793,7 @@ async def cmd_hl_close_all(update: Update, ctx: ContextTypes.DEFAULT_TYPE):
 
 
 @log_calls
+@_catch_not_modified
 async def on_hl_close_callback(update: Update, ctx: ContextTypes.DEFAULT_TYPE):
     """Handle HyperLiquid close all positions confirmation callbacks"""
     q = update.callback_query
@@ -30868,10 +30947,13 @@ async def on_hl_close_callback(update: Update, ctx: ContextTypes.DEFAULT_TYPE):
         
     except Exception as e:
         logger.error(f"[{uid}] HL close all failed: {e}")
-        await q.edit_message_text(
-            f"❌ Error closing positions: {str(e)}",
-            parse_mode="Markdown"
-        )
+        try:
+            await q.edit_message_text(
+                f"❌ Error closing positions: {str(e)}",
+                parse_mode="Markdown"
+            )
+        except BadRequest:
+            pass
     finally:
         if adapter:
             await adapter.close()
@@ -31222,6 +31304,7 @@ async def cmd_webapp(update: Update, ctx: ContextTypes.DEFAULT_TYPE):
 
 
 @log_calls
+@_catch_not_modified
 async def on_hl_api_callback(update: Update, ctx: ContextTypes.DEFAULT_TYPE):
     """Handle HyperLiquid API settings callbacks"""
     q = update.callback_query
@@ -31487,6 +31570,7 @@ Use the buttons below to configure:"""
 
 @log_calls
 @require_access
+@_catch_not_modified
 async def on_deep_loss_callback(update: Update, ctx: ContextTypes.DEFAULT_TYPE):
     """Handle deep loss position actions: close, enable DCA, or ignore"""
     q = update.callback_query
@@ -31540,10 +31624,13 @@ async def on_deep_loss_callback(update: Update, ctx: ContextTypes.DEFAULT_TYPE):
             
         except Exception as e:
             logger.error(f"Error closing deep loss position {symbol} for {uid}: {e}")
-            await q.edit_message_text(
-                t.get('deep_loss_close_error', "❌ Ошибка при закрытии позиции: {error}").format(error=str(e)[:100]),
-                parse_mode="HTML"
-            )
+            try:
+                await q.edit_message_text(
+                    t.get('deep_loss_close_error', "❌ Ошибка при закрытии позиции: {error}").format(error=str(e)[:100]),
+                    parse_mode="HTML"
+                )
+            except BadRequest:
+                pass
     
     elif action == "dca":
         # Enable DCA for this symbol
@@ -31584,10 +31671,13 @@ async def on_deep_loss_callback(update: Update, ctx: ContextTypes.DEFAULT_TYPE):
                 
         except Exception as e:
             logger.error(f"Error enabling DCA for {symbol} for {uid}: {e}")
-            await q.edit_message_text(
-                t.get('dca_enable_error', "❌ Ошибка: {error}").format(error=str(e)[:100]),
-                parse_mode="HTML"
-            )
+            try:
+                await q.edit_message_text(
+                    t.get('dca_enable_error', "❌ Ошибка: {error}").format(error=str(e)[:100]),
+                    parse_mode="HTML"
+                )
+            except BadRequest:
+                pass
     
     elif action == "ignore":
         await q.edit_message_text(
@@ -31633,7 +31723,7 @@ async def on_exchange_callback(update: Update, ctx: ContextTypes.DEFAULT_TYPE):
         has_testnet = hl_creds.get("hl_testnet_private_key") or hl_creds.get("hl_testnet_wallet_address")
         
         if not has_legacy and not has_mainnet and not has_testnet:
-            await q.edit_message_text(
+            await _safe_edit(q,
                 "❌ *HyperLiquid not configured*\n\n"
                 "Please setup HyperLiquid first.",
                 parse_mode="Markdown",
@@ -31664,7 +31754,7 @@ async def on_exchange_callback(update: Update, ctx: ContextTypes.DEFAULT_TYPE):
             [InlineKeyboardButton("🌐 Mainnet", callback_data="hl:mainnet"),
              InlineKeyboardButton("🧪 Testnet", callback_data="hl:testnet")],
         ])
-        await q.edit_message_text(
+        await _safe_edit(q,
             "🔷 *HyperLiquid Setup*\n\n"
             "Select network:\n\n"
             "• *Mainnet* - Real trading with real funds\n"
@@ -31700,7 +31790,7 @@ async def on_exchange_callback(update: Update, ctx: ContextTypes.DEFAULT_TYPE):
                     reply_markup=main_menu_keyboard(ctx, user_id=uid)
                 )
             else:
-                await q.edit_message_text(
+                await _safe_edit(q,
                     "❌ HyperLiquid not configured. Setup first.",
                     reply_markup=InlineKeyboardMarkup([
                         [InlineKeyboardButton("🔷 Setup HyperLiquid", callback_data="exchange:setup_hl")]
@@ -31731,7 +31821,7 @@ async def on_exchange_callback(update: Update, ctx: ContextTypes.DEFAULT_TYPE):
         db.set_bybit_enabled(uid, not current_enabled)
         new_status = "✅ enabled" if not current_enabled else "❌ disabled"
         
-        await q.edit_message_text(
+        await _safe_edit(q,
             f"🟠 *Bybit Trading: {new_status}*\n\n"
             f"{'Bybit will now receive trading signals.' if not current_enabled else 'Bybit will NOT receive trading signals. Only HyperLiquid will be used.'}",
             parse_mode="Markdown",
@@ -31746,7 +31836,7 @@ async def on_exchange_callback(update: Update, ctx: ContextTypes.DEFAULT_TYPE):
         db.set_hl_enabled(uid, not current_enabled)
         new_status = "✅ enabled" if not current_enabled else "❌ disabled"
         
-        await q.edit_message_text(
+        await _safe_edit(q,
             f"🔷 *HyperLiquid Trading: {new_status}*\n\n"
             f"{'HyperLiquid will now receive trading signals.' if not current_enabled else 'HyperLiquid will NOT receive trading signals. Only Bybit will be used.'}",
             parse_mode="Markdown",
@@ -31806,7 +31896,7 @@ async def on_exchange_callback(update: Update, ctx: ContextTypes.DEFAULT_TYPE):
         keyboard.append([InlineKeyboardButton("📈 Strategy Settings", callback_data="strat_set:back")])
         keyboard.append([InlineKeyboardButton("🔙 Back", callback_data="main_menu")])
         
-        await q.edit_message_text(
+        await _safe_edit(q,
             text,
             parse_mode="Markdown",
             reply_markup=InlineKeyboardMarkup(keyboard)
@@ -31903,6 +31993,7 @@ def _build_bybit_status_keyboard(uid: int, t: dict) -> tuple[str, InlineKeyboard
 
 @log_calls
 @with_texts
+@_catch_not_modified
 async def on_bybit_callback(update: Update, ctx: ContextTypes.DEFAULT_TYPE):
     """Handle Bybit callbacks - now redirects to strategy settings for mode changes.
     
@@ -32303,6 +32394,7 @@ async def on_hl_orders_callback(update: Update, ctx: ContextTypes.DEFAULT_TYPE):
 
 @log_calls
 @with_texts
+@_catch_not_modified
 async def on_hl_history_callback(update: Update, ctx: ContextTypes.DEFAULT_TYPE):
     """Handle HyperLiquid history network switching callbacks (hl_hist:testnet, hl_hist:mainnet).
     Now delegates to unified stats flow — same UI as Bybit History.
@@ -32340,6 +32432,7 @@ async def on_hl_history_callback(update: Update, ctx: ContextTypes.DEFAULT_TYPE)
 
 @log_calls
 @with_texts
+@_catch_not_modified
 async def on_hl_callback(update: Update, ctx: ContextTypes.DEFAULT_TYPE):
     """Handle HyperLiquid callbacks"""
     q = update.callback_query
@@ -32479,7 +32572,10 @@ async def on_hl_callback(update: Update, ctx: ContextTypes.DEFAULT_TYPE):
             else:
                 await q.edit_message_text(f"❌ Error: {result.get('error')}")
         except Exception as e:
-            await q.edit_message_text(f"❌ Error: {str(e)}")
+            try:
+                await q.edit_message_text(f"❌ Error: {str(e)}")
+            except BadRequest:
+                pass
         finally:
             if adapter:
                 await adapter.close()
@@ -32533,7 +32629,10 @@ async def on_hl_callback(update: Update, ctx: ContextTypes.DEFAULT_TYPE):
             else:
                 await q.edit_message_text(f"❌ Error: {result.get('error')}")
         except Exception as e:
-            await q.edit_message_text(f"❌ Error: {str(e)}")
+            try:
+                await q.edit_message_text(f"❌ Error: {str(e)}")
+            except BadRequest:
+                pass
         finally:
             if adapter:
                 await adapter.close()
