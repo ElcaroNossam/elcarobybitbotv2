@@ -843,6 +843,17 @@
             }
         };
         
+        // Global auth error handler
+        let _authRedirecting = false;
+        function handleAuthError(detail) {
+            if (_authRedirecting) return true;
+            _authRedirecting = true;
+            localStorage.removeItem('enliko_token');
+            showNotification('Session expired. Redirecting to login...', 'error', 4000);
+            setTimeout(() => { window.location.href = '/login'; }, 2000);
+            return true;
+        }
+
         // Loading overlay helper
         function setLoading(element, isLoading, message = 'Loading...') {
             const container = typeof element === 'string' ? document.getElementById(element) : element;
@@ -1685,6 +1696,7 @@
                 });
                 
                 if (!res.ok) {
+                    if (res.status === 401) { handleAuthError(); return; }
                     const error = await res.json().catch(() => ({ detail: 'Failed to load positions' }));
                     throw new Error(error.detail || `Error ${res.status}`);
                 }
@@ -1725,6 +1737,7 @@
                 });
                 
                 if (!res.ok) {
+                    if (res.status === 401) { handleAuthError(); return; }
                     const error = await res.json().catch(() => ({ detail: 'Failed to load orders' }));
                     throw new Error(error.detail || `Error ${res.status}`);
                 }
@@ -1760,6 +1773,7 @@
                 });
                 
                 if (!res.ok) {
+                    if (res.status === 401) { handleAuthError(); return; }
                     throw new Error('Failed to load balance');
                 }
                 
@@ -1909,7 +1923,7 @@
                 errors.push('Select a trading pair');
             }
             if (!localStorage.getItem('enliko_token')) {
-                showNotification('Please log in to trade', 'error');
+                handleAuthError();
                 return;
             }
             
@@ -1992,6 +2006,7 @@
                     body: JSON.stringify(order)
                 });
                 
+                if (res.status === 401) { handleAuthError(); return; }
                 const data = await res.json();
                 if (data.success || res.ok) {
                     showNotification(`${state.side.toUpperCase()} ${state.symbol} order placed!`, 'success');
@@ -2034,11 +2049,12 @@
                 });
                 
                 const data = await res.json();
+                if (res.status === 401) { handleAuthError(); return; }
                 if (data.success) {
                     showNotification('Position closed', 'success');
                     loadPositions();
                 } else {
-                    showNotification(data.error || 'Failed to close', 'error');
+                    showNotification(data.detail || data.error || 'Failed to close', 'error');
                 }
             } catch (e) {
                 showNotification('Error closing position', 'error');
@@ -2170,11 +2186,12 @@
                 });
                 
                 const data = await res.json();
+                if (res.status === 401) { handleAuthError(); return; }
                 if (data.success) {
                     showNotification('Order cancelled', 'success');
                     loadOrders();
                 } else {
-                    showNotification(data.error || 'Failed to cancel order', 'error');
+                    showNotification(data.detail || data.error || 'Failed to cancel order', 'error');
                 }
             } catch (e) {
                 showNotification('Error cancelling order', 'error');
@@ -2209,12 +2226,13 @@
                 });
                 
                 const data = await res.json();
+                if (res.status === 401) { handleAuthError(); return; }
                 if (data.success) {
                     showNotification(`Closed ${data.closed || count} positions`, 'success');
                     loadPositions();
                     loadBalance();
                 } else {
-                    showNotification(data.error || 'Failed to close all positions', 'error');
+                    showNotification(data.detail || data.error || 'Failed to close all positions', 'error');
                 }
             } catch (e) {
                 showNotification('Error closing positions', 'error');
@@ -2249,11 +2267,12 @@
                 });
                 
                 const data = await res.json();
+                if (res.status === 401) { handleAuthError(); return; }
                 if (data.success) {
                     showNotification(`Cancelled ${data.cancelled || count} orders`, 'success');
                     loadOrders();
                 } else {
-                    showNotification(data.error || 'Failed to cancel orders', 'error');
+                    showNotification(data.detail || data.error || 'Failed to cancel orders', 'error');
                 }
             } catch (e) {
                 showNotification('Error cancelling orders', 'error');
