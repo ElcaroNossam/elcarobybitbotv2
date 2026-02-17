@@ -2977,7 +2977,7 @@
                 
                 const data = await res.json();
                 
-                if (data.success) {
+                if (res.ok && data.success) {
                     showNotification(`Switched to ${newExchange.toUpperCase()}`, 'success');
                     updateExchangeUI();
                     updateAccountTypeOptions();
@@ -2985,19 +2985,15 @@
                     // Reconnect WebSocket for new exchange
                     reconnectWebSockets();
                     
-                    // Reload positions for new exchange
+                    // Reload all data for new exchange
                     loadPositions();
-                    
-                    // Update balance display
-                    if (data.balance) {
-                        document.getElementById('availableBalance').textContent = '$' + data.balance.available.toLocaleString();
-                        document.getElementById('equity').textContent = '$' + data.balance.equity.toLocaleString();
-                    }
+                    loadOrders();
+                    loadBalance();
                 } else {
                     // Revert on failure
                     state.exchange = prevExchange;
                     document.getElementById('exchangeSelect').value = prevExchange;
-                    showNotification(data.error || 'Failed to switch exchange', 'error');
+                    showNotification(data.detail || data.error || 'Failed to switch exchange', 'error');
                 }
             } catch (e) {
                 state.exchange = prevExchange;
@@ -3032,25 +3028,21 @@
                 
                 const data = await res.json();
                 
-                if (data.success) {
+                if (res.ok && data.success) {
                     showNotification(`Switched to ${newAccountType.toUpperCase()}`, 'success');
                     updateAccountBadge();
                     
-                    // Reload positions for new account type
+                    // Reload all data for new account type
                     loadPositions();
+                    loadOrders();
+                    loadBalance();
                     
                     // Reload strategy settings for new account type
                     loadStrategySettings();
-                    
-                    // Update balance
-                    if (data.balance) {
-                        document.getElementById('availableBalance').textContent = '$' + data.balance.available.toLocaleString();
-                        document.getElementById('equity').textContent = '$' + data.balance.equity.toLocaleString();
-                    }
                 } else {
                     state.accountType = prevAccountType;
                     document.getElementById('accountSelect').value = prevAccountType;
-                    showNotification(data.error || 'Failed to switch account', 'error');
+                    showNotification(data.detail || data.error || 'Failed to switch account', 'error');
                 }
             } catch (e) {
                 state.accountType = prevAccountType;
