@@ -21690,14 +21690,29 @@ async def monitor_positions_loop(app: Application):
                     # Fallback to legacy if no targets from unified
                     if not user_targets:
                         user_trading_mode = get_trading_mode(uid) or "demo"
-                        k, s = get_user_credentials(uid)
-                        if not k or not s:
-                            continue
-                        # Create targets_to_check list for legacy mode (Bybit only)
-                        if user_trading_mode == "both":
-                            targets_to_check = [("bybit", "demo"), ("bybit", "real")]
+                        user_exchange = db.get_exchange_type(uid) or "bybit"
+                        
+                        if user_exchange == "hyperliquid":
+                            # HL user — check HL credentials
+                            hl_creds = db.get_all_user_credentials(uid) or {}
+                            hl_key = hl_creds.get("hl_testnet_private_key") or hl_creds.get("hl_mainnet_private_key") or hl_creds.get("hl_private_key")
+                            if not hl_key:
+                                continue
+                            if user_trading_mode == "both":
+                                targets_to_check = [("hyperliquid", "testnet"), ("hyperliquid", "mainnet")]
+                            elif user_trading_mode in ("real", "mainnet"):
+                                targets_to_check = [("hyperliquid", "mainnet")]
+                            else:
+                                targets_to_check = [("hyperliquid", "testnet")]
                         else:
-                            targets_to_check = [("bybit", user_trading_mode)]
+                            # Bybit user — check Bybit credentials
+                            k, s = get_user_credentials(uid)
+                            if not k or not s:
+                                continue
+                            if user_trading_mode == "both":
+                                targets_to_check = [("bybit", "demo"), ("bybit", "real")]
+                            else:
+                                targets_to_check = [("bybit", user_trading_mode)]
                     else:
                         # Use targets from unified architecture
                         targets_to_check = [(tgt.exchange, tgt.account_type) for tgt in user_targets]
