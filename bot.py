@@ -32064,16 +32064,27 @@ async def on_hl_balance_callback(update: Update, ctx: ContextTypes.DEFAULT_TYPE)
 
 {pnl_emoji} *Unrealized PnL:* ${unrealized_pnl:,.2f} {currency}{spot_section}
 """
-            await q.edit_message_text(text, parse_mode="Markdown", reply_markup=keyboard)
+            try:
+                await q.edit_message_text(text, parse_mode="Markdown", reply_markup=keyboard)
+            except BadRequest as br:
+                if "not modified" not in str(br).lower():
+                    raise
         else:
             await q.edit_message_text(
                 f"❌ Error fetching balance: {result.get('error', 'Unknown error')}",
                 parse_mode="Markdown",
                 reply_markup=keyboard
             )
+    except BadRequest as br:
+        if "not modified" not in str(br).lower():
+            logger.error(f"HL balance callback error: {br}")
+            await q.edit_message_text(f"❌ Error: {str(br)}", parse_mode="Markdown")
     except Exception as e:
         logger.error(f"HL balance callback error: {e}")
-        await q.edit_message_text(f"❌ Error: {str(e)}", parse_mode="Markdown")
+        try:
+            await q.edit_message_text(f"❌ Error: {str(e)}", parse_mode="Markdown")
+        except BadRequest:
+            pass
     finally:
         if adapter:
             await adapter.close()
@@ -32162,15 +32173,25 @@ async def on_hl_positions_callback(update: Update, ctx: ContextTypes.DEFAULT_TYP
                     f"   PnL: {pnl_emoji}${pnl:,.2f}\n"
                 )
             
-            await q.edit_message_text("\n".join(lines), parse_mode="Markdown", reply_markup=keyboard)
+            try:
+                await q.edit_message_text("\n".join(lines), parse_mode="Markdown", reply_markup=keyboard)
+            except BadRequest as br:
+                if "not modified" not in str(br).lower():
+                    raise
         else:
             await q.edit_message_text(
                 f"❌ Failed to fetch positions: {result.get('retMsg', 'Unknown error')}",
                 parse_mode="Markdown"
             )
+    except BadRequest as br:
+        if "not modified" not in str(br).lower():
+            logger.error(f"HL positions callback error: {br}")
     except Exception as e:
         logger.error(f"HL positions callback error: {e}")
-        await q.edit_message_text(f"❌ Error: {str(e)}", parse_mode="Markdown")
+        try:
+            await q.edit_message_text(f"❌ Error: {str(e)}", parse_mode="Markdown")
+        except BadRequest:
+            pass
     finally:
         if adapter:
             await adapter.close()
@@ -32256,15 +32277,25 @@ async def on_hl_orders_callback(update: Update, ctx: ContextTypes.DEFAULT_TYPE):
                     f"   {order_type} | Size: {size} @ ${price:,.4f}\n"
                 )
             
-            await q.edit_message_text("\n".join(lines), parse_mode="Markdown", reply_markup=keyboard)
+            try:
+                await q.edit_message_text("\n".join(lines), parse_mode="Markdown", reply_markup=keyboard)
+            except BadRequest as br:
+                if "not modified" not in str(br).lower():
+                    raise
         else:
             await q.edit_message_text(
                 f"❌ Failed to fetch orders: {result.get('error', 'Unknown error')}",
                 parse_mode="Markdown"
             )
+    except BadRequest as br:
+        if "not modified" not in str(br).lower():
+            logger.error(f"HL orders callback error: {br}")
     except Exception as e:
         logger.error(f"HL orders callback error: {e}")
-        await q.edit_message_text(f"❌ Error: {str(e)}", parse_mode="Markdown")
+        try:
+            await q.edit_message_text(f"❌ Error: {str(e)}", parse_mode="Markdown")
+        except BadRequest:
+            pass
     finally:
         if adapter:
             await adapter.close()
