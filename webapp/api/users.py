@@ -392,20 +392,26 @@ async def switch_account_type(
     user_id = user["user_id"]
     exchange = data.exchange or db.get_exchange_type(user_id)
     
-    # Validate account type based on exchange
+    # Normalize account type for cross-exchange compatibility
+    # (e.g. frontend may send 'demo' when user just switched to HL)
+    account_type = data.account_type
     if exchange == "bybit":
-        if data.account_type not in ["demo", "real", "both"]:
+        # Map HL types to Bybit types
+        mapping = {"testnet": "demo", "mainnet": "real"}
+        account_type = mapping.get(account_type, account_type)
+        if account_type not in ["demo", "real", "both"]:
             raise HTTPException(status_code=400, detail="Invalid account type for Bybit. Use: demo, real, both")
-        # For Bybit, directly use trading_mode
-        new_mode = data.account_type
+        new_mode = account_type
     else:  # hyperliquid
-        if data.account_type not in ["testnet", "mainnet"]:
+        # Map Bybit types to HL types
+        mapping = {"demo": "testnet", "real": "mainnet"}
+        account_type = mapping.get(account_type, account_type)
+        if account_type not in ["testnet", "mainnet"]:
             raise HTTPException(status_code=400, detail="Invalid account type for HyperLiquid. Use: testnet, mainnet")
-        # Map HL account types to trading mode
-        new_mode = data.account_type
+        new_mode = account_type
         
         # Update HL testnet setting
-        hl_testnet = data.account_type == "testnet"
+        hl_testnet = account_type == "testnet"
         db.set_user_field(user_id, "hl_testnet", hl_testnet)
     
     # Get old mode for comparison

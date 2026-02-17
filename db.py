@@ -173,13 +173,11 @@ USER_FIELDS_WHITELIST = {
 
 def _normalize_both_account_type(account_type: str | None, exchange: str = 'bybit') -> str | None:
     """
-    Normalize 'both' account_type for API and DB queries.
+    Normalize account_type for API and DB queries.
     
-    'both' is a trading configuration (trade on demo+real or testnet+mainnet),
-    but for API calls and DB queries we need specific account type.
-    
-    For Bybit: 'both' → 'demo' (safer default)
-    For HyperLiquid: 'both' → 'testnet' (safer default)
+    Handles:
+    - 'both' → default safe type per exchange
+    - Cross-exchange mapping: demo→testnet, real→mainnet for HL (and vice versa)
     
     Args:
         account_type: 'demo', 'real', 'both', 'testnet', 'mainnet', or None
@@ -188,11 +186,14 @@ def _normalize_both_account_type(account_type: str | None, exchange: str = 'bybi
     Returns:
         Normalized account_type or None (if input was None)
     """
-    if account_type == 'both':
-        if exchange == 'hyperliquid':
-            return 'testnet'
-        return 'demo'
-    return account_type
+    if account_type is None:
+        return None
+    if exchange == 'hyperliquid':
+        mapping = {'both': 'testnet', 'demo': 'testnet', 'real': 'mainnet'}
+        return mapping.get(account_type, account_type)
+    else:
+        mapping = {'both': 'demo', 'testnet': 'demo', 'mainnet': 'real'}
+        return mapping.get(account_type, account_type)
 
 
 # ------------------------------------------------------------------------------------

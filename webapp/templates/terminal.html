@@ -923,8 +923,8 @@
         }
         
         // Initialize
-        document.addEventListener('DOMContentLoaded', () => {
-            // Restore exchange and account type from localStorage
+        document.addEventListener('DOMContentLoaded', async () => {
+            // 1. Restore exchange/accountType from localStorage (instant, before render)
             const savedExchange = localStorage.getItem('exchange_type');
             if (savedExchange && ['bybit', 'hyperliquid'].includes(savedExchange)) {
                 state.exchange = savedExchange;
@@ -934,21 +934,27 @@
             if (savedAccountType && ['demo', 'real', 'testnet', 'mainnet'].includes(savedAccountType)) {
                 state.accountType = savedAccountType;
             }
-            // Update dropdown options based on exchange, then set value
+            // Update dropdown options based on exchange
             updateAccountTypeOptions();
             
+            // 2. Init UI components (these don't need server data)
             initTickerTape();
             initTradingView();
             initEventListeners();
             initOrderbook();
+            connectWebSocket();
+            renderSymbolList();
+            fetchLivePrices();
+            
+            // 3. Fetch authoritative settings from server BEFORE loading trading data  
+            await loadUserSettings();
+            
+            // 4. Now load trading data with correct exchange/accountType
             loadPositions();
             loadOrders();
             loadBalance();
-            connectWebSocket();
-            renderSymbolList();
-            fetchLivePrices(); // Fetch real prices to replace placeholders
             
-            // Auto-refresh data every 10 seconds
+            // 5. Auto-refresh data every 10 seconds
             setInterval(() => {
                 loadPositions();
                 loadOrders();
@@ -2902,8 +2908,8 @@
         
         // Initialize advanced features on load
         document.addEventListener('DOMContentLoaded', () => {
-            // Load user settings from server
-            loadUserSettings();
+            // NOTE: loadUserSettings() is called and AWAITED in the first DOMContentLoaded handler
+            // It must run before trading data loads, so it lives there, not here.
             
             // Load strategy settings for TP/SL presets
             loadStrategySettings();
@@ -2956,10 +2962,26 @@
                 if (res.ok) {
                     const data = await res.json();
                     if (data.user) {
-                        // Set exchange and account type from user settings
+                        // Set exchange from server
                         state.exchange = data.user.exchange_type || 'bybit';
-                        state.accountType = data.user.trading_mode || 'demo';
+                        
+                        // Normalize account type for the current exchange
+                        let serverAccountType = data.user.trading_mode || 'demo';
+                        if (state.exchange === 'hyperliquid') {
+                            // Map Bybit types → HL types
+                            const hlMap = { 'demo': 'testnet', 'real': 'mainnet', 'both': 'testnet' };
+                            serverAccountType = hlMap[serverAccountType] || serverAccountType;
+                        } else {
+                            // Map HL types → Bybit types
+                            const bybitMap = { 'testnet': 'demo', 'mainnet': 'real', 'both': 'demo' };
+                            serverAccountType = bybitMap[serverAccountType] || serverAccountType;
+                        }
+                        state.accountType = serverAccountType;
                         state.leverage = data.user.leverage || 10;
+                        
+                        // Persist to localStorage so next page load starts correct
+                        localStorage.setItem('exchange_type', state.exchange);
+                        localStorage.setItem('account_type', state.accountType);
                         
                         // Update UI — MUST update dropdown options BEFORE setting value
                         document.getElementById('exchangeSelect').value = state.exchange;

@@ -10,13 +10,11 @@ from typing import Optional, Tuple
 
 def normalize_account_type(account_type: Optional[str], exchange: str = 'bybit') -> Optional[str]:
     """
-    Normalize 'both' account_type for API and DB queries.
+    Normalize account_type for API and DB queries.
     
-    'both' is a trading configuration (trade on demo+real or testnet+mainnet),
-    but for API calls and DB queries we need specific account type.
-    
-    For Bybit: 'both' → 'demo' (safer default)
-    For HyperLiquid: 'both' → 'testnet' (safer default)
+    Handles:
+    - 'both' → default safe type per exchange
+    - Cross-exchange mapping: demo→testnet, real→mainnet for HL (and vice versa for Bybit)
     
     Args:
         account_type: 'demo', 'real', 'both', 'testnet', 'mainnet', or None
@@ -25,11 +23,16 @@ def normalize_account_type(account_type: Optional[str], exchange: str = 'bybit')
     Returns:
         Normalized account_type or None (if input was None)
     """
-    if account_type == 'both':
-        if exchange == 'hyperliquid':
-            return 'testnet'
-        return 'demo'
-    return account_type
+    if account_type is None:
+        return None
+    if exchange == 'hyperliquid':
+        # Map Bybit types to HL types
+        mapping = {'both': 'testnet', 'demo': 'testnet', 'real': 'mainnet'}
+        return mapping.get(account_type, account_type)
+    else:
+        # Map HL types to Bybit types
+        mapping = {'both': 'demo', 'testnet': 'demo', 'mainnet': 'real'}
+        return mapping.get(account_type, account_type)
 
 
 def get_hl_credentials_for_account(hl_creds: dict, account_type: str) -> Tuple[Optional[str], bool, Optional[str]]:
