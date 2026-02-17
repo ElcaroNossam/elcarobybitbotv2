@@ -20220,12 +20220,21 @@ async def on_channel_post(update: Update, ctx: ContextTypes.DEFAULT_TYPE):
 
             user_exchange = get_exchange_type(uid)
 
-            # Determine which exchanges user can trade on
+            # Determine which exchanges user can ACTUALLY trade on
+            # CRITICAL FIX (Feb 17, 2026): Use routing_policy to determine target exchanges,
+            # not just is_*_enabled(). Otherwise stale positions on disabled exchanges
+            # block new signals on the active exchange.
             user_target_exchanges = set()
-            if db.is_bybit_enabled(uid):
-                user_target_exchanges.add("bybit")
-            if db.is_hl_enabled(uid):
-                user_target_exchanges.add("hyperliquid")
+            user_routing_policy = db.get_routing_policy(uid)
+            if user_routing_policy == db.RoutingPolicy.ALL_ENABLED:
+                # ALL_ENABLED: user trades on BOTH exchanges → check both
+                if db.is_bybit_enabled(uid):
+                    user_target_exchanges.add("bybit")
+                if db.is_hl_enabled(uid):
+                    user_target_exchanges.add("hyperliquid")
+            else:
+                # SAME_EXCHANGE_ALL_ENVS or default: user trades on current exchange ONLY
+                user_target_exchanges.add(user_exchange or "bybit")
             if not user_target_exchanges:
                 user_target_exchanges.add(user_exchange or "bybit")
 
