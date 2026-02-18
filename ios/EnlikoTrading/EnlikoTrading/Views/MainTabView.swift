@@ -26,24 +26,28 @@ struct MainTabView: View {
                 // Dashboard Tab (Balance + Stats + Recent Trades)
                 NavigationStack {
                     DashboardView()
+                        .toolbar(.hidden, for: .tabBar)
                 }
                 .tag(0)
                 
                 // Strategies Tab (Strategy Settings like in bot)
                 NavigationStack {
                     StrategiesHubView()
+                        .toolbar(.hidden, for: .tabBar)
                 }
                 .tag(1)
                 
                 // Trading Tab (Terminal - Positions + Orders + Manual Trade)
                 NavigationStack {
                     TradingHubView()
+                        .toolbar(.hidden, for: .tabBar)
                 }
                 .tag(2)
                 
                 // Settings Tab (API Keys + Global Settings)
                 NavigationStack {
                     SettingsMainView()
+                        .toolbar(.hidden, for: .tabBar)
                 }
                 .tag(3)
             }
