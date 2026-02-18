@@ -97,8 +97,8 @@ struct RootView: View {
                             disclaimerAccepted = true
                         },
                         onDecline: {
-                            // Exit app - user declined
-                            exit(0)
+                            // Show message that app cannot be used without accepting
+                            appState.showError("disclaimer_required".localized)
                         }
                     )
                     .transition(.opacity)

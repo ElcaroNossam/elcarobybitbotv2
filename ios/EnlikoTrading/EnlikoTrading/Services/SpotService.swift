@@ -58,14 +58,23 @@ struct TPLevel: Codable {
 }
 
 struct SpotHolding: Codable, Identifiable {
-    var id: String { coin }
-    let coin: String
-    let balance: Double
-    let usdValue: Double
-    let avgPrice: Double
-    let totalCost: Double
-    let unrealizedPnl: Double
-    let pnlPct: Double
+    var id: String { coin ?? "unknown" }
+    let coin: String?
+    let balance: Double?
+    let usdValue: Double?
+    let avgPrice: Double?
+    let totalCost: Double?
+    let unrealizedPnl: Double?
+    let pnlPct: Double?
+    
+    // Safe accessors
+    var coinName: String { coin ?? "?" }
+    var balanceValue: Double { balance ?? 0 }
+    var usdValueAmount: Double { usdValue ?? 0 }
+    var avgPriceValue: Double { avgPrice ?? 0 }
+    var totalCostValue: Double { totalCost ?? 0 }
+    var unrealizedPnlValue: Double { unrealizedPnl ?? 0 }
+    var pnlPctValue: Double { pnlPct ?? 0 }
     
     enum CodingKeys: String, CodingKey {
         case coin, balance
@@ -78,13 +87,22 @@ struct SpotHolding: Codable, Identifiable {
 }
 
 struct SpotPerformance: Codable {
-    let success: Bool
-    let totalInvested: Double
-    let totalCurrentValue: Double
-    let totalUnrealizedPnl: Double
-    let roiPct: Double
-    let holdings: [SpotHolding]
-    let holdingsCount: Int
+    let success: Bool?
+    let totalInvested: Double?
+    let totalCurrentValue: Double?
+    let totalUnrealizedPnl: Double?
+    let roiPct: Double?
+    let holdings: [SpotHolding]?
+    let holdingsCount: Int?
+    
+    // Safe accessors
+    var isSuccess: Bool { success ?? false }
+    var totalInvestedValue: Double { totalInvested ?? 0 }
+    var totalCurrentValueAmount: Double { totalCurrentValue ?? 0 }
+    var totalUnrealizedPnlValue: Double { totalUnrealizedPnl ?? 0 }
+    var roiPctValue: Double { roiPct ?? 0 }
+    var holdingsList: [SpotHolding] { holdings ?? [] }
+    var holdingsCountValue: Int { holdingsCount ?? 0 }
     
     enum CodingKeys: String, CodingKey {
         case success
@@ -131,21 +149,38 @@ struct FearGreedIndex: Codable {
 }
 
 struct SpotSettings: Codable {
-    let dcaEnabled: Bool
-    let dcaAmount: Double
-    let dcaFrequency: String
-    let dcaStrategy: String
-    let portfolio: String
-    let tpEnabled: Bool
-    let tpProfile: String
-    let trailingTpEnabled: Bool
-    let trailingActivationPct: Double
-    let trailingTrailPct: Double
-    let profitLockEnabled: Bool
-    let profitLockTriggerPct: Double
-    let profitLockPct: Double
-    let smartRebalanceEnabled: Bool
-    let rebalanceThresholdPct: Double
+    let dcaEnabled: Bool?
+    let dcaAmount: Double?
+    let dcaFrequency: String?
+    let dcaStrategy: String?
+    let portfolio: String?
+    let tpEnabled: Bool?
+    let tpProfile: String?
+    let trailingTpEnabled: Bool?
+    let trailingActivationPct: Double?
+    let trailingTrailPct: Double?
+    let profitLockEnabled: Bool?
+    let profitLockTriggerPct: Double?
+    let profitLockPct: Double?
+    let smartRebalanceEnabled: Bool?
+    let rebalanceThresholdPct: Double?
+    
+    // Safe accessors
+    var dcaEnabledValue: Bool { dcaEnabled ?? false }
+    var dcaAmountValue: Double { dcaAmount ?? 10 }
+    var dcaFrequencyValue: String { dcaFrequency ?? "daily" }
+    var dcaStrategyValue: String { dcaStrategy ?? "fixed" }
+    var portfolioValue: String { portfolio ?? "custom" }
+    var tpEnabledValue: Bool { tpEnabled ?? false }
+    var tpProfileValue: String { tpProfile ?? "balanced" }
+    var trailingTpEnabledValue: Bool { trailingTpEnabled ?? false }
+    var trailingActivationPctValue: Double { trailingActivationPct ?? 15 }
+    var trailingTrailPctValue: Double { trailingTrailPct ?? 5 }
+    var profitLockEnabledValue: Bool { profitLockEnabled ?? false }
+    var profitLockTriggerPctValue: Double { profitLockTriggerPct ?? 30 }
+    var profitLockPctValue: Double { profitLockPct ?? 50 }
+    var smartRebalanceEnabledValue: Bool { smartRebalanceEnabled ?? false }
+    var rebalanceThresholdPctValue: Double { rebalanceThresholdPct ?? 10 }
     
     enum CodingKeys: String, CodingKey {
         case dcaEnabled = "dca_enabled"
@@ -364,21 +399,21 @@ class SpotService: ObservableObject {
     func updateSettings(_ settings: SpotSettings, accountType: String = "demo") async -> Bool {
         do {
             let body = SpotSettingsUpdateRequest(
-                dcaEnabled: settings.dcaEnabled,
-                dcaAmount: settings.dcaAmount,
-                dcaFrequency: settings.dcaFrequency,
-                dcaStrategy: settings.dcaStrategy,
-                portfolio: settings.portfolio,
-                tpEnabled: settings.tpEnabled,
-                tpProfile: settings.tpProfile,
-                trailingTpEnabled: settings.trailingTpEnabled,
-                trailingActivationPct: settings.trailingActivationPct,
-                trailingTrailPct: settings.trailingTrailPct,
-                profitLockEnabled: settings.profitLockEnabled,
-                profitLockTriggerPct: settings.profitLockTriggerPct,
-                profitLockPct: settings.profitLockPct,
-                smartRebalanceEnabled: settings.smartRebalanceEnabled,
-                rebalanceThresholdPct: settings.rebalanceThresholdPct
+                dcaEnabled: settings.dcaEnabledValue,
+                dcaAmount: settings.dcaAmountValue,
+                dcaFrequency: settings.dcaFrequencyValue,
+                dcaStrategy: settings.dcaStrategyValue,
+                portfolio: settings.portfolioValue,
+                tpEnabled: settings.tpEnabledValue,
+                tpProfile: settings.tpProfileValue,
+                trailingTpEnabled: settings.trailingTpEnabledValue,
+                trailingActivationPct: settings.trailingActivationPctValue,
+                trailingTrailPct: settings.trailingTrailPctValue,
+                profitLockEnabled: settings.profitLockEnabledValue,
+                profitLockTriggerPct: settings.profitLockTriggerPctValue,
+                profitLockPct: settings.profitLockPctValue,
+                smartRebalanceEnabled: settings.smartRebalanceEnabledValue,
+                rebalanceThresholdPct: settings.rebalanceThresholdPctValue
             )
             let _: GenericResponse = try await network.post("/spot/settings?account_type=\(accountType)", body: body)
             await MainActor.run {

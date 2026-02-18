@@ -172,20 +172,20 @@ struct TradingHubView: View {
                         .foregroundColor(.secondary)
                     
                     if let perf = spotService.performance {
-                        Text("$\(perf.totalCurrentValue, specifier: "%.2f")")
+                        Text("$\(perf.totalCurrentValueAmount, specifier: "%.2f")")
                             .font(.system(size: 28, weight: .bold, design: .rounded))
                             .foregroundColor(.white)
                         
                         HStack(spacing: 4) {
-                            Image(systemName: perf.roiPct >= 0 ? "arrow.up.right" : "arrow.down.right")
+                            Image(systemName: perf.roiPctValue >= 0 ? "arrow.up.right" : "arrow.down.right")
                                 .font(.caption2)
-                            Text("\(perf.roiPct >= 0 ? "+" : "")\(perf.roiPct, specifier: "%.2f")%")
+                            Text("\(perf.roiPctValue >= 0 ? "+" : "")\(perf.roiPctValue, specifier: "%.2f")%")
                                 .font(.caption.bold())
                             Text("ROI")
                                 .font(.caption2)
                                 .foregroundColor(.secondary)
                         }
-                        .foregroundColor(perf.roiPct >= 0 ? .green : .red)
+                        .foregroundColor(perf.roiPctValue >= 0 ? .green : .red)
                     } else if spotService.isLoading {
                         ProgressView()
                             .tint(.enlikoPrimary)
@@ -229,7 +229,7 @@ struct TradingHubView: View {
                     .foregroundColor(.white)
                 Spacer()
                 
-                Text("\(spotService.performance?.holdings.count ?? 0)")
+                Text("\(spotService.performance?.holdingsList.count ?? 0)")
                     .font(.caption.bold())
                     .foregroundColor(.white)
                     .padding(.horizontal, 8)
@@ -238,7 +238,7 @@ struct TradingHubView: View {
                     .cornerRadius(8)
             }
             
-            if let holdings = spotService.performance?.holdings, !holdings.isEmpty {
+            if let holdings = spotService.performance?.holdingsList, !holdings.isEmpty {
                 ForEach(holdings) { holding in
                     SpotHoldingRow(holding: holding)
                 }
@@ -844,7 +844,7 @@ struct SpotHoldingRow: View {
     var body: some View {
         HStack(spacing: 12) {
             // Coin icon
-            Text(coinEmoji(for: holding.coin))
+            Text(coinEmoji(for: holding.coinName))
                 .font(.title2)
                 .frame(width: 36, height: 36)
                 .background(Color.enlikoSurface)
@@ -852,10 +852,10 @@ struct SpotHoldingRow: View {
             
             // Coin name & balance
             VStack(alignment: .leading, spacing: 2) {
-                Text(holding.coin)
+                Text(holding.coinName)
                     .font(.subheadline.bold())
                     .foregroundColor(.white)
-                Text("\(holding.balance, specifier: "%.4f")")
+                Text("\(holding.balanceValue, specifier: "%.4f")")
                     .font(.caption)
                     .foregroundColor(.secondary)
             }
@@ -864,17 +864,17 @@ struct SpotHoldingRow: View {
             
             // Value & PnL
             VStack(alignment: .trailing, spacing: 2) {
-                Text("$\(holding.usdValue, specifier: "%.2f")")
+                Text("$\(holding.usdValueAmount, specifier: "%.2f")")
                     .font(.subheadline.bold())
                     .foregroundColor(.white)
                 
                 HStack(spacing: 2) {
-                    Image(systemName: holding.pnlPct >= 0 ? "arrow.up.right" : "arrow.down.right")
+                    Image(systemName: holding.pnlPctValue >= 0 ? "arrow.up.right" : "arrow.down.right")
                         .font(.system(size: 8))
-                    Text("\(holding.pnlPct >= 0 ? "+" : "")\(holding.pnlPct, specifier: "%.1f")%")
+                    Text("\(holding.pnlPctValue >= 0 ? "+" : "")\(holding.pnlPctValue, specifier: "%.1f")%")
                         .font(.caption2.bold())
                 }
-                .foregroundColor(holding.pnlPct >= 0 ? .green : .red)
+                .foregroundColor(holding.pnlPctValue >= 0 ? .green : .red)
             }
         }
         .padding(.vertical, 4)

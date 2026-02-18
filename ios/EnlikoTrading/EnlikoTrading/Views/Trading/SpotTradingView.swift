@@ -111,7 +111,7 @@ struct SpotPortfolioTab: View {
                 }
                 
                 // Holdings
-                if let perf = spotService.performance, !perf.holdings.isEmpty {
+                if let perf = spotService.performance, !perf.holdingsList.isEmpty {
                     VStack(alignment: .leading, spacing: 12) {
                         HStack {
                             Text("📦 " + "spot_holdings".localized)
@@ -123,9 +123,9 @@ struct SpotPortfolioTab: View {
                             }
                         }
                         
-                        ForEach(perf.holdings) { holding in
+                        ForEach(perf.holdingsList) { holding in
                             SpotHoldingCard(holding: holding) {
-                                selectedCoin = holding.coin
+                                selectedCoin = holding.coinName
                                 showSellSheet = true
                             }
                         }
@@ -409,7 +409,7 @@ struct SpotPerformanceCard: View {
                     Text("spot_invested".localized)
                         .font(.caption)
                         .foregroundColor(.secondary)
-                    Text("$\(performance.totalInvested, specifier: "%.2f")")
+                    Text("$\(performance.totalInvestedValue, specifier: "%.2f")")
                         .font(.title3)
                         .fontWeight(.semibold)
                 }
@@ -420,7 +420,7 @@ struct SpotPerformanceCard: View {
                     Text("spot_current_value".localized)
                         .font(.caption)
                         .foregroundColor(.secondary)
-                    Text("$\(performance.totalCurrentValue, specifier: "%.2f")")
+                    Text("$\(performance.totalCurrentValueAmount, specifier: "%.2f")")
                         .font(.title3)
                         .fontWeight(.semibold)
                 }
@@ -432,10 +432,10 @@ struct SpotPerformanceCard: View {
                 Text("spot_unrealized_pnl".localized)
                     .foregroundColor(.secondary)
                 Spacer()
-                Text("\(performance.totalUnrealizedPnl >= 0 ? "+" : "")$\(performance.totalUnrealizedPnl, specifier: "%.2f")")
-                    .foregroundColor(performance.totalUnrealizedPnl >= 0 ? .enlikoGreen : .enlikoRed)
-                Text("(\(performance.roiPct >= 0 ? "+" : "")\(performance.roiPct, specifier: "%.1f")%)")
-                    .foregroundColor(performance.roiPct >= 0 ? .enlikoGreen : .enlikoRed)
+                Text("\(performance.totalUnrealizedPnlValue >= 0 ? "+" : "")$\(performance.totalUnrealizedPnlValue, specifier: "%.2f")")
+                    .foregroundColor(performance.totalUnrealizedPnlValue >= 0 ? .enlikoGreen : .enlikoRed)
+                Text("(\(performance.roiPctValue >= 0 ? "+" : "")\(performance.roiPctValue, specifier: "%.1f")%)")
+                    .foregroundColor(performance.roiPctValue >= 0 ? .enlikoGreen : .enlikoRed)
             }
         }
         .padding()
@@ -501,9 +501,9 @@ struct SpotHoldingCard: View {
     var body: some View {
         HStack {
             VStack(alignment: .leading, spacing: 4) {
-                Text(holding.coin)
+                Text(holding.coinName)
                     .font(.headline)
-                Text("\(holding.balance, specifier: "%.6f")")
+                Text("\(holding.balanceValue, specifier: "%.6f")")
                     .font(.caption)
                     .foregroundColor(.secondary)
             }
@@ -511,15 +511,15 @@ struct SpotHoldingCard: View {
             Spacer()
             
             VStack(alignment: .trailing, spacing: 4) {
-                Text("$\(holding.usdValue, specifier: "%.2f")")
+                Text("$\(holding.usdValueAmount, specifier: "%.2f")")
                     .font(.headline)
                 HStack(spacing: 4) {
-                    Text("\(holding.pnlPct >= 0 ? "+" : "")\(holding.pnlPct, specifier: "%.1f")%")
+                    Text("\(holding.pnlPctValue >= 0 ? "+" : "")\(holding.pnlPctValue, specifier: "%.1f")%")
                         .font(.caption)
-                        .foregroundColor(holding.pnlPct >= 0 ? .enlikoGreen : .enlikoRed)
-                    Text("$\(holding.unrealizedPnl, specifier: "%.2f")")
+                        .foregroundColor(holding.pnlPctValue >= 0 ? .enlikoGreen : .enlikoRed)
+                    Text("$\(holding.unrealizedPnlValue, specifier: "%.2f")")
                         .font(.caption)
-                        .foregroundColor(holding.unrealizedPnl >= 0 ? .enlikoGreen : .enlikoRed)
+                        .foregroundColor(holding.unrealizedPnlValue >= 0 ? .enlikoGreen : .enlikoRed)
                 }
             }
             

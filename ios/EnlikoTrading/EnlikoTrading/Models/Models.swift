@@ -174,14 +174,24 @@ struct User: Codable, Identifiable {
 }
 
 struct UserSettings: Codable {
-    let percent: Double
-    let tpPercent: Double
-    let slPercent: Double
-    let leverage: Int
-    let useAtr: Bool
-    let dcaEnabled: Bool
-    let dcaPct1: Double
-    let dcaPct2: Double
+    let percent: Double?
+    let tpPercent: Double?
+    let slPercent: Double?
+    let leverage: Int?
+    let useAtr: Bool?
+    let dcaEnabled: Bool?
+    let dcaPct1: Double?
+    let dcaPct2: Double?
+    
+    // Safe accessors with defaults
+    var percentValue: Double { percent ?? 1.0 }
+    var tpPercentValue: Double { tpPercent ?? 25.0 }
+    var slPercentValue: Double { slPercent ?? 30.0 }
+    var leverageValue: Int { leverage ?? 10 }
+    var useAtrValue: Bool { useAtr ?? false }
+    var dcaEnabledValue: Bool { dcaEnabled ?? false }
+    var dcaPct1Value: Double { dcaPct1 ?? 10.0 }
+    var dcaPct2Value: Double { dcaPct2 ?? 25.0 }
     
     enum CodingKeys: String, CodingKey {
         case percent

@@ -55,12 +55,12 @@ struct NotificationBannerCard: View {
             
             // Content
             VStack(alignment: .leading, spacing: 4) {
-                Text(notification.title)
+                Text(notification.titleText)
                     .font(.subheadline.weight(.semibold))
                     .foregroundColor(.white)
                     .lineLimit(1)
                 
-                Text(notification.message)
+                Text(notification.messageText)
                     .font(.caption)
                     .foregroundColor(.enlikoTextSecondary)
                     .lineLimit(2)
@@ -151,7 +151,7 @@ struct NotificationsView: View {
                 ForEach(notificationService.notifications) { notification in
                     NotificationCard(notification: notification)
                         .onTapGesture {
-                            if !notification.isRead {
+                            if !notification.isReadValue {
                                 Task {
                                     await notificationService.markAsRead(notification.id)
                                 }
@@ -174,7 +174,7 @@ struct NotificationCard: View {
         HStack(spacing: 12) {
             // Unread indicator
             Circle()
-                .fill(notification.isRead ? Color.clear : Color.enlikoPrimary)
+                .fill(notification.isReadValue ? Color.clear : Color.enlikoPrimary)
                 .frame(width: 8, height: 8)
             
             // Icon
@@ -191,18 +191,18 @@ struct NotificationCard: View {
             // Content
             VStack(alignment: .leading, spacing: 4) {
                 HStack {
-                    Text(notification.title)
+                    Text(notification.titleText)
                         .font(.subheadline.weight(.medium))
                         .foregroundColor(.white)
                     
                     Spacer()
                     
-                    Text(timeAgo(notification.createdAt))
+                    Text(timeAgo(notification.createdDate))
                         .font(.caption2)
                         .foregroundColor(.enlikoTextMuted)
                 }
                 
-                Text(notification.message)
+                Text(notification.messageText)
                     .font(.caption)
                     .foregroundColor(.enlikoTextSecondary)
                     .lineLimit(2)
@@ -227,10 +227,10 @@ struct NotificationCard: View {
         .padding(12)
         .background(
             RoundedRectangle(cornerRadius: 12)
-                .fill(notification.isRead ? Color.enlikoCard : Color.enlikoCard.opacity(0.8))
+                .fill(notification.isReadValue ? Color.enlikoCard : Color.enlikoCard.opacity(0.8))
                 .overlay(
                     RoundedRectangle(cornerRadius: 12)
-                        .stroke(notification.isRead ? Color.clear : notification.color.opacity(0.3), lineWidth: 1)
+                        .stroke(notification.isReadValue ? Color.clear : notification.color.opacity(0.3), lineWidth: 1)
                 )
         )
     }

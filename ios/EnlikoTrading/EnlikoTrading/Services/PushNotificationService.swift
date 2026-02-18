@@ -42,11 +42,17 @@ enum NotificationType: String, Codable {
 struct AppNotification: Identifiable, Codable {
     var id: Int
     var type: NotificationType
-    var title: String
-    var message: String
+    var title: String?
+    var message: String?
     var data: [String: AnyCodable]?
-    var isRead: Bool
-    var createdAt: Date
+    var isRead: Bool?
+    var createdAt: Date?
+    
+    // Safe accessors
+    var titleText: String { title ?? "" }
+    var messageText: String { message ?? "" }
+    var isReadValue: Bool { isRead ?? false }
+    var createdDate: Date { createdAt ?? Date() }
     
     enum CodingKeys: String, CodingKey {
         case id, type, title, message, data
@@ -421,11 +427,32 @@ class PushNotificationService: NSObject, ObservableObject {
             switch type {
             case "notification":
                 if let payload = json["payload"] as? [String: Any],
-                   let payloadData = try? JSONSerialization.data(withJSONObject: payload),
-                   let notification = try? JSONDecoder().decode(AppNotification.self, from: payloadData) {
-                    
-                    DispatchQueue.main.async {
-                        self.handleNewNotification(notification)
+                   let payloadData = try? JSONSerialization.data(withJSONObject: payload) {
+                    let decoder = JSONDecoder()
+                    decoder.dateDecodingStrategy = .custom { decoder in
+                        let container = try decoder.singleValueContainer()
+                        if let str = try? container.decode(String.self) {
+                            let formatter = ISO8601DateFormatter()
+                            formatter.formatOptions = [.withInternetDateTime, .withFractionalSeconds]
+                            if let date = formatter.date(from: str) { return date }
+                            formatter.formatOptions = [.withInternetDateTime]
+                            if let date = formatter.date(from: str) { return date }
+                            let df = DateFormatter()
+                            df.locale = Locale(identifier: "en_US_POSIX")
+                            for fmt in ["yyyy-MM-dd'T'HH:mm:ss.SSSSSS", "yyyy-MM-dd'T'HH:mm:ss", "yyyy-MM-dd HH:mm:ss"] {
+                                df.dateFormat = fmt
+                                if let date = df.date(from: str) { return date }
+                            }
+                        }
+                        if let ts = try? container.decode(Double.self) {
+                            return Date(timeIntervalSince1970: ts)
+                        }
+                        return Date()
+                    }
+                    if let notification = try? decoder.decode(AppNotification.self, from: payloadData) {
+                        DispatchQueue.main.async {
+                            self.handleNewNotification(notification)
+                        }
                     }
                 }
                 

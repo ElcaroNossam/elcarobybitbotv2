@@ -74,15 +74,15 @@ struct PaymentInvoice: Codable {
 }
 
 struct PaymentStatusResponse: Codable {
-    let paymentId: String
-    let status: String
-    let amountUsd: Double
-    let amountCrypto: Double
-    let currency: String
+    let paymentId: String?
+    let status: String?
+    let amountUsd: Double?
+    let amountCrypto: Double?
+    let currency: String?
     let txHash: String?
     let confirmedAt: String?
-    let plan: String
-    let duration: String
+    let plan: String?
+    let duration: String?
     
     enum CodingKeys: String, CodingKey {
         case paymentId = "payment_id"
@@ -95,9 +95,17 @@ struct PaymentStatusResponse: Codable {
         case plan, duration
     }
     
-    var isConfirmed: Bool { status == "confirmed" }
-    var isPending: Bool { status == "pending" }
-    var isExpired: Bool { status == "expired" }
+    // Safe accessors
+    var statusValue: String { status ?? "unknown" }
+    var amountUsdValue: Double { amountUsd ?? 0 }
+    var amountCryptoValue: Double { amountCrypto ?? 0 }
+    var currencyValue: String { currency ?? "USDT" }
+    var planValue: String { plan ?? "" }
+    var durationValue: String { duration ?? "" }
+    
+    var isConfirmed: Bool { statusValue == "confirmed" }
+    var isPending: Bool { statusValue == "pending" }
+    var isExpired: Bool { statusValue == "expired" }
     var isConfirming: Bool { status == "confirming" }
 }
 

@@ -134,6 +134,29 @@ class NetworkService {
         
         self.decoder = JSONDecoder()
         self.decoder.keyDecodingStrategy = .useDefaultKeys
+        self.decoder.dateDecodingStrategy = .custom { decoder in
+            let container = try decoder.singleValueContainer()
+            // Try ISO8601 first
+            if let str = try? container.decode(String.self) {
+                let formatter = ISO8601DateFormatter()
+                formatter.formatOptions = [.withInternetDateTime, .withFractionalSeconds]
+                if let date = formatter.date(from: str) { return date }
+                formatter.formatOptions = [.withInternetDateTime]
+                if let date = formatter.date(from: str) { return date }
+                // Try common formats
+                let df = DateFormatter()
+                df.locale = Locale(identifier: "en_US_POSIX")
+                for fmt in ["yyyy-MM-dd'T'HH:mm:ss.SSSSSS", "yyyy-MM-dd'T'HH:mm:ss", "yyyy-MM-dd HH:mm:ss"] {
+                    df.dateFormat = fmt
+                    if let date = df.date(from: str) { return date }
+                }
+            }
+            // Try timestamp (Double)
+            if let ts = try? container.decode(Double.self) {
+                return Date(timeIntervalSince1970: ts)
+            }
+            return Date() // fallback to now
+        }
         
         self.encoder = JSONEncoder()
         self.encoder.keyEncodingStrategy = .useDefaultKeys
