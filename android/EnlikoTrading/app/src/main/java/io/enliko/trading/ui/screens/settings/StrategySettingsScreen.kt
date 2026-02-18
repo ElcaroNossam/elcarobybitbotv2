@@ -193,6 +193,20 @@ fun StrategySettingsScreen(
                 )
             }
             
+            // Order & Filters
+            item {
+                OrderFiltersCard(
+                    settings = currentSettings,
+                    onSettingsChange = { newSettings ->
+                        if (selectedSide == "long") {
+                            longSettings = newSettings
+                        } else {
+                            shortSettings = newSettings
+                        }
+                    }
+                )
+            }
+            
             // ATR Settings (if supported)
             if (strategy.supportsAtr) {
                 item {
@@ -633,6 +647,249 @@ private fun SettingSlider(
                 activeTrackColor = EnlikoPrimary
             )
         )
+    }
+}
+
+@Composable
+private fun OrderFiltersCard(
+    settings: SideSettings,
+    onSettingsChange: (SideSettings) -> Unit
+) {
+    Card(
+        modifier = Modifier.fillMaxWidth(),
+        colors = CardDefaults.cardColors(containerColor = EnlikoCard),
+        shape = RoundedCornerShape(12.dp)
+    ) {
+        Column(modifier = Modifier.padding(16.dp)) {
+            Text(
+                text = "Order & Filters",
+                style = MaterialTheme.typography.titleSmall,
+                fontWeight = FontWeight.Bold,
+                color = EnlikoTextPrimary
+            )
+            
+            Spacer(modifier = Modifier.height(16.dp))
+            
+            // Direction Filter
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.SpaceBetween,
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                Column {
+                    Text(
+                        text = Localization.get("direction"),
+                        style = MaterialTheme.typography.bodyMedium,
+                        color = EnlikoTextSecondary
+                    )
+                    Text(
+                        text = "Filter signals by direction",
+                        style = MaterialTheme.typography.bodySmall,
+                        color = EnlikoTextMuted
+                    )
+                }
+                
+                var dirExpanded by remember { mutableStateOf(false) }
+                Box {
+                    Surface(
+                        modifier = Modifier.clickable { dirExpanded = true },
+                        color = EnlikoSurface,
+                        shape = RoundedCornerShape(8.dp)
+                    ) {
+                        Row(
+                            modifier = Modifier.padding(horizontal = 12.dp, vertical = 8.dp),
+                            verticalAlignment = Alignment.CenterVertically
+                        ) {
+                            Text(
+                                text = when (settings.direction) {
+                                    "long" -> "\uD83D\uDCC8 Long"
+                                    "short" -> "\uD83D\uDCC9 Short"
+                                    else -> "↕\uFE0F All"
+                                },
+                                style = MaterialTheme.typography.bodyMedium,
+                                color = EnlikoPrimary
+                            )
+                            Spacer(modifier = Modifier.width(4.dp))
+                            Icon(
+                                Icons.Default.ArrowDropDown,
+                                contentDescription = null,
+                                tint = EnlikoTextMuted,
+                                modifier = Modifier.size(18.dp)
+                            )
+                        }
+                    }
+                    DropdownMenu(
+                        expanded = dirExpanded,
+                        onDismissRequest = { dirExpanded = false }
+                    ) {
+                        listOf(
+                            "all" to "↕\uFE0F All",
+                            "long" to "\uD83D\uDCC8 Long only",
+                            "short" to "\uD83D\uDCC9 Short only"
+                        ).forEach { (value, label) ->
+                            DropdownMenuItem(
+                                text = { Text(label) },
+                                onClick = {
+                                    onSettingsChange(settings.copy(direction = value))
+                                    dirExpanded = false
+                                },
+                                trailingIcon = {
+                                    if (settings.direction == value) {
+                                        Icon(Icons.Default.Check, contentDescription = null, tint = EnlikoPrimary)
+                                    }
+                                }
+                            )
+                        }
+                    }
+                }
+            }
+            
+            Spacer(modifier = Modifier.height(16.dp))
+            HorizontalDivider(color = EnlikoBorder)
+            Spacer(modifier = Modifier.height(16.dp))
+            
+            // Order Type
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.SpaceBetween,
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                Text(
+                    text = "Order Type",
+                    style = MaterialTheme.typography.bodyMedium,
+                    color = EnlikoTextSecondary
+                )
+                
+                var orderExpanded by remember { mutableStateOf(false) }
+                Box {
+                    Surface(
+                        modifier = Modifier.clickable { orderExpanded = true },
+                        color = EnlikoSurface,
+                        shape = RoundedCornerShape(8.dp)
+                    ) {
+                        Row(
+                            modifier = Modifier.padding(horizontal = 12.dp, vertical = 8.dp),
+                            verticalAlignment = Alignment.CenterVertically
+                        ) {
+                            Text(
+                                text = if (settings.orderType == "limit") "Limit" else "Market",
+                                style = MaterialTheme.typography.bodyMedium,
+                                color = EnlikoPrimary
+                            )
+                            Spacer(modifier = Modifier.width(4.dp))
+                            Icon(
+                                Icons.Default.ArrowDropDown,
+                                contentDescription = null,
+                                tint = EnlikoTextMuted,
+                                modifier = Modifier.size(18.dp)
+                            )
+                        }
+                    }
+                    DropdownMenu(
+                        expanded = orderExpanded,
+                        onDismissRequest = { orderExpanded = false }
+                    ) {
+                        listOf("market" to "Market", "limit" to "Limit").forEach { (value, label) ->
+                            DropdownMenuItem(
+                                text = { Text(label) },
+                                onClick = {
+                                    onSettingsChange(settings.copy(orderType = value))
+                                    orderExpanded = false
+                                },
+                                trailingIcon = {
+                                    if (settings.orderType == value) {
+                                        Icon(Icons.Default.Check, contentDescription = null, tint = EnlikoPrimary)
+                                    }
+                                }
+                            )
+                        }
+                    }
+                }
+            }
+            
+            Spacer(modifier = Modifier.height(16.dp))
+            HorizontalDivider(color = EnlikoBorder)
+            Spacer(modifier = Modifier.height(16.dp))
+            
+            // Max Positions
+            SettingSlider(
+                label = "Max Positions",
+                value = settings.maxPositions.toFloat(),
+                onValueChange = { onSettingsChange(settings.copy(maxPositions = it.toInt())) },
+                valueRange = 0f..20f,
+                suffix = "",
+                steps = 20
+            )
+            
+            Text(
+                text = "0 = unlimited",
+                style = MaterialTheme.typography.bodySmall,
+                color = EnlikoTextMuted
+            )
+            
+            Spacer(modifier = Modifier.height(16.dp))
+            HorizontalDivider(color = EnlikoBorder)
+            Spacer(modifier = Modifier.height(16.dp))
+            
+            // Coins Group
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.SpaceBetween,
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                Text(
+                    text = "Coins Group",
+                    style = MaterialTheme.typography.bodyMedium,
+                    color = EnlikoTextSecondary
+                )
+                
+                var groupExpanded by remember { mutableStateOf(false) }
+                Box {
+                    Surface(
+                        modifier = Modifier.clickable { groupExpanded = true },
+                        color = EnlikoSurface,
+                        shape = RoundedCornerShape(8.dp)
+                    ) {
+                        Row(
+                            modifier = Modifier.padding(horizontal = 12.dp, vertical = 8.dp),
+                            verticalAlignment = Alignment.CenterVertically
+                        ) {
+                            Text(
+                                text = settings.coinsGroup,
+                                style = MaterialTheme.typography.bodyMedium,
+                                color = EnlikoPrimary
+                            )
+                            Spacer(modifier = Modifier.width(4.dp))
+                            Icon(
+                                Icons.Default.ArrowDropDown,
+                                contentDescription = null,
+                                tint = EnlikoTextMuted,
+                                modifier = Modifier.size(18.dp)
+                            )
+                        }
+                    }
+                    DropdownMenu(
+                        expanded = groupExpanded,
+                        onDismissRequest = { groupExpanded = false }
+                    ) {
+                        listOf("ALL", "TOP10", "TOP20", "TOP50", "DEFI", "MEME", "AI", "L1", "L2").forEach { group ->
+                            DropdownMenuItem(
+                                text = { Text(group) },
+                                onClick = {
+                                    onSettingsChange(settings.copy(coinsGroup = group))
+                                    groupExpanded = false
+                                },
+                                trailingIcon = {
+                                    if (settings.coinsGroup == group) {
+                                        Icon(Icons.Default.Check, contentDescription = null, tint = EnlikoPrimary)
+                                    }
+                                }
+                            )
+                        }
+                    }
+                }
+            }
+        }
     }
 }
 

@@ -1,15 +1,30 @@
 {
   "latest": {
-    "version": "1.1.0",
-    "versionCode": 2,
-    "buildDate": "2026-02-16",
-    "size": "22 MB",
+    "version": "1.2.0",
+    "versionCode": 3,
+    "buildDate": "2026-02-18",
+    "size": "23 MB",
     "minAndroid": "8.0",
     "fileName": "EnlikoTrading-latest.apk",
     "sha256": "",
     "required": false
   },
   "changelog": [
+    {
+      "version": "1.2.0",
+      "versionCode": 3,
+      "date": "2026-02-18",
+      "type": "feature",
+      "title": "Strategy Order & Filters — Full Parity",
+      "changes": [
+        "Added Direction filter (All / Long only / Short only) per strategy side",
+        "Added Order Type selector (Market / Limit) per strategy side",
+        "Added Max Positions slider (0-20) per strategy side",
+        "Added Coins Group filter (ALL, TOP10, TOP20, TOP50, DEFI, MEME, AI, L1, L2)",
+        "New expandable Order & Filters card in strategy settings",
+        "Full parity with iOS and web terminal strategy controls"
+      ]
+    },
     {
       "version": "1.1.0",
       "versionCode": 2,
@@ -52,7 +67,7 @@
     "available": true,
     "platform": "TestFlight",
     "version": "1.1.0",
-    "build": 100,
+    "build": 102,
     "testflightUrl": "https://testflight.apple.com/join/enliko"
   }
 }
