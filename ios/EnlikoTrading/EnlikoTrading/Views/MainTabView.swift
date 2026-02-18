@@ -21,39 +21,36 @@ struct MainTabView: View {
     
     var body: some View {
         ZStack {
-            // Content - 4 main tabs
-            TabView(selection: $selectedTab) {
-                // Dashboard Tab (Balance + Stats + Recent Trades)
-                NavigationStack {
-                    DashboardView()
-                        .toolbar(.hidden, for: .tabBar)
+            // VStack guarantees tab bar NEVER overlaps content
+            VStack(spacing: 0) {
+                // Content area — each tab in its own NavigationStack
+                Group {
+                    switch selectedTab {
+                    case 0:
+                        NavigationStack {
+                            DashboardView()
+                        }
+                    case 1:
+                        NavigationStack {
+                            StrategiesHubView()
+                        }
+                    case 2:
+                        NavigationStack {
+                            TradingHubView()
+                        }
+                    case 3:
+                        NavigationStack {
+                            SettingsMainView()
+                        }
+                    default:
+                        NavigationStack {
+                            DashboardView()
+                        }
+                    }
                 }
-                .tag(0)
+                .frame(maxWidth: .infinity, maxHeight: .infinity)
                 
-                // Strategies Tab (Strategy Settings like in bot)
-                NavigationStack {
-                    StrategiesHubView()
-                        .toolbar(.hidden, for: .tabBar)
-                }
-                .tag(1)
-                
-                // Trading Tab (Terminal - Positions + Orders + Manual Trade)
-                NavigationStack {
-                    TradingHubView()
-                        .toolbar(.hidden, for: .tabBar)
-                }
-                .tag(2)
-                
-                // Settings Tab (API Keys + Global Settings)
-                NavigationStack {
-                    SettingsMainView()
-                        .toolbar(.hidden, for: .tabBar)
-                }
-                .tag(3)
-            }
-            // Custom Tab Bar as safe area inset — ALL child ScrollViews/Lists
-            // automatically get bottom inset, no manual padding needed
-            .safeAreaInset(edge: .bottom, spacing: 0) {
+                // Custom tab bar — sits BELOW content, never overlaps
                 customTabBar
             }
             
