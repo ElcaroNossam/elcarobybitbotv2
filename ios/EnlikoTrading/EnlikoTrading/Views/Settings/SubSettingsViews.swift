@@ -30,7 +30,7 @@ struct ExchangeSettingsView: View {
                                 VStack(alignment: .leading) {
                                     Text(exchange.displayName)
                                         .foregroundColor(.white)
-                                    Text(exchange == .bybit ? "Demo & Real accounts" : "Testnet & Mainnet")
+                                    Text(exchange == .bybit ? "exchange_bybit_desc".localized : "exchange_hl_desc".localized)
                                         .font(.caption)
                                         .foregroundColor(.enlikoTextSecondary)
                                 }
@@ -45,14 +45,14 @@ struct ExchangeSettingsView: View {
                         }
                     }
                 } header: {
-                    Text("Select Exchange")
+                    Text("exchange_select".localized)
                 }
                 .listRowBackground(Color.enlikoCard)
             }
             .listStyle(.insetGrouped)
             .scrollContentBackground(.hidden)
         }
-        .navigationTitle("Exchange")
+        .navigationTitle("exchange_title".localized)
         .navigationBarTitleDisplayMode(.inline)
     }
 }
@@ -71,7 +71,7 @@ struct LeverageSettingsView: View {
             VStack(spacing: 24) {
                 // Current Leverage
                 VStack(spacing: 8) {
-                    Text("Default Leverage")
+                    Text("leverage_default".localized)
                         .font(.headline)
                         .foregroundColor(.enlikoTextSecondary)
                     
@@ -150,7 +150,7 @@ struct LeverageSettingsView: View {
                 HStack {
                     Image(systemName: "exclamationmark.triangle.fill")
                         .foregroundColor(.enlikoYellow)
-                    Text("Higher leverage increases risk of liquidation")
+                    Text("leverage_warning".localized)
                         .font(.caption)
                         .foregroundColor(.enlikoTextSecondary)
                 }
@@ -162,7 +162,7 @@ struct LeverageSettingsView: View {
                 Spacer()
             }
         }
-        .navigationTitle("Leverage")
+        .navigationTitle("leverage_title".localized)
         .navigationBarTitleDisplayMode(.inline)
         .task {
             if !isLoaded {
@@ -193,7 +193,7 @@ struct RiskSettingsView: View {
                 Section {
                     VStack(alignment: .leading, spacing: 8) {
                         HStack {
-                            Text("Entry %")
+                            Text("risk_entry_pct".localized)
                             Spacer()
                             Text("\(entryPercent, specifier: "%.1f")%")
                                 .foregroundColor(.enlikoPrimary)
@@ -205,7 +205,7 @@ struct RiskSettingsView: View {
                     
                     VStack(alignment: .leading, spacing: 8) {
                         HStack {
-                            Text("Take Profit %")
+                            Text("risk_tp_pct".localized)
                             Spacer()
                             Text("\(takeProfitPercent, specifier: "%.1f")%")
                                 .foregroundColor(.enlikoGreen)
@@ -217,7 +217,7 @@ struct RiskSettingsView: View {
                     
                     VStack(alignment: .leading, spacing: 8) {
                         HStack {
-                            Text("Stop Loss %")
+                            Text("risk_sl_pct".localized)
                             Spacer()
                             Text("\(stopLossPercent, specifier: "%.1f")%")
                                 .foregroundColor(.enlikoRed)
@@ -227,7 +227,7 @@ struct RiskSettingsView: View {
                     }
                     .padding(.vertical, 4)
                 } header: {
-                    Text("Position Sizing")
+                    Text("risk_position_sizing".localized)
                 }
                 .listRowBackground(Color.enlikoCard)
                 
@@ -237,9 +237,9 @@ struct RiskSettingsView: View {
                     Toggle("Enable DCA", isOn: $dcaEnabled)
                         .tint(.enlikoPrimary)
                 } header: {
-                    Text("Advanced")
+                    Text("risk_advanced".localized)
                 } footer: {
-                    Text("ATR adjusts SL/TP based on market volatility. DCA adds to positions at drawdown levels.")
+                    Text("risk_advanced_footer".localized)
                 }
                 .listRowBackground(Color.enlikoCard)
                 
@@ -263,7 +263,7 @@ struct RiskSettingsView: View {
                                 ProgressView()
                                     .tint(.white)
                             }
-                            Text("Save Settings")
+                            Text("btn_save_settings".localized)
                                 .fontWeight(.semibold)
                                 .foregroundColor(.white)
                             Spacer()
@@ -277,7 +277,7 @@ struct RiskSettingsView: View {
             .listStyle(.insetGrouped)
             .scrollContentBackground(.hidden)
         }
-        .navigationTitle("Risk Management")
+        .navigationTitle("risk_title".localized)
         .navigationBarTitleDisplayMode(.inline)
         .task {
             if !isLoaded {
@@ -380,7 +380,7 @@ struct AboutView: View {
                             .font(.title.bold())
                             .foregroundColor(.white)
                         
-                        Text("Professional Trading Platform")
+                        Text("about_subtitle".localized)
                             .font(.subheadline)
                             .foregroundColor(.enlikoTextSecondary)
                         
@@ -401,7 +401,7 @@ struct AboutView: View {
                     .cornerRadius(12)
                     .padding(.horizontal)
                     
-                    Text("© 2026 Enliko Trading. All rights reserved.")
+                    Text("about_copyright".localized)
                         .font(.caption)
                         .foregroundColor(.enlikoTextMuted)
                         .padding(.top, 20)
@@ -410,7 +410,7 @@ struct AboutView: View {
                 }
             }
         }
-        .navigationTitle("About")
+        .navigationTitle("about_title".localized)
         .navigationBarTitleDisplayMode(.inline)
     }
     
@@ -1189,7 +1189,7 @@ struct HLKeyCard: View {
                         Image(systemName: "key.fill")
                             .font(.caption2)
                             .foregroundColor(.enlikoTextMuted)
-                        Text("API Wallet:")
+                        Text("apikey_api_wallet".localized)
                             .font(.caption2)
                             .foregroundColor(.enlikoTextMuted)
                         Text(formatWallet(apiWallet))
@@ -1202,7 +1202,7 @@ struct HLKeyCard: View {
                             Image(systemName: "wallet.pass.fill")
                                 .font(.caption2)
                                 .foregroundColor(.enlikoGreen)
-                            Text("Main Wallet:")
+                            Text("apikey_main_wallet".localized)
                                 .font(.caption2)
                                 .foregroundColor(.enlikoTextMuted)
                             Text(formatWallet(mainWallet))
@@ -1216,7 +1216,7 @@ struct HLKeyCard: View {
                             Image(systemName: "dollarsign.circle.fill")
                                 .font(.caption2)
                                 .foregroundColor(.enlikoYellow)
-                            Text("Balance:")
+                            Text("apikey_balance".localized)
                                 .font(.caption2)
                                 .foregroundColor(.enlikoTextMuted)
                             Text(String(format: "$%.2f USDC", balance))

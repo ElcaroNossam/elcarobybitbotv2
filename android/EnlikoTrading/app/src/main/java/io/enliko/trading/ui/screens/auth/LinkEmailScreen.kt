@@ -22,6 +22,7 @@ import androidx.compose.ui.text.input.VisualTransformation
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import io.enliko.trading.ui.theme.*
+import io.enliko.trading.util.LocalStrings
 
 /**
  * LinkEmailScreen - Matching iOS LinkEmailView.swift
@@ -33,6 +34,7 @@ fun LinkEmailScreen(
     onBack: () -> Unit,
     onSuccess: () -> Unit
 ) {
+    val strings = LocalStrings.current
     var email by remember { mutableStateOf("") }
     var password by remember { mutableStateOf("") }
     var confirmPassword by remember { mutableStateOf("") }
@@ -85,7 +87,7 @@ fun LinkEmailScreen(
             
             // Title
             Text(
-                text = "Link Email Account",
+                text = strings.linkEmailAccount,
                 style = MaterialTheme.typography.headlineSmall,
                 fontWeight = FontWeight.Bold,
                 color = EnlikoTextPrimary
@@ -95,7 +97,7 @@ fun LinkEmailScreen(
             
             // Description
             Text(
-                text = "Add email login to your account for web and mobile access",
+                text = strings.addEmailLogin,
                 style = MaterialTheme.typography.bodyMedium,
                 color = EnlikoTextSecondary,
                 textAlign = TextAlign.Center

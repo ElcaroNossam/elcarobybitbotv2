@@ -1890,19 +1890,19 @@ async def on_2fa_app_login_cb(update: Update, ctx: ContextTypes.DEFAULT_TYPE):
                 if resp.status == 200 and result.get("success"):
                     if status == "approved":
                         await q.edit_message_text(
-                            t.get("app_login_approved", "✅ <b>Вход подтверждён!</b>\n\nВы можете продолжить в приложении."),
+                            t.get("app_login_approved", "✅ <b>Login approved!</b>\n\nYou can continue in the app."),
                             parse_mode="HTML"
                         )
                     else:
                         await q.edit_message_text(
-                            t.get("app_login_rejected", "❌ <b>Вход отклонён</b>\n\nЕсли это не вы пытались войти, рекомендуем проверить настройки безопасности."),
+                            t.get("app_login_rejected", "❌ <b>Login rejected</b>\n\nIf you didn't request this login, check your security settings."),
                             parse_mode="HTML"
                         )
                 else:
                     error_detail = result.get("detail", "Unknown error")
                     logger.error(f"2FA update failed: {error_detail}")
                     await q.edit_message_text(
-                        t.get("app_login_expired", "⏰ Запрос на вход истёк. Попробуйте снова."),
+                        t.get("app_login_expired", "⏰ Login request expired. Please try again."),
                         parse_mode="HTML"
                     )
                     
@@ -1910,7 +1910,7 @@ async def on_2fa_app_login_cb(update: Update, ctx: ContextTypes.DEFAULT_TYPE):
         logger.error(f"2FA app login callback error: {e}")
         try:
             await q.edit_message_text(
-                t.get("app_login_error", "⚠️ Ошибка обработки. Попробуйте позже."),
+                t.get("app_login_error", "⚠️ Processing error. Please try again later."),
                 parse_mode="HTML"
             )
         except BadRequest:
@@ -9867,7 +9867,7 @@ def get_strategy_side_keyboard(strategy: str, side: str, t: dict, settings: dict
     # ══════════════════════════════════════════════════════════════
     be_status = "✅" if be_enabled else "❌"
     buttons.append([InlineKeyboardButton(
-        f"🔒 🔒 {t.get('be_enabled_label', 'Беззбитковість')}: {be_status}", 
+        f"🔒 🔒 {t.get('be_enabled_label', 'Break-Even')}: {be_status}", 
         callback_data=f"strat_side_be:{strategy}:{side}:toggle"
     )])
     
@@ -9897,7 +9897,7 @@ def get_strategy_side_keyboard(strategy: str, side: str, t: dict, settings: dict
     # ══════════════════════════════════════════════════════════════
     ptp_status = "✅" if ptp_enabled else "❌"
     buttons.append([InlineKeyboardButton(
-        f"✂️ ✂️ {t.get('partial_tp_label', 'Частковий TP')}: {ptp_status}", 
+        f"✂️ ✂️ {t.get('partial_tp_label', 'Partial TP')}: {ptp_status}", 
         callback_data=f"strat_side_ptp:{strategy}:{side}:toggle"
     )])
     
@@ -9920,7 +9920,7 @@ def get_strategy_side_keyboard(strategy: str, side: str, t: dict, settings: dict
     # ⬅️ BACK BUTTON
     # ══════════════════════════════════════════════════════════════
     buttons.append([InlineKeyboardButton(
-        t.get('btn_back', '« Назад'), 
+        t.get('btn_back', '« Back'), 
         callback_data=f"strat_set:{strategy}"
     )])
     
@@ -22123,35 +22123,35 @@ async def monitor_positions_loop(app: Application):
                                         keyboard = [
                                             [
                                                 InlineKeyboardButton(
-                                                    t.get('btn_close_position', '❌ Закрыть позицию'),
+                                                    t.get('btn_close_position', '❌ Close Position'),
                                                     callback_data=f"deep_loss:close:{symbol}"
                                                 )
                                             ],
                                             [
                                                 InlineKeyboardButton(
-                                                    t.get('btn_enable_dca', '📈 Включить DCA добор'),
+                                                    t.get('btn_enable_dca', '📈 Enable DCA'),
                                                     callback_data=f"deep_loss:dca:{symbol}"
                                                 )
                                             ],
                                             [
                                                 InlineKeyboardButton(
-                                                    t.get('btn_ignore', '🔇 Игнорировать'),
+                                                    t.get('btn_ignore', '🔇 Ignore'),
                                                     callback_data=f"deep_loss:ignore:{symbol}"
                                                 )
                                             ]
                                         ]
                                     
                                         msg_text = t.get('deep_loss_alert', 
-                                            "⚠️ <b>Позиция в глубоком минусе!</b>\n\n"
+                                            "⚠️ <b>Position in deep loss!</b>\n\n"
                                             "📊 <b>{symbol}</b> ({side})\n"
-                                            "📉 Убыток: <code>{loss_pct:.2f}%</code>\n"
-                                            "💰 Вход: <code>{entry}</code>\n"
-                                            "📍 Текущая: <code>{mark}</code>\n\n"
-                                            "❌ Стоп-лосс невозможно установить выше цены входа.\n\n"
-                                            "<b>Что делать?</b>\n"
-                                            "• <b>Закрыть</b> - зафиксировать убыток\n"
-                                            "• <b>DCA добор</b> - усреднить позицию доборами\n"
-                                            "• <b>Игнорировать</b> - оставить как есть"
+                                            "📉 Loss: <code>{loss_pct:.2f}%</code>\n"
+                                            "💰 Entry: <code>{entry}</code>\n"
+                                            "📍 Current: <code>{mark}</code>\n\n"
+                                            "❌ Stop-loss cannot be set above entry price.\n\n"
+                                            "<b>What to do?</b>\n"
+                                            "• <b>Close</b> - take the loss\n"
+                                            "• <b>DCA</b> - average down position\n"
+                                            "• <b>Ignore</b> - leave as is"
                                         ).format(
                                             symbol=symbol,
                                             side="LONG" if side == "Buy" else "SHORT",
@@ -31205,7 +31205,7 @@ async def cmd_exchange_status(update: Update, ctx: ContextTypes.DEFAULT_TYPE):
         text, inline_keyboard = _build_bybit_status_keyboard(uid, t)
         keyboard = list(inline_keyboard.inline_keyboard)  # Extract list for modification (tuple → list)
     
-    keyboard.append([InlineKeyboardButton(t.get("button_back", "« Назад"), callback_data="menu:main")])
+    keyboard.append([InlineKeyboardButton(t.get("button_back", "« Back"), callback_data="menu:main")])
     
     # Send message with InlineKeyboard for actions
     await update.message.reply_text(
@@ -31627,7 +31627,7 @@ async def on_deep_loss_callback(update: Update, ctx: ContextTypes.DEFAULT_TYPE):
             
             if not pos:
                 await q.edit_message_text(
-                    t.get('position_already_closed', "❌ Позиция {symbol} уже закрыта.").format(symbol=symbol),
+                    t.get('position_already_closed', "❌ Position {symbol} is already closed.").format(symbol=symbol),
                     parse_mode="HTML"
                 )
                 return
@@ -31648,8 +31648,8 @@ async def on_deep_loss_callback(update: Update, ctx: ContextTypes.DEFAULT_TYPE):
             
             await q.edit_message_text(
                 t.get('deep_loss_closed', 
-                    "✅ Позиция {symbol} закрыта.\n\n"
-                    "Убыток зафиксирован. Иногда лучше принять небольшой убыток, чем надеяться на разворот."
+                    "✅ Position {symbol} closed.\n\n"
+                    "Loss taken. Sometimes it's better to accept a small loss than to hope for a reversal."
                 ).format(symbol=symbol),
                 parse_mode="HTML"
             )
@@ -31658,7 +31658,7 @@ async def on_deep_loss_callback(update: Update, ctx: ContextTypes.DEFAULT_TYPE):
             logger.error(f"Error closing deep loss position {symbol} for {uid}: {e}")
             try:
                 await q.edit_message_text(
-                    t.get('deep_loss_close_error', "❌ Ошибка при закрытии позиции: {error}").format(error=str(e)[:100]),
+                    t.get('deep_loss_close_error', "❌ Error closing position: {error}").format(error=str(e)[:100]),
                     parse_mode="HTML"
                 )
             except BadRequest:
@@ -31675,12 +31675,12 @@ async def on_deep_loss_callback(update: Update, ctx: ContextTypes.DEFAULT_TYPE):
             if dca_enabled:
                 await q.edit_message_text(
                     t.get('dca_already_enabled',
-                        "✅ DCA добор уже включен!\n\n"
+                        "✅ DCA is already enabled!\n\n"
                         "📊 <b>{symbol}</b>\n"
-                        "Бот будет автоматически добавлять к позиции при просадке:\n"
-                        "• -10% → добор\n"
-                        "• -25% → добор\n\n"
-                        "Это поможет усреднить цену входа."
+                        "Bot will automatically add to position on dips:\n"
+                        "• -10% → add\n"
+                        "• -25% → add\n\n"
+                        "This helps average down entry price."
                     ).format(symbol=symbol),
                     parse_mode="HTML"
                 )
@@ -31690,13 +31690,13 @@ async def on_deep_loss_callback(update: Update, ctx: ContextTypes.DEFAULT_TYPE):
                 
                 await q.edit_message_text(
                     t.get('dca_enabled_for_symbol',
-                        "✅ DCA добор включен!\n\n"
+                        "✅ DCA enabled!\n\n"
                         "📊 <b>{symbol}</b>\n"
-                        "Бот будет автоматически добавлять к позиции при просадке:\n"
-                        "• -10% → добор (усреднение)\n"
-                        "• -25% → добор (усреднение)\n\n"
-                        "⚠️ DCA требует достаточный баланс для доборов.\n"
-                        "Настроить параметры: /strategy_settings"
+                        "Bot will automatically add to position on dips:\n"
+                        "• -10% → add (average down)\n"
+                        "• -25% → add (average down)\n\n"
+                        "⚠️ DCA requires sufficient balance.\n"
+                        "Configure: /strategy_settings"
                     ).format(symbol=symbol),
                     parse_mode="HTML"
                 )
@@ -31705,7 +31705,7 @@ async def on_deep_loss_callback(update: Update, ctx: ContextTypes.DEFAULT_TYPE):
             logger.error(f"Error enabling DCA for {symbol} for {uid}: {e}")
             try:
                 await q.edit_message_text(
-                    t.get('dca_enable_error', "❌ Ошибка: {error}").format(error=str(e)[:100]),
+                    t.get('dca_enable_error', "❌ Error: {error}").format(error=str(e)[:100]),
                     parse_mode="HTML"
                 )
             except BadRequest:
@@ -31714,9 +31714,9 @@ async def on_deep_loss_callback(update: Update, ctx: ContextTypes.DEFAULT_TYPE):
     elif action == "ignore":
         await q.edit_message_text(
             t.get('deep_loss_ignored',
-                "🔇 Понял, позиция {symbol} оставлена без изменений.\n\n"
-                "⚠️ Помните: без стоп-лосса риск потерь неограничен.\n"
-                "Вы можете закрыть позицию вручную через /positions"
+                "🔇 OK, position {symbol} left unchanged.\n\n"
+                "⚠️ Remember: without stop-loss, risk is unlimited.\n"
+                "You can close the position manually via /positions"
             ).format(symbol=symbol),
             parse_mode="HTML"
         )
@@ -32018,7 +32018,7 @@ def _build_bybit_status_keyboard(uid: int, t: dict) -> tuple[str, InlineKeyboard
     if hl_info.get("configured"):
         keyboard.append([InlineKeyboardButton("🔄 Switch to 🔷 HyperLiquid", callback_data="exchange:set_hl")])
     
-    keyboard.append([InlineKeyboardButton(t.get("button_back", "← Назад"), callback_data="main_menu")])
+    keyboard.append([InlineKeyboardButton(t.get("button_back", "← Back"), callback_data="main_menu")])
     
     return text, InlineKeyboardMarkup(keyboard)
 
@@ -32047,7 +32047,7 @@ async def on_bybit_callback(update: Update, ctx: ContextTypes.DEFAULT_TYPE):
             parse_mode="Markdown",
             reply_markup=InlineKeyboardMarkup([
                 [InlineKeyboardButton("⚙️ Open Strategies", callback_data="strat_set:back")],
-                [InlineKeyboardButton(t.get("button_back", "← Назад"), callback_data="main_menu")]
+                [InlineKeyboardButton(t.get("button_back", "← Back"), callback_data="main_menu")]
             ])
         )
         return
@@ -32062,7 +32062,7 @@ async def on_bybit_callback(update: Update, ctx: ContextTypes.DEFAULT_TYPE):
             parse_mode="Markdown",
             reply_markup=InlineKeyboardMarkup([
                 [InlineKeyboardButton("⚙️ Open Strategies", callback_data="strat_set:back")],
-                [InlineKeyboardButton(t.get("button_back", "← Назад"), callback_data="main_menu")]
+                [InlineKeyboardButton(t.get("button_back", "← Back"), callback_data="main_menu")]
             ])
         )
         return

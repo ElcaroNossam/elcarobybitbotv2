@@ -233,7 +233,7 @@ struct SpotDCATab: View {
                             } else {
                                 Image(systemName: "arrow.down.circle.fill")
                             }
-                            Text("Execute DCA")
+                            Text("spot_execute_dca".localized)
                         }
                         .frame(maxWidth: .infinity)
                         .padding()
@@ -316,18 +316,18 @@ struct SpotSettingsTab: View {
             // Portfolio Selection
             Section(header: Text("📊 " + "spot_portfolio".localized)) {
                 Picker("Portfolio", selection: $selectedPortfolio) {
-                    Text("💎 Blue Chips").tag("blue_chip")
-                    Text("🏦 DeFi").tag("defi")
-                    Text("⚡ Layer 2").tag("layer2")
-                    Text("🤖 AI & Data").tag("ai_narrative")
-                    Text("🎮 Gaming").tag("gaming")
-                    Text("🐕 Memecoins").tag("meme")
-                    Text("⚔️ L1 Killers").tag("l1_killers")
-                    Text("🏛️ RWA").tag("rwa")
-                    Text("🔧 Infrastructure").tag("infrastructure")
-                    Text("₿ BTC Only").tag("btc_only")
-                    Text("💰 ETH+BTC").tag("eth_btc")
-                    Text("⚙️ Custom").tag("custom")
+                    Text("spot_port_blue_chip".localized).tag("blue_chip")
+                    Text("spot_port_defi".localized).tag("defi")
+                    Text("spot_port_layer2".localized).tag("layer2")
+                    Text("spot_port_ai".localized).tag("ai_narrative")
+                    Text("spot_port_gaming".localized).tag("gaming")
+                    Text("spot_port_meme".localized).tag("meme")
+                    Text("spot_port_l1_killers".localized).tag("l1_killers")
+                    Text("spot_port_rwa".localized).tag("rwa")
+                    Text("spot_port_infra".localized).tag("infrastructure")
+                    Text("spot_port_btc_only".localized).tag("btc_only")
+                    Text("spot_port_eth_btc".localized).tag("eth_btc")
+                    Text("spot_port_custom".localized).tag("custom")
                 }
                 
                 Button(action: { showRebalanceSheet = true }) {
@@ -341,16 +341,16 @@ struct SpotSettingsTab: View {
                 
                 if dcaEnabled {
                     Picker("Strategy", selection: .constant("fixed")) {
-                        Text("📊 Fixed").tag("fixed")
-                        Text("📈 Value Averaging").tag("value_avg")
-                        Text("😱 Fear & Greed").tag("fear_greed")
-                        Text("🚨 Crash Boost").tag("crash_boost")
+                        Text("spot_strat_fixed".localized).tag("fixed")
+                        Text("spot_strat_value_avg".localized).tag("value_avg")
+                        Text("spot_strat_fear_greed".localized).tag("fear_greed")
+                        Text("spot_strat_crash_boost".localized).tag("crash_boost")
                     }
                     
                     Picker("Frequency", selection: .constant("daily")) {
-                        Text("⏰ Hourly").tag("hourly")
-                        Text("📅 Daily").tag("daily")
-                        Text("📆 Weekly").tag("weekly")
+                        Text("spot_freq_hourly".localized).tag("hourly")
+                        Text("spot_freq_daily".localized).tag("daily")
+                        Text("spot_freq_weekly".localized).tag("weekly")
                     }
                 }
             }
@@ -361,10 +361,10 @@ struct SpotSettingsTab: View {
                 
                 if tpEnabled {
                     Picker("TP Profile", selection: $selectedTPProfile) {
-                        Text("🐢 Conservative").tag("conservative")
-                        Text("⚖️ Balanced").tag("balanced")
-                        Text("🦁 Aggressive").tag("aggressive")
-                        Text("🌙 Moonbag").tag("moonbag")
+                        Text("spot_tp_conservative".localized).tag("conservative")
+                        Text("spot_tp_balanced".localized).tag("balanced")
+                        Text("spot_tp_aggressive".localized).tag("aggressive")
+                        Text("spot_tp_moonbag".localized).tag("moonbag")
                     }
                 }
                 
@@ -375,14 +375,14 @@ struct SpotSettingsTab: View {
             Section(header: Text("⚙️ " + "spot_advanced".localized)) {
                 Toggle("🔒 Profit Lock", isOn: $profitLockEnabled)
                 if profitLockEnabled {
-                    Text("Sell 50% when +30% profit")
+                    Text("spot_profit_lock_desc".localized)
                         .font(.caption)
                         .foregroundColor(.secondary)
                 }
                 
                 Toggle("⚖️ Auto Rebalance", isOn: $rebalanceEnabled)
                 if rebalanceEnabled {
-                    Text("Rebalance when >10% drift")
+                    Text("spot_rebalance_desc".localized)
                         .font(.caption)
                         .foregroundColor(.secondary)
                 }
@@ -406,7 +406,7 @@ struct SpotPerformanceCard: View {
             
             HStack {
                 VStack(alignment: .leading) {
-                    Text("Invested")
+                    Text("spot_invested".localized)
                         .font(.caption)
                         .foregroundColor(.secondary)
                     Text("$\(performance.totalInvested, specifier: "%.2f")")
@@ -417,7 +417,7 @@ struct SpotPerformanceCard: View {
                 Spacer()
                 
                 VStack(alignment: .trailing) {
-                    Text("Current Value")
+                    Text("spot_current_value".localized)
                         .font(.caption)
                         .foregroundColor(.secondary)
                     Text("$\(performance.totalCurrentValue, specifier: "%.2f")")
@@ -429,7 +429,7 @@ struct SpotPerformanceCard: View {
             Divider()
             
             HStack {
-                Text("Unrealized PnL")
+                Text("spot_unrealized_pnl".localized)
                     .foregroundColor(.secondary)
                 Spacer()
                 Text("\(performance.totalUnrealizedPnl >= 0 ? "+" : "")$\(performance.totalUnrealizedPnl, specifier: "%.2f")")
@@ -450,7 +450,7 @@ struct FearGreedCard: View {
     var body: some View {
         HStack {
             VStack(alignment: .leading) {
-                Text("Fear & Greed Index")
+                Text("spot_fear_greed_index".localized)
                     .font(.subheadline)
                     .foregroundColor(.secondary)
                 Text(fearGreed.classification ?? "Neutral")
@@ -574,10 +574,10 @@ struct EmptyHoldingsView: View {
                 .font(.system(size: 48))
                 .foregroundColor(.secondary)
             
-            Text("No Spot Holdings")
+            Text("spot_no_holdings".localized)
                 .font(.headline)
             
-            Text("Start building your portfolio with DCA")
+            Text("spot_no_holdings_desc".localized)
                 .font(.subheadline)
                 .foregroundColor(.secondary)
             
@@ -612,7 +612,7 @@ struct SpotBuySheet: View {
     var body: some View {
         NavigationStack {
             Form {
-                Section(header: Text("Select Coin")) {
+                Section(header: Text("spot_select_coin".localized)) {
                     Picker("Coin", selection: $selectedCoin) {
                         ForEach(coins, id: \.self) { coin in
                             Text(coin).tag(coin)
@@ -621,8 +621,8 @@ struct SpotBuySheet: View {
                     .pickerStyle(.wheel)
                 }
                 
-                Section(header: Text("Amount (USDT)")) {
-                    TextField("Enter amount", text: $amount)
+                Section(header: Text("spot_amount_usdt".localized)) {
+                    TextField("spot_enter_amount".localized, text: $amount)
                         .keyboardType(.decimalPad)
                     
                     HStack {
@@ -756,21 +756,21 @@ struct SpotRebalanceSheet: View {
     var body: some View {
         NavigationStack {
             Form {
-                Section(header: Text("Select Portfolio")) {
+                Section(header: Text("spot_select_portfolio".localized)) {
                     Picker("Portfolio", selection: $selectedPortfolio) {
-                        Text("💎 Blue Chips").tag("blue_chip")
-                        Text("🏦 DeFi").tag("defi")
-                        Text("⚡ Layer 2").tag("layer2")
-                        Text("🤖 AI & Data").tag("ai_narrative")
-                        Text("🎮 Gaming").tag("gaming")
-                        Text("🐕 Memecoins").tag("meme")
-                        Text("⚔️ L1 Killers").tag("l1_killers")
-                        Text("₿ BTC Only").tag("btc_only")
-                        Text("💰 ETH+BTC").tag("eth_btc")
+                        Text("spot_port_blue_chip".localized).tag("blue_chip")
+                        Text("spot_port_defi".localized).tag("defi")
+                        Text("spot_port_layer2".localized).tag("layer2")
+                        Text("spot_port_ai".localized).tag("ai_narrative")
+                        Text("spot_port_gaming".localized).tag("gaming")
+                        Text("spot_port_meme".localized).tag("meme")
+                        Text("spot_port_l1_killers".localized).tag("l1_killers")
+                        Text("spot_port_btc_only".localized).tag("btc_only")
+                        Text("spot_port_eth_btc".localized).tag("eth_btc")
                     }
                 }
                 
-                Section(header: Text("Additional Investment (optional)")) {
+                Section(header: Text("spot_additional_investment".localized)) {
                     TextField("Amount USDT", text: $additionalInvestment)
                         .keyboardType(.decimalPad)
                 }
@@ -783,7 +783,7 @@ struct SpotRebalanceSheet: View {
                             } else {
                                 Image(systemName: "arrow.triangle.2.circlepath")
                             }
-                            Text("Rebalance Portfolio")
+                            Text("spot_rebalance_portfolio".localized)
                         }
                         .frame(maxWidth: .infinity)
                     }

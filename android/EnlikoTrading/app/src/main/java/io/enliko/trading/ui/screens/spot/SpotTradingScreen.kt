@@ -25,6 +25,7 @@ import io.enliko.trading.ui.theme.LongGreen
 import io.enliko.trading.ui.theme.ShortRed
 import kotlinx.coroutines.delay
 import kotlin.random.Random
+import io.enliko.trading.util.LocalStrings
 
 // MARK: - Data Models
 data class SpotAsset(
@@ -313,6 +314,7 @@ private fun OrdersContent(
     orders: List<SpotOrder>,
     onCancelOrder: (SpotOrder) -> Unit
 ) {
+    val strings = LocalStrings.current
     if (orders.isEmpty()) {
         Box(
             modifier = Modifier.fillMaxSize(),
@@ -327,7 +329,7 @@ private fun OrdersContent(
                 )
                 Spacer(modifier = Modifier.height(16.dp))
                 Text(
-                    text = "No open orders",
+                    text = strings.noOpenOrders,
                     style = MaterialTheme.typography.titleMedium,
                     color = MaterialTheme.colorScheme.onSurfaceVariant
                 )
@@ -452,6 +454,7 @@ private fun HoldingsContent(
     holdings: List<SpotAsset>,
     onAssetClick: (SpotAsset) -> Unit
 ) {
+    val strings = LocalStrings.current
     Column(modifier = Modifier.fillMaxSize()) {
         // Total Value Card
         Card(
@@ -462,7 +465,7 @@ private fun HoldingsContent(
         ) {
             Column(modifier = Modifier.padding(16.dp)) {
                 Text(
-                    text = "Total Spot Value",
+                    text = strings.totalSpotValue,
                     style = MaterialTheme.typography.labelMedium,
                     color = MaterialTheme.colorScheme.onSurfaceVariant
                 )
@@ -562,6 +565,7 @@ private fun SpotTradeBottomSheet(
     onDismiss: () -> Unit,
     onTrade: (String, SpotOrderType, Double, Double?) -> Unit
 ) {
+    val strings = LocalStrings.current
     var isBuy by remember { mutableStateOf(true) }
     var orderType by remember { mutableStateOf(SpotOrderType.MARKET) }
     var amount by remember { mutableStateOf("") }
@@ -617,7 +621,7 @@ private fun SpotTradeBottomSheet(
                     contentAlignment = Alignment.Center
                 ) {
                     Text(
-                        text = "Buy",
+                        text = strings.buy,
                         fontWeight = FontWeight.Bold,
                         color = if (isBuy) Color.White else MaterialTheme.colorScheme.onSurfaceVariant
                     )
@@ -632,7 +636,7 @@ private fun SpotTradeBottomSheet(
                     contentAlignment = Alignment.Center
                 ) {
                     Text(
-                        text = "Sell",
+                        text = strings.sell,
                         fontWeight = FontWeight.Bold,
                         color = if (!isBuy) Color.White else MaterialTheme.colorScheme.onSurfaceVariant
                     )
@@ -721,7 +725,7 @@ private fun SpotTradeBottomSheet(
                 horizontalArrangement = Arrangement.SpaceBetween
             ) {
                 Text(
-                    text = "Total",
+                    text = strings.total,
                     style = MaterialTheme.typography.bodyMedium,
                     color = MaterialTheme.colorScheme.onSurfaceVariant
                 )

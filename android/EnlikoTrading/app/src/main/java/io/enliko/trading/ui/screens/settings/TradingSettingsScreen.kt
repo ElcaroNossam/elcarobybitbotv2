@@ -15,6 +15,7 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import io.enliko.trading.ui.theme.*
+import io.enliko.trading.util.LocalStrings
 
 /**
  * TradingSettingsScreen - Matching iOS TradingSettingsView.swift
@@ -25,6 +26,7 @@ import io.enliko.trading.ui.theme.*
 fun TradingSettingsScreen(
     onBack: () -> Unit
 ) {
+    val strings = LocalStrings.current
     // Order Settings
     var orderType by remember { mutableStateOf("market") }
     var limitOffsetPct by remember { mutableFloatStateOf(0.1f) }
@@ -83,7 +85,7 @@ fun TradingSettingsScreen(
                 // Order Type Selector
                 Column {
                     Text(
-                        text = "Order Type",
+                        text = strings.orderType,
                         style = MaterialTheme.typography.labelMedium,
                         color = EnlikoTextSecondary,
                         modifier = Modifier.padding(bottom = 8.dp)
@@ -122,7 +124,7 @@ fun TradingSettingsScreen(
                 }
                 
                 Text(
-                    text = "Market orders execute immediately at current price. Limit orders are placed with an offset for better entry.",
+                    text = strings.marketOrdersDesc,
                     style = MaterialTheme.typography.bodySmall,
                     color = EnlikoTextMuted,
                     modifier = Modifier.padding(top = 8.dp)
@@ -163,7 +165,7 @@ fun TradingSettingsScreen(
                 }
                 
                 Text(
-                    text = "DCA adds to your position when price moves against you by the specified percentage.",
+                    text = strings.dcaAddsDesc,
                     style = MaterialTheme.typography.bodySmall,
                     color = EnlikoTextMuted,
                     modifier = Modifier.padding(top = 8.dp)
@@ -277,7 +279,7 @@ fun TradingSettingsScreen(
                 }
                 
                 Text(
-                    text = "ATR trailing stop adjusts your stop-loss based on market volatility for optimal risk management.",
+                    text = strings.atrTrailingDesc,
                     style = MaterialTheme.typography.bodySmall,
                     color = EnlikoTextMuted,
                     modifier = Modifier.padding(top = 8.dp)
@@ -305,7 +307,7 @@ fun TradingSettingsScreen(
                 )
                 
                 Text(
-                    text = "Enable or disable trading on specific exchanges. Exchanges must be configured in API Keys first.",
+                    text = strings.exchangeEnableDesc,
                     style = MaterialTheme.typography.bodySmall,
                     color = EnlikoTextMuted,
                     modifier = Modifier.padding(top = 8.dp)
@@ -464,6 +466,7 @@ private fun ExchangeToggleRow(
     isEnabled: Boolean,
     onEnabledChange: (Boolean) -> Unit
 ) {
+    val strings = LocalStrings.current
     Row(
         modifier = Modifier.fillMaxWidth(),
         horizontalArrangement = Arrangement.SpaceBetween,
@@ -499,7 +502,7 @@ private fun ExchangeToggleRow(
             )
         } else {
             Text(
-                text = "Not Configured",
+                text = strings.notConfigured,
                 style = MaterialTheme.typography.bodySmall,
                 color = EnlikoTextMuted
             )

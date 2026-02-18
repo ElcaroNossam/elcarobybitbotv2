@@ -272,12 +272,13 @@ private fun TelegramLoginContent(
     focusManager: androidx.compose.ui.focus.FocusManager,
     onLogin: () -> Unit
 ) {
+    val strings = LocalStrings.current
     Column(
         modifier = Modifier.fillMaxWidth(),
         horizontalAlignment = Alignment.CenterHorizontally
     ) {
         Text(
-            text = "Enter your Telegram @username",
+            text = strings.enterTelegramUsername,
             style = MaterialTheme.typography.bodyMedium,
             color = MaterialTheme.colorScheme.onSurfaceVariant,
             textAlign = TextAlign.Center
@@ -286,7 +287,7 @@ private fun TelegramLoginContent(
         Spacer(modifier = Modifier.height(8.dp))
         
         Text(
-            text = "You must have started @EnlikoBot first",
+            text = strings.mustStartBotFirst,
             style = MaterialTheme.typography.bodySmall,
             color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.7f),
             textAlign = TextAlign.Center
@@ -338,7 +339,7 @@ private fun TelegramLoginContent(
                 )
             } else {
                 Text(
-                    text = "Login via Telegram",
+                    text = strings.loginViaTelegram,
                     style = MaterialTheme.typography.titleMedium,
                     fontWeight = FontWeight.SemiBold,
                     color = Color.White
@@ -362,6 +363,7 @@ private fun EmailLoginContent(
     focusManager: androidx.compose.ui.focus.FocusManager,
     onLogin: () -> Unit
 ) {
+    val strings = LocalStrings.current
     Column(modifier = Modifier.fillMaxWidth()) {
         OutlinedTextField(
             value = email,
@@ -479,6 +481,7 @@ private fun RegisterForm(
     focusManager: androidx.compose.ui.focus.FocusManager,
     onRegister: () -> Unit
 ) {
+    val strings = LocalStrings.current
     Column(modifier = Modifier.fillMaxWidth()) {
         OutlinedTextField(
             value = name,
@@ -617,6 +620,7 @@ private fun TwoFAWaitingContent(
     uiState: AuthUiState,
     onCancel: () -> Unit
 ) {
+    val strings = LocalStrings.current
     val minutes = uiState.twoFACountdown / 60
     val seconds = uiState.twoFACountdown % 60
     
@@ -634,7 +638,7 @@ private fun TwoFAWaitingContent(
         Spacer(modifier = Modifier.height(24.dp))
         
         Text(
-            text = "Waiting for confirmation...",
+            text = strings.waitingForConfirmation,
             style = MaterialTheme.typography.titleLarge,
             fontWeight = FontWeight.SemiBold,
             color = MaterialTheme.colorScheme.onBackground,
@@ -684,7 +688,7 @@ private fun TwoFAWaitingContent(
             shape = RoundedCornerShape(12.dp)
         ) {
             Text(
-                text = "Cancel",
+                text = strings.cancel,
                 style = MaterialTheme.typography.titleMedium,
                 color = MaterialTheme.colorScheme.onSurfaceVariant
             )

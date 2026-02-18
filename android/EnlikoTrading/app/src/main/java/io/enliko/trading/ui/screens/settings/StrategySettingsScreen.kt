@@ -24,6 +24,7 @@ import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import io.enliko.trading.ui.theme.*
 import io.enliko.trading.util.Localization
+import io.enliko.trading.util.LocalStrings
 
 /**
  * StrategySettingsScreen - Matching iOS StrategySettingsView.swift
@@ -655,6 +656,7 @@ private fun OrderFiltersCard(
     settings: SideSettings,
     onSettingsChange: (SideSettings) -> Unit
 ) {
+    val strings = LocalStrings.current
     Card(
         modifier = Modifier.fillMaxWidth(),
         colors = CardDefaults.cardColors(containerColor = EnlikoCard),
@@ -662,7 +664,7 @@ private fun OrderFiltersCard(
     ) {
         Column(modifier = Modifier.padding(16.dp)) {
             Text(
-                text = "Order & Filters",
+                text = strings.orderAndFilters,
                 style = MaterialTheme.typography.titleSmall,
                 fontWeight = FontWeight.Bold,
                 color = EnlikoTextPrimary
@@ -683,7 +685,7 @@ private fun OrderFiltersCard(
                         color = EnlikoTextSecondary
                     )
                     Text(
-                        text = "Filter signals by direction",
+                        text = strings.filterByDirection,
                         style = MaterialTheme.typography.bodySmall,
                         color = EnlikoTextMuted
                     )
@@ -755,7 +757,7 @@ private fun OrderFiltersCard(
                 verticalAlignment = Alignment.CenterVertically
             ) {
                 Text(
-                    text = "Order Type",
+                    text = strings.orderType,
                     style = MaterialTheme.typography.bodyMedium,
                     color = EnlikoTextSecondary
                 )
@@ -822,7 +824,7 @@ private fun OrderFiltersCard(
             )
             
             Text(
-                text = "0 = unlimited",
+                text = strings.zeroUnlimited,
                 style = MaterialTheme.typography.bodySmall,
                 color = EnlikoTextMuted
             )
@@ -838,7 +840,7 @@ private fun OrderFiltersCard(
                 verticalAlignment = Alignment.CenterVertically
             ) {
                 Text(
-                    text = "Coins Group",
+                    text = strings.coinsGroup,
                     style = MaterialTheme.typography.bodyMedium,
                     color = EnlikoTextSecondary
                 )
@@ -953,6 +955,7 @@ private fun BreakEvenCard(
     onEnabledChange: (Boolean) -> Unit,
     onTriggerChange: (Double) -> Unit
 ) {
+    val strings = LocalStrings.current
     ExpandableSettingsCard(
         title = "Break-Even",
         isEnabled = beEnabled,
@@ -967,7 +970,7 @@ private fun BreakEvenCard(
         )
         
         Text(
-            text = "Move SL to entry when profit reaches trigger",
+            text = strings.breakEvenDesc,
             style = MaterialTheme.typography.bodySmall,
             color = EnlikoTextMuted
         )
@@ -979,13 +982,14 @@ private fun PartialTpCard(
     settings: SideSettings,
     onSettingsChange: (SideSettings) -> Unit
 ) {
+    val strings = LocalStrings.current
     ExpandableSettingsCard(
         title = "Partial Take Profit",
         isEnabled = settings.partialTpEnabled,
         onToggle = { onSettingsChange(settings.copy(partialTpEnabled = !settings.partialTpEnabled)) }
     ) {
         Text(
-            text = "Step 1",
+            text = strings.step1,
             style = MaterialTheme.typography.labelMedium,
             color = EnlikoPrimary
         )
@@ -1009,7 +1013,7 @@ private fun PartialTpCard(
         Spacer(modifier = Modifier.height(8.dp))
         
         Text(
-            text = "Step 2",
+            text = strings.step2,
             style = MaterialTheme.typography.labelMedium,
             color = EnlikoPrimary
         )
@@ -1041,6 +1045,7 @@ private fun DcaSettingsCard(
     onPct1Change: (Double) -> Unit,
     onPct2Change: (Double) -> Unit
 ) {
+    val strings = LocalStrings.current
     ExpandableSettingsCard(
         title = "DCA (Dollar Cost Averaging)",
         isEnabled = dcaEnabled,
@@ -1063,7 +1068,7 @@ private fun DcaSettingsCard(
         )
         
         Text(
-            text = "Add to position when loss reaches trigger %",
+            text = strings.dcaDesc,
             style = MaterialTheme.typography.bodySmall,
             color = EnlikoTextMuted
         )

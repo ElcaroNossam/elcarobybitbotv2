@@ -249,6 +249,7 @@ private fun AlertCard(
     onToggle: () -> Unit,
     onDelete: () -> Unit
 ) {
+    val strings = LocalStrings.current
     val priceDistance = ((alert.targetPrice - alert.currentPrice) / alert.currentPrice * 100)
     
     Card(
@@ -336,7 +337,7 @@ private fun AlertCard(
             ) {
                 Column {
                     Text(
-                        text = "Target Price",
+                        text = strings.targetPrice,
                         style = MaterialTheme.typography.bodySmall,
                         color = MaterialTheme.colorScheme.onSurfaceVariant
                     )
@@ -349,7 +350,7 @@ private fun AlertCard(
                 
                 Column(horizontalAlignment = Alignment.End) {
                     Text(
-                        text = "Current Price",
+                        text = strings.currentPrice,
                         style = MaterialTheme.typography.bodySmall,
                         color = MaterialTheme.colorScheme.onSurfaceVariant
                     )
@@ -361,7 +362,7 @@ private fun AlertCard(
                 
                 Column(horizontalAlignment = Alignment.End) {
                     Text(
-                        text = "Distance",
+                        text = strings.distance,
                         style = MaterialTheme.typography.bodySmall,
                         color = MaterialTheme.colorScheme.onSurfaceVariant
                     )
@@ -391,6 +392,7 @@ private fun EmptyAlertsView(
     tab: AlertTab,
     onCreateAlert: () -> Unit
 ) {
+    val strings = LocalStrings.current
     Column(
         modifier = Modifier
             .fillMaxSize()
@@ -420,7 +422,7 @@ private fun EmptyAlertsView(
         Spacer(modifier = Modifier.height(8.dp))
         
         Text(
-            text = "Create price alerts to get notified when your target is reached",
+            text = strings.alertCreateDesc,
             style = MaterialTheme.typography.bodyMedium,
             color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.7f),
             textAlign = androidx.compose.ui.text.style.TextAlign.Center
@@ -442,6 +444,7 @@ private fun CreateAlertDialog(
     onDismiss: () -> Unit,
     onCreate: (PriceAlert) -> Unit
 ) {
+    val strings = LocalStrings.current
     var symbol by remember { mutableStateOf("BTCUSDT") }
     var targetPrice by remember { mutableStateOf("") }
     var condition by remember { mutableStateOf(AlertCondition.ABOVE) }
@@ -470,7 +473,7 @@ private fun CreateAlertDialog(
                 )
                 
                 Text(
-                    text = "Condition",
+                    text = strings.condition,
                     style = MaterialTheme.typography.labelLarge
                 )
                 

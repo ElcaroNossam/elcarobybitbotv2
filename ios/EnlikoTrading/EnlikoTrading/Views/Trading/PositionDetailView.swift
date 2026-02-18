@@ -70,13 +70,13 @@ struct PositionDetailView: View {
                         Button {
                             showModifyTPSL = true
                         } label: {
-                            Label("Modify TP/SL", systemImage: "slider.horizontal.3")
+                            Label("pos_modify_tpsl".localized, systemImage: "slider.horizontal.3")
                         }
                         
                         Button {
                             showAddPosition = true
                         } label: {
-                            Label("Add to Position", systemImage: "plus.circle")
+                            Label("pos_add_to_position".localized, systemImage: "plus.circle")
                         }
                         
                         Divider()
@@ -84,7 +84,7 @@ struct PositionDetailView: View {
                         Button(role: .destructive) {
                             showCloseConfirm = true
                         } label: {
-                            Label("Close Position", systemImage: "xmark.circle")
+                            Label("pos_close_position".localized, systemImage: "xmark.circle")
                         }
                     } label: {
                         Image(systemName: "ellipsis.circle.fill")
@@ -101,13 +101,13 @@ struct PositionDetailView: View {
             .sheet(isPresented: $showAddPosition) {
                 AddToPositionSheet(position: position)
             }
-            .confirmationDialog("Close Position", isPresented: $showCloseConfirm, titleVisibility: .visible) {
-                Button("Close 100%", role: .destructive) {
+            .confirmationDialog("pos_close_position".localized, isPresented: $showCloseConfirm, titleVisibility: .visible) {
+                Button("pos_close_100".localized, role: .destructive) {
                     closePosition(percent: 100)
                 }
-                Button("Cancel", role: .cancel) {}
+                Button("btn_cancel".localized, role: .cancel) {}
             } message: {
-                Text("Are you sure you want to close this position?")
+                Text("pos_close_confirm_msg".localized)
             }
         }
     }
@@ -185,7 +185,7 @@ struct PositionDetailView: View {
         VStack(spacing: 16) {
             // Unrealized PnL
             VStack(spacing: 4) {
-                Text("Unrealized PnL")
+                Text("pos_unrealized_pnl".localized)
                     .font(.caption)
                     .foregroundColor(.secondary)
                 
@@ -203,7 +203,7 @@ struct PositionDetailView: View {
             // ROE
             HStack {
                 VStack {
-                    Text("ROE")
+                    Text("pos_roe".localized)
                         .font(.caption)
                         .foregroundColor(.secondary)
                     Text(String(format: "%.2f%%", position.pnlPercent * Double(position.leverage)))
@@ -214,7 +214,7 @@ struct PositionDetailView: View {
                 Spacer()
                 
                 VStack {
-                    Text("Size")
+                    Text("pos_size".localized)
                         .font(.caption)
                         .foregroundColor(.secondary)
                     Text(String(format: "%.4f", position.size))
@@ -224,7 +224,7 @@ struct PositionDetailView: View {
                 Spacer()
                 
                 VStack {
-                    Text("Value")
+                    Text("pos_value".localized)
                         .font(.caption)
                         .foregroundColor(.secondary)
                     Text(String(format: "$%.2f", position.positionValue))
@@ -250,19 +250,19 @@ struct PositionDetailView: View {
     private var positionDetails: some View {
         VStack(spacing: 12) {
             HStack {
-                Text("Position Details")
+                Text("pos_details".localized)
                     .font(.headline)
                 Spacer()
             }
             
-            detailRow("Entry Price", String(format: "$%.2f", position.entryPrice))
-            detailRow("Mark Price", String(format: "$%.2f", position.markPrice ?? position.entryPrice))
-            detailRow("Liq. Price", String(format: "$%.2f", position.liquidationPrice ?? 0), color: .orange)
-            detailRow("Margin", String(format: "$%.2f", position.margin ?? 0))
-            detailRow("Maintenance Margin", String(format: "$%.2f", position.maintenanceMargin ?? 0))
+            detailRow("pos_entry_price".localized, String(format: "$%.2f", position.entryPrice))
+            detailRow("pos_mark_price".localized, String(format: "$%.2f", position.markPrice ?? position.entryPrice))
+            detailRow("pos_liq_price".localized, String(format: "$%.2f", position.liquidationPrice ?? 0), color: .orange)
+            detailRow("pos_margin".localized, String(format: "$%.2f", position.margin ?? 0))
+            detailRow("pos_maintenance_margin".localized, String(format: "$%.2f", position.maintenanceMargin ?? 0))
             
             if let openTime = position.openTime {
-                detailRow("Opened", formatDate(openTime))
+                detailRow("pos_opened".localized, formatDate(openTime))
             }
         }
         .padding()
@@ -292,7 +292,7 @@ struct PositionDetailView: View {
     private var tpslStatus: some View {
         VStack(spacing: 12) {
             HStack {
-                Text("TP/SL")
+                Text("pos_tpsl".localized)
                     .font(.headline)
                 
                 Spacer()
@@ -300,7 +300,7 @@ struct PositionDetailView: View {
                 Button {
                     showModifyTPSL = true
                 } label: {
-                    Text("Modify")
+                    Text("btn_modify".localized)
                         .font(.caption.bold())
                         .foregroundColor(.enlikoPrimary)
                 }
@@ -312,7 +312,7 @@ struct PositionDetailView: View {
                     HStack {
                         Image(systemName: "target")
                             .foregroundColor(.green)
-                        Text("Take Profit")
+                        Text("pos_take_profit".localized)
                             .font(.caption)
                             .foregroundColor(.secondary)
                     }
@@ -328,7 +328,7 @@ struct PositionDetailView: View {
                             .font(.caption)
                             .foregroundColor(.green.opacity(0.7))
                     } else {
-                        Text("Not Set")
+                        Text("pos_not_set".localized)
                             .font(.subheadline)
                             .foregroundColor(.secondary)
                     }
@@ -343,7 +343,7 @@ struct PositionDetailView: View {
                     HStack {
                         Image(systemName: "exclamationmark.shield.fill")
                             .foregroundColor(.red)
-                        Text("Stop Loss")
+                        Text("pos_stop_loss".localized)
                             .font(.caption)
                             .foregroundColor(.secondary)
                     }
@@ -359,7 +359,7 @@ struct PositionDetailView: View {
                             .font(.caption)
                             .foregroundColor(.red.opacity(0.7))
                     } else {
-                        Text("Not Set")
+                        Text("pos_not_set".localized)
                             .font(.subheadline)
                             .foregroundColor(.secondary)
                     }
@@ -379,7 +379,7 @@ struct PositionDetailView: View {
     private var quickActions: some View {
         VStack(spacing: 12) {
             HStack {
-                Text("Quick Actions")
+                Text("pos_quick_actions".localized)
                     .font(.headline)
                 Spacer()
             }
@@ -392,7 +392,7 @@ struct PositionDetailView: View {
                     VStack(spacing: 8) {
                         Image(systemName: "chart.pie.fill")
                             .font(.title2)
-                        Text("Partial Close")
+                        Text("pos_partial_close".localized)
                             .font(.caption)
                     }
                     .frame(maxWidth: .infinity)
@@ -409,7 +409,7 @@ struct PositionDetailView: View {
                     VStack(spacing: 8) {
                         Image(systemName: "plus.circle.fill")
                             .font(.title2)
-                        Text("Add Position")
+                        Text("pos_add_position".localized)
                             .font(.caption)
                     }
                     .frame(maxWidth: .infinity)
@@ -426,7 +426,7 @@ struct PositionDetailView: View {
                     VStack(spacing: 8) {
                         Image(systemName: "arrow.triangle.swap")
                             .font(.title2)
-                        Text("Flip")
+                        Text("pos_flip".localized)
                             .font(.caption)
                     }
                     .frame(maxWidth: .infinity)
@@ -451,7 +451,7 @@ struct PositionDetailView: View {
             } label: {
                 HStack {
                     Image(systemName: "xmark.circle.fill")
-                    Text("Close Position (100%)")
+                    Text("pos_close_full".localized)
                         .font(.headline)
                 }
                 .frame(maxWidth: .infinity)
@@ -536,7 +536,7 @@ struct PartialCloseSheet: View {
             VStack(spacing: 24) {
                 // Header
                 VStack(spacing: 8) {
-                    Text("Close Partial Position")
+                    Text("pos_close_partial_title".localized)
                         .font(.title2.bold())
                     
                     Text(position.symbol)
@@ -576,14 +576,14 @@ struct PartialCloseSheet: View {
                 // Summary
                 VStack(spacing: 8) {
                     HStack {
-                        Text("Closing Size")
+                        Text("pos_closing_size".localized)
                         Spacer()
                         Text(String(format: "%.4f", position.size * percent / 100))
                             .bold()
                     }
                     
                     HStack {
-                        Text("Estimated PnL")
+                        Text("pos_estimated_pnl".localized)
                         Spacer()
                         Text(String(format: "$%.2f", position.pnl * percent / 100))
                             .bold()
@@ -591,7 +591,7 @@ struct PartialCloseSheet: View {
                     }
                     
                     HStack {
-                        Text("Remaining Size")
+                        Text("pos_remaining_size".localized)
                         Spacer()
                         Text(String(format: "%.4f", position.size * (1 - percent / 100)))
                             .bold()
@@ -622,7 +622,7 @@ struct PartialCloseSheet: View {
                     Button {
                         dismiss()
                     } label: {
-                        Text("Cancel")
+                        Text("btn_cancel".localized)
                             .foregroundColor(.secondary)
                     }
                 }
@@ -651,7 +651,7 @@ struct ModifyTPSLSheet: View {
             VStack(spacing: 20) {
                 // Header
                 VStack(spacing: 4) {
-                    Text("Modify TP/SL")
+                    Text("pos_modify_tpsl".localized)
                         .font(.title2.bold())
                     Text(position.symbol)
                         .foregroundColor(.secondary)
@@ -660,7 +660,7 @@ struct ModifyTPSLSheet: View {
                 
                 // Current Price
                 HStack {
-                    Text("Current Price")
+                    Text("pos_current_price".localized)
                         .foregroundColor(.secondary)
                     Spacer()
                     Text(String(format: "$%.2f", position.markPrice ?? position.entryPrice))
@@ -672,12 +672,12 @@ struct ModifyTPSLSheet: View {
                 
                 // Take Profit
                 VStack(alignment: .leading, spacing: 8) {
-                    Label("Take Profit", systemImage: "target")
+                    Label("pos_take_profit".localized, systemImage: "target")
                         .font(.subheadline)
                         .foregroundColor(.green)
                     
                     HStack {
-                        TextField("TP Price", text: $tpPrice)
+                        TextField("pos_tp_price".localized, text: $tpPrice)
                             .keyboardType(.decimalPad)
                             .font(.title3)
                         
@@ -699,12 +699,12 @@ struct ModifyTPSLSheet: View {
                 
                 // Stop Loss
                 VStack(alignment: .leading, spacing: 8) {
-                    Label("Stop Loss", systemImage: "exclamationmark.shield.fill")
+                    Label("pos_stop_loss".localized, systemImage: "exclamationmark.shield.fill")
                         .font(.subheadline)
                         .foregroundColor(.red)
                     
                     HStack {
-                        TextField("SL Price", text: $slPrice)
+                        TextField("pos_sl_price".localized, text: $slPrice)
                             .keyboardType(.decimalPad)
                             .font(.title3)
                         
@@ -736,7 +736,7 @@ struct ModifyTPSLSheet: View {
                                 ProgressView()
                                     .progressViewStyle(CircularProgressViewStyle(tint: .white))
                             } else {
-                                Text("Save Changes")
+                                Text("btn_save_changes".localized)
                             }
                         }
                         .font(.headline)
@@ -751,7 +751,7 @@ struct ModifyTPSLSheet: View {
                     Button {
                         dismiss()
                     } label: {
-                        Text("Cancel")
+                        Text("btn_cancel".localized)
                             .foregroundColor(.secondary)
                     }
                 }
@@ -799,12 +799,12 @@ struct AddToPositionSheet: View {
     var body: some View {
         NavigationStack {
             VStack(spacing: 20) {
-                Text("Add to Position")
+                Text("pos_add_to_position".localized)
                     .font(.title2.bold())
                     .padding(.top)
                 
                 VStack(alignment: .leading, spacing: 8) {
-                    Text("Current Position")
+                    Text("pos_current_position".localized)
                         .font(.caption)
                         .foregroundColor(.secondary)
                     
@@ -821,11 +821,11 @@ struct AddToPositionSheet: View {
                 }
                 
                 VStack(alignment: .leading, spacing: 8) {
-                    Text("Amount to Add (USDT)")
+                    Text("pos_amount_to_add".localized)
                         .font(.caption)
                         .foregroundColor(.secondary)
                     
-                    TextField("Enter amount", text: $amount)
+                    TextField("pos_enter_amount".localized, text: $amount)
                         .keyboardType(.decimalPad)
                         .font(.title3)
                         .padding()
@@ -839,7 +839,7 @@ struct AddToPositionSheet: View {
                     // TODO: Implement add to position
                     dismiss()
                 } label: {
-                    Text("Add to Position")
+                    Text("pos_add_to_position".localized)
                         .font(.headline)
                         .frame(maxWidth: .infinity)
                         .padding()

@@ -19,6 +19,7 @@ import androidx.compose.ui.text.input.VisualTransformation
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import io.enliko.trading.ui.theme.*
+import io.enliko.trading.util.LocalStrings
 
 /**
  * ApiKeysScreen - Configure Bybit and HyperLiquid API keys
@@ -30,6 +31,7 @@ fun ApiKeysScreen(
     onBack: () -> Unit,
     viewModel: ApiKeysViewModel = hiltViewModel()
 ) {
+    val strings = LocalStrings.current
     val uiState by viewModel.uiState.collectAsState()
     val snackbarHostState = remember { SnackbarHostState() }
     
@@ -83,7 +85,7 @@ fun ApiKeysScreen(
             ) {
                 // Exchange Selector
                 Text(
-                    text = "Select Exchange",
+                    text = strings.selectExchange,
                     style = MaterialTheme.typography.titleSmall,
                     color = EnlikoTextSecondary
                 )
@@ -112,7 +114,7 @@ fun ApiKeysScreen(
                 
                 // Account Type Selector
                 Text(
-                    text = "Account Type",
+                    text = strings.accountType,
                     style = MaterialTheme.typography.titleSmall,
                     color = EnlikoTextSecondary
                 )
@@ -250,7 +252,7 @@ fun ApiKeysScreen(
                                 verticalArrangement = Arrangement.spacedBy(8.dp)
                             ) {
                                 Text(
-                                    text = "Wallet Info (Auto-Discovered)",
+                                    text = strings.walletInfoAutoDiscovered,
                                     style = MaterialTheme.typography.titleSmall,
                                     fontWeight = FontWeight.SemiBold,
                                     color = EnlikoPrimary
@@ -331,7 +333,7 @@ fun ApiKeysScreen(
                             tint = EnlikoYellow
                         )
                         Text(
-                            text = "Never share your API keys or private keys with anyone. Enable only required permissions.",
+                            text = strings.securityWarning,
                             style = MaterialTheme.typography.bodySmall,
                             color = EnlikoTextSecondary
                         )

@@ -22,6 +22,7 @@ import io.enliko.trading.ui.theme.*
 import io.enliko.trading.data.models.ScreenerCoin
 import java.text.NumberFormat
 import java.util.Locale
+import io.enliko.trading.util.LocalStrings
 
 /**
  * ScreenerScreen - Matching iOS ScreenerView.swift
@@ -313,6 +314,7 @@ private fun SortChip(
 
 @Composable
 private fun ScreenerHeader(showDerivatives: Boolean) {
+    val strings = LocalStrings.current
     Row(
         modifier = Modifier
             .fillMaxWidth()
@@ -320,13 +322,13 @@ private fun ScreenerHeader(showDerivatives: Boolean) {
         horizontalArrangement = Arrangement.SpaceBetween
     ) {
         Text(
-            text = "Coin",
+            text = strings.coin,
             style = MaterialTheme.typography.labelSmall,
             color = EnlikoTextSecondary,
             modifier = Modifier.weight(2f)
         )
         Text(
-            text = "Price",
+            text = strings.price,
             style = MaterialTheme.typography.labelSmall,
             color = EnlikoTextSecondary,
             textAlign = TextAlign.End,

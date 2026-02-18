@@ -16,6 +16,7 @@ import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import io.enliko.trading.ui.theme.*
+import io.enliko.trading.util.LocalStrings
 
 /**
  * ExchangeSettingsScreen - Matching iOS SubSettingsViews.swift ExchangeSettingsView
@@ -30,6 +31,7 @@ fun ExchangeSettingsScreen(
     onAccountTypeChange: (String) -> Unit = {},
     onBack: () -> Unit
 ) {
+    val strings = LocalStrings.current
     var selectedExchange by remember { mutableStateOf(currentExchange) }
     var selectedAccountType by remember { mutableStateOf(currentAccountType) }
     var tradingMode by remember { mutableStateOf("demo") } // demo, real, both
@@ -61,7 +63,7 @@ fun ExchangeSettingsScreen(
         ) {
             // Exchange Selection
             Text(
-                text = "Select Exchange",
+                text = strings.selectExchange,
                 style = MaterialTheme.typography.titleSmall,
                 color = EnlikoTextSecondary
             )
@@ -108,7 +110,7 @@ fun ExchangeSettingsScreen(
                     verticalArrangement = Arrangement.spacedBy(16.dp)
                 ) {
                     Text(
-                        text = "Account Type",
+                        text = strings.accountType,
                         style = MaterialTheme.typography.titleMedium,
                         fontWeight = FontWeight.SemiBold,
                         color = EnlikoTextPrimary
@@ -176,7 +178,7 @@ fun ExchangeSettingsScreen(
                         verticalArrangement = Arrangement.spacedBy(16.dp)
                     ) {
                         Text(
-                            text = "Trading Mode",
+                            text = strings.tradingMode,
                             style = MaterialTheme.typography.titleMedium,
                             fontWeight = FontWeight.SemiBold,
                             color = EnlikoTextPrimary
@@ -227,15 +229,15 @@ fun ExchangeSettingsScreen(
                     )
                     
                     if (selectedExchange == "bybit") {
-                        FeatureRow(icon = Icons.Default.Check, text = "Demo & Real accounts")
-                        FeatureRow(icon = Icons.Default.Check, text = "Up to 100x leverage")
-                        FeatureRow(icon = Icons.Default.Check, text = "Spot & Futures trading")
-                        FeatureRow(icon = Icons.Default.Check, text = "Low trading fees")
+                        FeatureRow(icon = Icons.Default.Check, text = strings.featureDemoReal)
+                        FeatureRow(icon = Icons.Default.Check, text = strings.featureLeverage100)
+                        FeatureRow(icon = Icons.Default.Check, text = strings.featureSpotFutures)
+                        FeatureRow(icon = Icons.Default.Check, text = strings.featureLowFees)
                     } else {
-                        FeatureRow(icon = Icons.Default.Check, text = "Decentralized trading")
-                        FeatureRow(icon = Icons.Default.Check, text = "Non-custodial")
-                        FeatureRow(icon = Icons.Default.Check, text = "Up to 50x leverage")
-                        FeatureRow(icon = Icons.Default.Check, text = "No KYC required")
+                        FeatureRow(icon = Icons.Default.Check, text = strings.featureDecentralized)
+                        FeatureRow(icon = Icons.Default.Check, text = strings.featureNonCustodial)
+                        FeatureRow(icon = Icons.Default.Check, text = strings.featureLeverage50)
+                        FeatureRow(icon = Icons.Default.Check, text = strings.featureNoKyc)
                     }
                 }
             }

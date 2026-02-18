@@ -70,7 +70,7 @@ fun SettingsScreen(
             // Account Section
             item {
                 Text(
-                    text = "Account",
+                    text = strings.account,
                     style = MaterialTheme.typography.titleSmall,
                     color = MaterialTheme.colorScheme.primary,
                     modifier = Modifier.padding(vertical = 8.dp)
@@ -143,7 +143,7 @@ fun SettingsScreen(
             item {
                 Spacer(modifier = Modifier.height(16.dp))
                 Text(
-                    text = "Trading",
+                    text = strings.trading,
                     style = MaterialTheme.typography.titleSmall,
                     color = MaterialTheme.colorScheme.primary,
                     modifier = Modifier.padding(vertical = 8.dp)
@@ -298,7 +298,7 @@ fun SettingsScreen(
             item {
                 Spacer(modifier = Modifier.height(16.dp))
                 Text(
-                    text = "Developer",
+                    text = strings.developer,
                     style = MaterialTheme.typography.titleSmall,
                     color = MaterialTheme.colorScheme.primary,
                     modifier = Modifier.padding(vertical = 8.dp)
@@ -327,7 +327,7 @@ fun SettingsScreen(
             item {
                 Spacer(modifier = Modifier.height(16.dp))
                 Text(
-                    text = "Appearance",
+                    text = strings.appearance,
                     style = MaterialTheme.typography.titleSmall,
                     color = MaterialTheme.colorScheme.primary,
                     modifier = Modifier.padding(vertical = 8.dp)
@@ -374,7 +374,7 @@ fun SettingsScreen(
                                     fontWeight = FontWeight.SemiBold
                                 )
                                 Text(
-                                    text = "Unlock all features",
+                                    text = strings.unlockAllFeatures,
                                     style = MaterialTheme.typography.bodySmall,
                                     color = MaterialTheme.colorScheme.onSurfaceVariant
                                 )
@@ -413,7 +413,7 @@ fun SettingsScreen(
             item {
                 Spacer(modifier = Modifier.height(16.dp))
                 Text(
-                    text = "Enliko Trading v1.0.0",
+                    text = strings.appVersion,
                     style = MaterialTheme.typography.bodySmall,
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                     modifier = Modifier.fillMaxWidth()
@@ -552,6 +552,7 @@ private fun LinkedAccountItem(
     isVerified: Boolean? = null,
     onLink: () -> Unit
 ) {
+    val strings = LocalStrings.current
     Card(
         modifier = Modifier.fillMaxWidth(),
         colors = CardDefaults.cardColors(
@@ -587,7 +588,7 @@ private fun LinkedAccountItem(
                         )
                     } else if (!isLinked) {
                         Text(
-                            text = "Tap to link",
+                            text = strings.tapToLink,
                             style = MaterialTheme.typography.bodySmall,
                             color = MaterialTheme.colorScheme.primary
                         )
@@ -598,7 +599,7 @@ private fun LinkedAccountItem(
                 Row(verticalAlignment = Alignment.CenterVertically) {
                     if (isVerified == false) {
                         Text(
-                            text = "Not verified",
+                            text = strings.notVerified,
                             style = MaterialTheme.typography.labelSmall,
                             color = MaterialTheme.colorScheme.error
                         )

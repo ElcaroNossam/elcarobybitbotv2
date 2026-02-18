@@ -15,6 +15,7 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import io.enliko.trading.ui.theme.*
+import io.enliko.trading.util.LocalStrings
 
 /**
  * RiskSettingsScreen - Matching iOS SubSettingsViews.swift RiskSettingsView
@@ -25,6 +26,7 @@ import io.enliko.trading.ui.theme.*
 fun RiskSettingsScreen(
     onBack: () -> Unit
 ) {
+    val strings = LocalStrings.current
     var entryPercent by remember { mutableFloatStateOf(1f) }
     var tpPercent by remember { mutableFloatStateOf(8f) }
     var slPercent by remember { mutableFloatStateOf(3f) }
@@ -109,13 +111,13 @@ fun RiskSettingsScreen(
                 ) {
                     Column {
                         Text(
-                            text = "Use ATR for SL/TP",
+                            text = strings.useAtrForSlTp,
                             style = MaterialTheme.typography.bodyLarge,
                             fontWeight = FontWeight.Medium,
                             color = EnlikoTextPrimary
                         )
                         Text(
-                            text = "Dynamic levels based on volatility",
+                            text = strings.dynamicLevelsVolatility,
                             style = MaterialTheme.typography.bodySmall,
                             color = EnlikoTextSecondary
                         )
@@ -140,7 +142,7 @@ fun RiskSettingsScreen(
                             horizontalArrangement = Arrangement.SpaceBetween
                         ) {
                             Text(
-                                text = "ATR Periods",
+                                text = strings.atrPeriods,
                                 style = MaterialTheme.typography.bodyMedium,
                                 color = EnlikoTextSecondary
                             )
@@ -171,7 +173,7 @@ fun RiskSettingsScreen(
                             horizontalArrangement = Arrangement.SpaceBetween
                         ) {
                             Text(
-                                text = "ATR Multiplier",
+                                text = strings.atrMultiplier,
                                 style = MaterialTheme.typography.bodyMedium,
                                 color = EnlikoTextSecondary
                             )
@@ -205,13 +207,13 @@ fun RiskSettingsScreen(
                 ) {
                     Column {
                         Text(
-                            text = "Enable DCA",
+                            text = strings.enableDca,
                             style = MaterialTheme.typography.bodyLarge,
                             fontWeight = FontWeight.Medium,
                             color = EnlikoTextPrimary
                         )
                         Text(
-                            text = "Dollar Cost Average on drawdown",
+                            text = strings.dcaDollarCostAvg,
                             style = MaterialTheme.typography.bodySmall,
                             color = EnlikoTextSecondary
                         )
@@ -236,7 +238,7 @@ fun RiskSettingsScreen(
                             horizontalArrangement = Arrangement.SpaceBetween
                         ) {
                             Text(
-                                text = "DCA Level 1 Trigger",
+                                text = strings.dcaLevel1Trigger,
                                 style = MaterialTheme.typography.bodyMedium,
                                 color = EnlikoTextSecondary
                             )
@@ -273,7 +275,7 @@ fun RiskSettingsScreen(
                             horizontalArrangement = Arrangement.SpaceBetween
                         ) {
                             Text(
-                                text = "DCA Level 2 Trigger",
+                                text = strings.dcaLevel2Trigger,
                                 style = MaterialTheme.typography.bodyMedium,
                                 color = EnlikoTextSecondary
                             )
@@ -314,7 +316,7 @@ fun RiskSettingsScreen(
                     verticalArrangement = Arrangement.spacedBy(8.dp)
                 ) {
                     Text(
-                        text = "Risk/Reward Analysis",
+                        text = strings.riskRewardAnalysis,
                         style = MaterialTheme.typography.titleSmall,
                         fontWeight = FontWeight.SemiBold,
                         color = EnlikoPrimary
@@ -332,7 +334,7 @@ fun RiskSettingsScreen(
                                 color = EnlikoPrimary
                             )
                             Text(
-                                text = "R:R Ratio",
+                                text = strings.rrRatio,
                                 style = MaterialTheme.typography.bodySmall,
                                 color = EnlikoTextSecondary
                             )
@@ -346,7 +348,7 @@ fun RiskSettingsScreen(
                                 color = EnlikoTextPrimary
                             )
                             Text(
-                                text = "Min Win Rate",
+                                text = strings.minWinRate,
                                 style = MaterialTheme.typography.bodySmall,
                                 color = EnlikoTextSecondary
                             )

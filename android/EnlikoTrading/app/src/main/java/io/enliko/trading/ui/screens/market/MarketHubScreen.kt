@@ -30,6 +30,7 @@ import io.enliko.trading.ui.theme.ShortRed
 import java.text.NumberFormat
 import java.util.*
 import kotlin.math.abs
+import io.enliko.trading.util.LocalStrings
 
 // MARK: - Data Models
 data class MarketOverview(
@@ -330,6 +331,7 @@ private fun FearGreedCard(
     index: Int,
     modifier: Modifier = Modifier
 ) {
+    val strings = LocalStrings.current
     val (color, label) = when {
         index < 25 -> ShortRed to "Extreme Fear"
         index < 45 -> Color(0xFFFF9800) to "Fear"
@@ -348,7 +350,7 @@ private fun FearGreedCard(
             modifier = Modifier.padding(16.dp)
         ) {
             Text(
-                text = "Fear & Greed",
+                text = strings.fearAndGreed,
                 style = MaterialTheme.typography.bodySmall,
                 color = MaterialTheme.colorScheme.onSurfaceVariant
             )
@@ -666,6 +668,7 @@ private fun HeatmapCell(
 
 @Composable
 private fun NewsTab() {
+    val strings = LocalStrings.current
     Box(
         modifier = Modifier.fillMaxSize(),
         contentAlignment = Alignment.Center
@@ -681,7 +684,7 @@ private fun NewsTab() {
             )
             Spacer(modifier = Modifier.height(16.dp))
             Text(
-                text = "News Coming Soon",
+                text = strings.newsComingSoon,
                 style = MaterialTheme.typography.titleMedium,
                 color = MaterialTheme.colorScheme.onSurfaceVariant
             )

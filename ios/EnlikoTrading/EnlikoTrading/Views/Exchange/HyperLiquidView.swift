@@ -31,6 +31,15 @@ struct HLTransferItem: Identifiable {
         case withdraw = "Withdraw"
         case spotToPerp = "Spot → Perp"
         case perpToSpot = "Perp → Spot"
+        
+        var displayName: String {
+            switch self {
+            case .deposit: return "hl_deposit".localized
+            case .withdraw: return "hl_withdraw".localized
+            case .spotToPerp: return "Spot → Perp"
+            case .perpToSpot: return "Perp → Spot"
+            }
+        }
     }
 }
 
@@ -54,6 +63,15 @@ struct HyperLiquidView: View {
         case vaults = "Vaults"
         case transfers = "Transfers"
         case points = "Points"
+        
+        var displayName: String {
+            switch self {
+            case .overview: return "hl_tab_overview".localized
+            case .vaults: return "hl_tab_vaults".localized
+            case .transfers: return "hl_tab_transfers".localized
+            case .points: return "hl_tab_points".localized
+            }
+        }
     }
     
     var body: some View {
@@ -78,7 +96,7 @@ struct HyperLiquidView: View {
             }
         }
         .background(Color.enlikoBackground)
-        .navigationTitle("HyperLiquid")
+        .navigationTitle("hl_title".localized)
         .navigationBarTitleDisplayMode(.large)
         .toolbar {
             ToolbarItem(placement: .primaryAction) {
@@ -140,7 +158,7 @@ struct HyperLiquidView: View {
         VStack(spacing: 16) {
             // Total Balance
             VStack(spacing: 4) {
-                Text("Total Balance")
+                Text("hl_total_balance".localized)
                     .font(.caption)
                     .foregroundColor(.secondary)
                 
@@ -152,7 +170,7 @@ struct HyperLiquidView: View {
             // Perp vs Spot
             HStack(spacing: 24) {
                 VStack(spacing: 4) {
-                    Text("Perp")
+                    Text("hl_perp".localized)
                         .font(.caption)
                         .foregroundColor(.secondary)
                     Text("$\(perpBalance, specifier: "%.2f")")
@@ -165,7 +183,7 @@ struct HyperLiquidView: View {
                     .frame(width: 1, height: 30)
                 
                 VStack(spacing: 4) {
-                    Text("Spot")
+                    Text("hl_spot".localized)
                         .font(.caption)
                         .foregroundColor(.secondary)
                     Text("$\(spotBalance, specifier: "%.2f")")
@@ -223,7 +241,7 @@ struct HyperLiquidView: View {
                         withAnimation { selectedTab = tab }
                     } label: {
                         VStack(spacing: 6) {
-                            Text(tab.rawValue)
+                            Text(tab.displayName)
                                 .font(.subheadline.bold())
                                 .foregroundColor(selectedTab == tab ? .white : .secondary)
                                 .padding(.horizontal, 16)
@@ -271,13 +289,13 @@ struct HyperLiquidView: View {
                 
                 // Margin Info
                 VStack(alignment: .leading, spacing: 12) {
-                    Text("Margin Details")
+                    Text("hl_margin_details".localized)
                         .font(.headline)
                         .foregroundColor(.white)
                     
                     HStack {
                         VStack(alignment: .leading, spacing: 4) {
-                            Text("Account Margin")
+                            Text("hl_account_margin".localized)
                                 .font(.caption)
                                 .foregroundColor(.secondary)
                             Text("$\(perpBalance * 0.85, specifier: "%.2f")")
@@ -288,7 +306,7 @@ struct HyperLiquidView: View {
                         Spacer()
                         
                         VStack(alignment: .trailing, spacing: 4) {
-                            Text("Margin Ratio")
+                            Text("hl_margin_ratio".localized)
                                 .font(.caption)
                                 .foregroundColor(.secondary)
                             Text("42.5%")
@@ -325,7 +343,7 @@ struct HyperLiquidView: View {
                 // Recent Activity
                 VStack(alignment: .leading, spacing: 12) {
                     HStack {
-                        Text("Recent Activity")
+                        Text("hl_recent_activity".localized)
                             .font(.headline)
                             .foregroundColor(.white)
                         
@@ -334,7 +352,7 @@ struct HyperLiquidView: View {
                         Button {
                             selectedTab = .transfers
                         } label: {
-                            Text("See All")
+                            Text("hl_see_all".localized)
                                 .font(.caption)
                                 .foregroundColor(.enlikoPrimary)
                         }
@@ -346,7 +364,7 @@ struct HyperLiquidView: View {
                                 .foregroundColor(transfer.type == .deposit ? .green : .orange)
                             
                             VStack(alignment: .leading, spacing: 2) {
-                                Text(transfer.type.rawValue)
+                                Text(transfer.type.displayName)
                                     .font(.subheadline)
                                     .foregroundColor(.white)
                                 Text(formatDate(transfer.timestamp))
@@ -413,7 +431,7 @@ struct HyperLiquidView: View {
                     Image(systemName: "arrow.left.arrow.right")
                         .font(.system(size: 50))
                         .foregroundColor(.secondary.opacity(0.5))
-                    Text("No transfers yet")
+                    Text("hl_no_transfers".localized)
                         .font(.headline)
                         .foregroundColor(.secondary)
                     Spacer()
@@ -444,7 +462,7 @@ struct HyperLiquidView: View {
                         .font(.system(size: 40, weight: .bold))
                         .foregroundColor(.white)
                     
-                    Text("HyperLiquid Points")
+                    Text("hl_points_title".localized)
                         .font(.subheadline)
                         .foregroundColor(.secondary)
                 }
@@ -461,7 +479,7 @@ struct HyperLiquidView: View {
                 
                 // Earning Methods
                 VStack(alignment: .leading, spacing: 16) {
-                    Text("How to Earn")
+                    Text("hl_how_to_earn".localized)
                         .font(.headline)
                         .foregroundColor(.white)
                     
@@ -579,7 +597,7 @@ struct VaultRow: View {
                 
                 if vault.userDeposit > 0 {
                     HStack {
-                        Text("PnL:")
+                        Text("hl_pnl_label".localized)
                             .font(.caption)
                             .foregroundColor(.secondary)
                         
@@ -621,7 +639,7 @@ struct TransferRow: View {
                 .frame(width: 30)
             
             VStack(alignment: .leading, spacing: 2) {
-                Text(transfer.type.rawValue)
+                Text(transfer.type.displayName)
                     .font(.subheadline.bold())
                     .foregroundColor(.white)
                 
@@ -681,7 +699,7 @@ struct HLDepositSheet: View {
                     .font(.system(size: 60))
                     .foregroundColor(.green)
                 
-                Text("Deposit USDC")
+                Text("hl_deposit_usdc".localized)
                     .font(.title2.bold())
                 
                 TextField("Amount", text: $amount)
@@ -701,7 +719,7 @@ struct HLDepositSheet: View {
                 Button {
                     dismiss()
                 } label: {
-                    Text("Deposit")
+                    Text("hl_deposit".localized)
                         .font(.headline)
                         .frame(maxWidth: .infinity)
                         .padding()
@@ -738,7 +756,7 @@ struct HLWithdrawSheet: View {
                     .font(.system(size: 60))
                     .foregroundColor(.orange)
                 
-                Text("Withdraw USDC")
+                Text("hl_withdraw_usdc".localized)
                     .font(.title2.bold())
                 
                 TextField("Amount", text: $amount)
@@ -764,7 +782,7 @@ struct HLWithdrawSheet: View {
                 Button {
                     dismiss()
                 } label: {
-                    Text("Withdraw")
+                    Text("hl_withdraw".localized)
                         .font(.headline)
                         .frame(maxWidth: .infinity)
                         .padding()
@@ -801,13 +819,13 @@ struct HLInternalTransferSheet: View {
                     .font(.system(size: 60))
                     .foregroundColor(.blue)
                 
-                Text("Internal Transfer")
+                Text("hl_internal_transfer".localized)
                     .font(.title2.bold())
                 
                 // From/To Toggle
                 HStack(spacing: 16) {
                     VStack {
-                        Text("From")
+                        Text("hl_from".localized)
                             .font(.caption)
                             .foregroundColor(.secondary)
                         Text(fromPerp ? "Perp" : "Spot")
@@ -823,7 +841,7 @@ struct HLInternalTransferSheet: View {
                     }
                     
                     VStack {
-                        Text("To")
+                        Text("hl_to".localized)
                             .font(.caption)
                             .foregroundColor(.secondary)
                         Text(fromPerp ? "Spot" : "Perp")
@@ -847,7 +865,7 @@ struct HLInternalTransferSheet: View {
                 Button {
                     dismiss()
                 } label: {
-                    Text("Transfer")
+                    Text("hl_transfer".localized)
                         .font(.headline)
                         .frame(maxWidth: .infinity)
                         .padding()
@@ -902,7 +920,7 @@ struct VaultDetailSheet: View {
                     
                     // Deposit
                     VStack(alignment: .leading, spacing: 12) {
-                        Text("Deposit")
+                        Text("hl_deposit".localized)
                             .font(.headline)
                         
                         TextField("Amount", text: $depositAmount)
@@ -914,7 +932,7 @@ struct VaultDetailSheet: View {
                         Button {
                             // Deposit action
                         } label: {
-                            Text("Deposit to Vault")
+                            Text("hl_deposit_to_vault".localized)
                                 .font(.headline)
                                 .frame(maxWidth: .infinity)
                                 .padding()
@@ -929,7 +947,7 @@ struct VaultDetailSheet: View {
                         Button {
                             // Withdraw action
                         } label: {
-                            Text("Withdraw")
+                            Text("hl_withdraw".localized)
                                 .font(.headline)
                                 .frame(maxWidth: .infinity)
                                 .padding()

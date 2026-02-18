@@ -14,6 +14,7 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import io.enliko.trading.ui.theme.*
+import io.enliko.trading.util.LocalStrings
 
 /**
  * LeverageSettingsScreen - Matching iOS SubSettingsViews.swift LeverageSettingsView
@@ -26,6 +27,7 @@ fun LeverageSettingsScreen(
     onLeverageChange: (Int) -> Unit = {},
     onBack: () -> Unit
 ) {
+    val strings = LocalStrings.current
     var leverage by remember { mutableFloatStateOf(currentLeverage.toFloat()) }
     var isSaving by remember { mutableStateOf(false) }
     
@@ -66,7 +68,7 @@ fun LeverageSettingsScreen(
                     horizontalAlignment = Alignment.CenterHorizontally
                 ) {
                     Text(
-                        text = "Current Leverage",
+                        text = strings.currentLeverage,
                         style = MaterialTheme.typography.titleSmall,
                         color = EnlikoTextSecondary
                     )
@@ -97,7 +99,7 @@ fun LeverageSettingsScreen(
                     verticalArrangement = Arrangement.spacedBy(16.dp)
                 ) {
                     Text(
-                        text = "Adjust Leverage",
+                        text = strings.adjustLeverage,
                         style = MaterialTheme.typography.titleMedium,
                         fontWeight = FontWeight.SemiBold,
                         color = EnlikoTextPrimary
@@ -136,7 +138,7 @@ fun LeverageSettingsScreen(
             
             // Quick Select Buttons
             Text(
-                text = "Quick Select",
+                text = strings.quickSelect,
                 style = MaterialTheme.typography.titleSmall,
                 color = EnlikoTextSecondary
             )

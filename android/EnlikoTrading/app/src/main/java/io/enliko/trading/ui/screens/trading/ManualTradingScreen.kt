@@ -28,6 +28,7 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.hilt.navigation.compose.hiltViewModel
 import io.enliko.trading.ui.theme.*
+import io.enliko.trading.util.LocalStrings
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -241,6 +242,7 @@ private fun SymbolSelector(
     onSearchChange: (String) -> Unit,
     onSymbolSelect: (String) -> Unit
 ) {
+    val strings = LocalStrings.current
     var expanded by remember { mutableStateOf(false) }
     
     Column(
@@ -262,7 +264,7 @@ private fun SymbolSelector(
                 verticalAlignment = Alignment.CenterVertically
             ) {
                 Text(
-                    text = "Symbol",
+                    text = strings.symbol,
                     color = Color.White.copy(alpha = 0.7f),
                     fontSize = 14.sp
                 )
@@ -362,6 +364,7 @@ private fun SideSelector(
     currentSide: String,
     onSideChange: (String) -> Unit
 ) {
+    val strings = LocalStrings.current
     Row(
         modifier = Modifier
             .fillMaxWidth()
@@ -395,7 +398,7 @@ private fun SideSelector(
                     tint = if (currentSide == "Buy") Color.White else PositionLong
                 )
                 Text(
-                    text = "LONG",
+                    text = strings.longLabel,
                     color = if (currentSide == "Buy") Color.White else PositionLong,
                     fontWeight = FontWeight.Bold,
                     fontSize = 16.sp
@@ -430,7 +433,7 @@ private fun SideSelector(
                     tint = if (currentSide == "Sell") Color.White else PositionShort
                 )
                 Text(
-                    text = "SHORT",
+                    text = strings.shortLabel,
                     color = if (currentSide == "Sell") Color.White else PositionShort,
                     fontWeight = FontWeight.Bold,
                     fontSize = 16.sp
@@ -492,6 +495,7 @@ private fun AmountInputSection(
     onAmountChange: (Double) -> Unit,
     onQtyChange: (Double) -> Unit
 ) {
+    val strings = LocalStrings.current
     var amountText by remember { mutableStateOf(if (amountUsdt > 0) amountUsdt.toString() else "") }
     var qtyText by remember { mutableStateOf(if (qty > 0) qty.toString() else "") }
     
@@ -507,7 +511,7 @@ private fun AmountInputSection(
                 horizontalArrangement = Arrangement.SpaceBetween
             ) {
                 Text(
-                    text = "Amount",
+                    text = strings.amount,
                     color = Color.White,
                     fontWeight = FontWeight.SemiBold
                 )
@@ -597,6 +601,7 @@ private fun LimitPriceInput(
     currentPrice: Double,
     onLimitPriceChange: (Double) -> Unit
 ) {
+    val strings = LocalStrings.current
     var priceText by remember { mutableStateOf(limitPrice?.toString() ?: "") }
     
     GlassCard(
@@ -606,7 +611,7 @@ private fun LimitPriceInput(
     ) {
         Column(modifier = Modifier.padding(16.dp)) {
             Text(
-                text = "Limit Price",
+                text = strings.limitPrice,
                 color = Color.White,
                 fontWeight = FontWeight.SemiBold
             )
@@ -646,6 +651,7 @@ private fun LeverageSection(
     onLeverageChange: (Int) -> Unit,
     onApplyLeverage: () -> Unit
 ) {
+    val strings = LocalStrings.current
     GlassCard(
         modifier = Modifier
             .fillMaxWidth()
@@ -658,7 +664,7 @@ private fun LeverageSection(
                 verticalAlignment = Alignment.CenterVertically
             ) {
                 Text(
-                    text = "Leverage",
+                    text = strings.leverage,
                     color = Color.White,
                     fontWeight = FontWeight.SemiBold
                 )
@@ -734,6 +740,7 @@ private fun TpSlSection(
     onTpChange: (Double) -> Unit,
     onSlChange: (Double) -> Unit
 ) {
+    val strings = LocalStrings.current
     GlassCard(
         modifier = Modifier
             .fillMaxWidth()
@@ -746,7 +753,7 @@ private fun TpSlSection(
                 verticalAlignment = Alignment.CenterVertically
             ) {
                 Text(
-                    text = "Take Profit / Stop Loss",
+                    text = strings.tpSlLabel,
                     color = Color.White,
                     fontWeight = FontWeight.SemiBold
                 )
@@ -784,7 +791,7 @@ private fun TpSlSection(
                 // Take Profit
                 Column(modifier = Modifier.weight(1f)) {
                     Text(
-                        text = "Take Profit",
+                        text = strings.takeProfit,
                         color = PositionLong,
                         fontSize = 12.sp
                     )
@@ -808,7 +815,7 @@ private fun TpSlSection(
                 // Stop Loss
                 Column(modifier = Modifier.weight(1f)) {
                     Text(
-                        text = "Stop Loss",
+                        text = strings.stopLoss,
                         color = PositionShort,
                         fontSize = 12.sp
                     )
@@ -833,7 +840,7 @@ private fun TpSlSection(
             // Quick TP/SL presets
             Spacer(modifier = Modifier.height(12.dp))
             Text(
-                text = "Quick presets",
+                text = strings.quickPresets,
                 color = Color.White.copy(alpha = 0.5f),
                 fontSize = 11.sp
             )
@@ -934,6 +941,7 @@ private fun OrderSummary(
     accountType: String,
     exchange: String
 ) {
+    val strings = LocalStrings.current
     GlassCard(
         modifier = Modifier
             .fillMaxWidth()
@@ -941,7 +949,7 @@ private fun OrderSummary(
     ) {
         Column(modifier = Modifier.padding(16.dp)) {
             Text(
-                text = "Order Summary",
+                text = strings.orderSummary,
                 color = Color.White,
                 fontWeight = FontWeight.Bold
             )

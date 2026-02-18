@@ -24,6 +24,7 @@ import io.enliko.trading.ui.theme.LongGreen
 import io.enliko.trading.ui.theme.ShortRed
 import java.text.NumberFormat
 import java.util.*
+import io.enliko.trading.util.LocalStrings
 
 // MARK: - Data Models
 data class HLVault(
@@ -201,6 +202,7 @@ fun HyperLiquidScreen(
 
 @Composable
 private fun WalletAddressCard(address: String) {
+    val strings = LocalStrings.current
     Card(
         modifier = Modifier
             .fillMaxWidth()
@@ -218,7 +220,7 @@ private fun WalletAddressCard(address: String) {
         ) {
             Column {
                 Text(
-                    text = "Connected Wallet",
+                    text = strings.connectedWallet,
                     style = MaterialTheme.typography.bodySmall,
                     color = MaterialTheme.colorScheme.onPrimaryContainer.copy(alpha = 0.7f)
                 )
@@ -241,13 +243,14 @@ private fun VaultsTab(
     vaults: List<HLVault>,
     onFollowToggle: (HLVault) -> Unit
 ) {
+    val strings = LocalStrings.current
     LazyColumn(
         contentPadding = PaddingValues(16.dp),
         verticalArrangement = Arrangement.spacedBy(12.dp)
     ) {
         item {
             Text(
-                text = "Top Performing Vaults",
+                text = strings.topPerformingVaults,
                 style = MaterialTheme.typography.titleMedium,
                 fontWeight = FontWeight.Bold
             )
@@ -454,6 +457,7 @@ private fun TransferCard(transfer: HLTransfer) {
 
 @Composable
 private fun PointsTab(points: HLPoints) {
+    val strings = LocalStrings.current
     LazyColumn(
         contentPadding = PaddingValues(16.dp),
         verticalArrangement = Arrangement.spacedBy(16.dp)
@@ -488,7 +492,7 @@ private fun PointsTab(points: HLPoints) {
                     )
                     
                     Text(
-                        text = "Total Points",
+                        text = strings.totalPoints,
                         style = MaterialTheme.typography.bodyMedium,
                         color = MaterialTheme.colorScheme.onPrimaryContainer.copy(alpha = 0.7f)
                     )
@@ -514,7 +518,7 @@ private fun PointsTab(points: HLPoints) {
         // Breakdown
         item {
             Text(
-                text = "Points Breakdown",
+                text = strings.pointsBreakdown,
                 style = MaterialTheme.typography.titleMedium,
                 fontWeight = FontWeight.Bold
             )
@@ -608,13 +612,14 @@ private fun HLSettingsTab(
     onTestnetChange: (Boolean) -> Unit,
     walletAddress: String?
 ) {
+    val strings = LocalStrings.current
     LazyColumn(
         contentPadding = PaddingValues(16.dp),
         verticalArrangement = Arrangement.spacedBy(16.dp)
     ) {
         item {
             Text(
-                text = "Network Settings",
+                text = strings.networkSettings,
                 style = MaterialTheme.typography.titleMedium,
                 fontWeight = FontWeight.Bold
             )
@@ -636,12 +641,12 @@ private fun HLSettingsTab(
                 ) {
                     Column {
                         Text(
-                            text = "Testnet Mode",
+                            text = strings.testnetMode,
                             style = MaterialTheme.typography.titleSmall,
                             fontWeight = FontWeight.Bold
                         )
                         Text(
-                            text = "Use testnet for testing",
+                            text = strings.useTestnet,
                             style = MaterialTheme.typography.bodySmall,
                             color = MaterialTheme.colorScheme.onSurfaceVariant
                         )
@@ -656,7 +661,7 @@ private fun HLSettingsTab(
         
         item {
             Text(
-                text = "Wallet",
+                text = strings.wallet,
                 style = MaterialTheme.typography.titleMedium,
                 fontWeight = FontWeight.Bold
             )
@@ -673,7 +678,7 @@ private fun HLSettingsTab(
                     modifier = Modifier.padding(16.dp)
                 ) {
                     Text(
-                        text = "Connected Address",
+                        text = strings.connectedAddress,
                         style = MaterialTheme.typography.bodySmall,
                         color = MaterialTheme.colorScheme.onSurfaceVariant
                     )

@@ -30,6 +30,7 @@ import io.enliko.trading.ui.theme.LongGreen
 import io.enliko.trading.ui.theme.ShortRed
 import kotlinx.coroutines.delay
 import kotlin.random.Random
+import io.enliko.trading.util.LocalStrings
 
 // MARK: - Data Models
 enum class OrderType(val displayName: String) {
@@ -486,6 +487,7 @@ private fun TPSLSettings(
     onStateChange: (OrderFormState) -> Unit,
     lastPrice: Double
 ) {
+    val strings = LocalStrings.current
     Card(
         modifier = Modifier
             .fillMaxWidth()
@@ -499,7 +501,7 @@ private fun TPSLSettings(
             verticalArrangement = Arrangement.spacedBy(12.dp)
         ) {
             Text(
-                text = "Take Profit / Stop Loss",
+                text = strings.tpSlLabel,
                 style = MaterialTheme.typography.titleSmall,
                 fontWeight = FontWeight.Bold
             )
@@ -648,6 +650,7 @@ private fun LeverageBottomSheet(
     onLeverageChange: (Int) -> Unit,
     onDismiss: () -> Unit
 ) {
+    val strings = LocalStrings.current
     var tempLeverage by remember { mutableIntStateOf(currentLeverage) }
     
     ModalBottomSheet(
@@ -660,7 +663,7 @@ private fun LeverageBottomSheet(
             horizontalAlignment = Alignment.CenterHorizontally
         ) {
             Text(
-                text = "Adjust Leverage",
+                text = strings.adjustLeverage,
                 style = MaterialTheme.typography.titleLarge,
                 fontWeight = FontWeight.Bold
             )
@@ -723,6 +726,7 @@ private fun OrderConfirmationDialog(
     onConfirm: () -> Unit,
     onDismiss: () -> Unit
 ) {
+    val strings = LocalStrings.current
     val sideColor = if (state.side == TradeSide.LONG) LongGreen else ShortRed
     val quantity = state.quantity.toDoubleOrNull() ?: 0.0
     val price = state.price.toDoubleOrNull() ?: lastPrice
@@ -732,7 +736,7 @@ private fun OrderConfirmationDialog(
         onDismissRequest = onDismiss,
         title = {
             Text(
-                text = "Confirm Order",
+                text = strings.confirmOrder,
                 fontWeight = FontWeight.Bold
             )
         },

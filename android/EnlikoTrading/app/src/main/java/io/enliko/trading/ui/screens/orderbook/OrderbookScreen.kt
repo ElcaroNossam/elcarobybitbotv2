@@ -23,6 +23,7 @@ import io.enliko.trading.ui.theme.LongGreen
 import io.enliko.trading.ui.theme.ShortRed
 import kotlinx.coroutines.delay
 import kotlin.random.Random
+import io.enliko.trading.util.LocalStrings
 
 // MARK: - Data Models
 data class OrderBookLevel(
@@ -48,6 +49,7 @@ fun OrderbookScreen(
     onNavigateBack: () -> Unit = {},
     onPriceSelected: (Double) -> Unit = {}
 ) {
+    val strings = LocalStrings.current
     var mode by remember { mutableStateOf(OrderBookMode.BOTH) }
     var precision by remember { mutableIntStateOf(2) }
     var isLoading by remember { mutableStateOf(true) }
@@ -113,7 +115,7 @@ fun OrderbookScreen(
                     Column {
                         Text(symbol, fontWeight = FontWeight.Bold)
                         Text(
-                            text = "Order Book",
+                            text = strings.orderBook,
                             style = MaterialTheme.typography.bodySmall,
                             color = MaterialTheme.colorScheme.onSurfaceVariant
                         )
@@ -202,7 +204,7 @@ fun OrderbookScreen(
                         .background(MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.3f))
                 ) {
                     Text(
-                        text = "Recent Trades",
+                        text = strings.recentTrades,
                         style = MaterialTheme.typography.labelMedium,
                         fontWeight = FontWeight.Bold,
                         modifier = Modifier.padding(8.dp)
@@ -280,6 +282,7 @@ private fun OrderBookModeSelector(
 
 @Composable
 private fun OrderBookHeader() {
+    val strings = LocalStrings.current
     Row(
         modifier = Modifier
             .fillMaxWidth()
@@ -287,20 +290,20 @@ private fun OrderBookHeader() {
         horizontalArrangement = Arrangement.SpaceBetween
     ) {
         Text(
-            text = "Price",
+            text = strings.price,
             style = MaterialTheme.typography.labelSmall,
             color = MaterialTheme.colorScheme.onSurfaceVariant,
             modifier = Modifier.weight(1f)
         )
         Text(
-            text = "Qty",
+            text = strings.qty,
             style = MaterialTheme.typography.labelSmall,
             color = MaterialTheme.colorScheme.onSurfaceVariant,
             modifier = Modifier.weight(1f),
             textAlign = TextAlign.End
         )
         Text(
-            text = "Total",
+            text = strings.total,
             style = MaterialTheme.typography.labelSmall,
             color = MaterialTheme.colorScheme.onSurfaceVariant,
             modifier = Modifier.weight(1f),
@@ -454,6 +457,7 @@ private fun SpreadBar(
     spread: Double,
     precision: Int
 ) {
+    val strings = LocalStrings.current
     Card(
         modifier = Modifier
             .fillMaxWidth()
@@ -471,7 +475,7 @@ private fun SpreadBar(
         ) {
             Column {
                 Text(
-                    text = "Last Price",
+                    text = strings.lastPrice,
                     style = MaterialTheme.typography.labelSmall,
                     color = MaterialTheme.colorScheme.onSurfaceVariant
                 )
@@ -485,7 +489,7 @@ private fun SpreadBar(
             
             Column(horizontalAlignment = Alignment.CenterHorizontally) {
                 Text(
-                    text = "Spread",
+                    text = strings.spread,
                     style = MaterialTheme.typography.labelSmall,
                     color = MaterialTheme.colorScheme.onSurfaceVariant
                 )
@@ -498,7 +502,7 @@ private fun SpreadBar(
             
             Column(horizontalAlignment = Alignment.End) {
                 Text(
-                    text = "Mark Price",
+                    text = strings.markPrice,
                     style = MaterialTheme.typography.labelSmall,
                     color = MaterialTheme.colorScheme.onSurfaceVariant
                 )

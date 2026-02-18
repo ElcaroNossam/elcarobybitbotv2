@@ -148,6 +148,7 @@ fun SignalsScreen(
 
 @Composable
 private fun SignalCard(signal: Signal) {
+    val strings = LocalStrings.current
     val isLong = signal.side.lowercase() == "long" || signal.side.lowercase() == "buy"
     val sideColor = if (isLong) LongGreen else ShortRed
     
@@ -205,7 +206,7 @@ private fun SignalCard(signal: Signal) {
             ) {
                 Column {
                     Text(
-                        text = "Entry",
+                        text = strings.entry,
                         style = MaterialTheme.typography.labelSmall,
                         color = MaterialTheme.colorScheme.onSurfaceVariant
                     )
@@ -219,7 +220,7 @@ private fun SignalCard(signal: Signal) {
                 signal.takeProfit?.let { tp ->
                     Column(horizontalAlignment = Alignment.CenterHorizontally) {
                         Text(
-                            text = "TP",
+                            text = strings.tp,
                             style = MaterialTheme.typography.labelSmall,
                             color = LongGreen
                         )
@@ -235,7 +236,7 @@ private fun SignalCard(signal: Signal) {
                 signal.stopLoss?.let { sl ->
                     Column(horizontalAlignment = Alignment.End) {
                         Text(
-                            text = "SL",
+                            text = strings.sl,
                             style = MaterialTheme.typography.labelSmall,
                             color = ShortRed
                         )

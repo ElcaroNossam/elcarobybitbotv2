@@ -305,6 +305,7 @@ private fun TotalBalanceCard(
     balance: BalanceData?,
     strings: io.enliko.trading.util.Strings
 ) {
+    val strings = LocalStrings.current
     val formatter = remember { 
         NumberFormat.getCurrencyInstance(Locale.US).apply {
             minimumFractionDigits = 2
@@ -409,6 +410,7 @@ private fun SpotBalanceCard(
     spotPortfolio: SpotPortfolio?,
     strings: io.enliko.trading.util.Strings
 ) {
+    val strings = LocalStrings.current
     val formatter = remember { 
         NumberFormat.getCurrencyInstance(Locale.US).apply {
             minimumFractionDigits = 2
@@ -473,6 +475,7 @@ private fun FuturesBalanceCard(
     balance: BalanceData?,
     strings: io.enliko.trading.util.Strings
 ) {
+    val strings = LocalStrings.current
     val formatter = remember { 
         NumberFormat.getCurrencyInstance(Locale.US).apply {
             minimumFractionDigits = 2
@@ -774,7 +777,7 @@ private fun CandleClusterSheet(
                         ) {
                             Column(horizontalAlignment = Alignment.CenterHorizontally) {
                                 Text(
-                                    text = "LONG",
+                                    text = strings.longLabel,
                                     style = MaterialTheme.typography.labelMedium,
                                     color = LongGreen,
                                     fontWeight = FontWeight.Bold
@@ -791,7 +794,7 @@ private fun CandleClusterSheet(
                             
                             Column(horizontalAlignment = Alignment.CenterHorizontally) {
                                 Text(
-                                    text = "SHORT",
+                                    text = strings.shortLabel,
                                     style = MaterialTheme.typography.labelMedium,
                                     color = ShortRed,
                                     fontWeight = FontWeight.Bold
@@ -971,6 +974,7 @@ private fun TradeRow(
 
 @Composable
 private fun StatsCard(stats: TradeStatsData, strings: io.enliko.trading.util.Strings) {
+    val strings = LocalStrings.current
     Card(
         modifier = Modifier.fillMaxWidth(),
         colors = CardDefaults.cardColors(
@@ -1014,6 +1018,7 @@ private fun PositionsHeader(
     strings: io.enliko.trading.util.Strings,
     onCloseAll: () -> Unit
 ) {
+    val strings = LocalStrings.current
     Row(
         modifier = Modifier.fillMaxWidth(),
         horizontalArrangement = Arrangement.SpaceBetween,
@@ -1035,6 +1040,7 @@ private fun PositionsHeader(
 
 @Composable
 private fun EmptyPositionsCard(strings: io.enliko.trading.util.Strings) {
+    val strings = LocalStrings.current
     Card(
         modifier = Modifier.fillMaxWidth(),
         colors = CardDefaults.cardColors(
@@ -1128,6 +1134,7 @@ private fun PositionCard(
     strings: io.enliko.trading.util.Strings,
     onClose: () -> Unit
 ) {
+    val strings = LocalStrings.current
     val isLong = position.side.equals("Buy", ignoreCase = true) || 
                  position.side.equals("Long", ignoreCase = true)
     val pnl = position.unrealizedPnl ?: 0.0

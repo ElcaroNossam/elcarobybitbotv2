@@ -309,6 +309,7 @@ private fun TradeCard(trade: TradeRecord) {
 
 @Composable
 private fun FundingTab(fundings: List<FundingRecord>) {
+    val strings = LocalStrings.current
     if (fundings.isEmpty()) {
         EmptyHistoryView("No funding history")
     } else {
@@ -334,7 +335,7 @@ private fun FundingTab(fundings: List<FundingRecord>) {
                         verticalAlignment = Alignment.CenterVertically
                     ) {
                         Text(
-                            text = "Total Funding",
+                            text = strings.totalFunding,
                             style = MaterialTheme.typography.titleMedium
                         )
                         Text(

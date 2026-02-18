@@ -146,7 +146,7 @@ fun TradingScreen(
                     modifier = Modifier.padding(16.dp)
                 ) {
                     Text(
-                        text = "Order Settings",
+                        text = strings.orderSettings,
                         style = MaterialTheme.typography.titleMedium,
                         fontWeight = FontWeight.SemiBold
                     )

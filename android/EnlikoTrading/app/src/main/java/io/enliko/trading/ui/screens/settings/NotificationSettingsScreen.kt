@@ -14,6 +14,7 @@ import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.unit.dp
 import io.enliko.trading.ui.theme.*
 import io.enliko.trading.util.Strings
+import io.enliko.trading.util.LocalStrings
 
 /**
  * Notification Settings Screen - synced with iOS and WebApp
@@ -24,6 +25,7 @@ fun NotificationSettingsScreen(
     strings: Strings,
     onBack: () -> Unit
 ) {
+    val strings = LocalStrings.current
     // Notification states
     var tradesEnabled by remember { mutableStateOf(true) }
     var signalsEnabled by remember { mutableStateOf(true) }
@@ -60,7 +62,7 @@ fun NotificationSettingsScreen(
             item {
                 Spacer(modifier = Modifier.height(8.dp))
                 Text(
-                    text = "Notification Categories",
+                    text = strings.notificationCategories,
                     style = MaterialTheme.typography.labelLarge,
                     color = DarkOnSurfaceVariant
                 )
@@ -119,7 +121,7 @@ fun NotificationSettingsScreen(
             item {
                 Spacer(modifier = Modifier.height(16.dp))
                 Text(
-                    text = "Preferences",
+                    text = strings.preferences,
                     style = MaterialTheme.typography.labelLarge,
                     color = DarkOnSurfaceVariant
                 )

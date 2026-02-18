@@ -29,6 +29,17 @@ struct PriceAlert: Identifiable {
         case percentUp = "% Change Up"
         case percentDown = "% Change Down"
         
+        var displayName: String {
+            switch self {
+            case .above: return "alert_cond_above".localized
+            case .below: return "alert_cond_below".localized
+            case .crossUp: return "alert_cond_cross_up".localized
+            case .crossDown: return "alert_cond_cross_down".localized
+            case .percentUp: return "alert_cond_pct_up".localized
+            case .percentDown: return "alert_cond_pct_down".localized
+            }
+        }
+        
         var icon: String {
             switch self {
             case .above, .crossUp, .percentUp: return "arrow.up"
@@ -52,6 +63,14 @@ struct AlertsView: View {
         case active = "Active"
         case triggered = "Triggered"
         case all = "All"
+        
+        var displayName: String {
+            switch self {
+            case .active: return "alert_tab_active".localized
+            case .triggered: return "alert_tab_triggered".localized
+            case .all: return "alert_tab_all".localized
+            }
+        }
     }
     
     var body: some View {
@@ -67,7 +86,7 @@ struct AlertsView: View {
             }
         }
         .background(Color.enlikoBackground)
-        .navigationTitle("Price Alerts")
+        .navigationTitle("alert_title".localized)
         .navigationBarTitleDisplayMode(.large)
         .toolbar {
             ToolbarItem(placement: .primaryAction) {
@@ -86,13 +105,13 @@ struct AlertsView: View {
         .sheet(item: $alertToEdit) { alert in
             CreateAlertSheet(editingAlert: alert)
         }
-        .confirmationDialog("Delete Alert?", isPresented: $showDeleteConfirm, presenting: alertToDelete) { alert in
-            Button("Delete", role: .destructive) {
+        .confirmationDialog("alert_delete_confirm".localized, isPresented: $showDeleteConfirm, presenting: alertToDelete) { alert in
+            Button("btn_delete".localized, role: .destructive) {
                 if let index = alerts.firstIndex(where: { $0.id == alert.id }) {
                     alerts.remove(at: index)
                 }
             }
-            Button("Cancel", role: .cancel) {}
+            Button("btn_cancel".localized, role: .cancel) {}
         }
         .onAppear {
             loadMockAlerts()
@@ -108,7 +127,7 @@ struct AlertsView: View {
                 } label: {
                     VStack(spacing: 6) {
                         HStack(spacing: 4) {
-                            Text(tab.rawValue)
+                            Text(tab.displayName)
                                 .font(.subheadline.bold())
                             
                             // Count badge
@@ -162,11 +181,11 @@ struct AlertsView: View {
                 .font(.system(size: 60))
                 .foregroundColor(.secondary.opacity(0.5))
             
-            Text("No Price Alerts")
+            Text("alert_empty_title".localized)
                 .font(.title2.bold())
                 .foregroundColor(.white)
             
-            Text("Create alerts to get notified when\nprices reach your targets")
+            Text("alert_empty_desc".localized)
                 .font(.subheadline)
                 .foregroundColor(.secondary)
                 .multilineTextAlignment(.center)
@@ -275,7 +294,7 @@ struct AlertRow: View {
                         .font(.caption)
                         .foregroundColor(conditionColor)
                     
-                    Text(alert.condition.rawValue)
+                    Text(alert.condition.displayName)
                         .font(.caption)
                         .foregroundColor(.secondary)
                 }
@@ -283,7 +302,7 @@ struct AlertRow: View {
                 HStack(spacing: 16) {
                     // Target Price
                     VStack(alignment: .leading, spacing: 2) {
-                        Text("Target")
+                        Text("alert_target".localized)
                             .font(.caption2)
                             .foregroundColor(.secondary)
                         Text("$\(alert.targetPrice, specifier: "%.2f")")
@@ -293,7 +312,7 @@ struct AlertRow: View {
                     
                     // Current Price
                     VStack(alignment: .leading, spacing: 2) {
-                        Text("Current")
+                        Text("alert_current".localized)
                             .font(.caption2)
                             .foregroundColor(.secondary)
                         Text("$\(alert.currentPrice, specifier: "%.2f")")
@@ -303,7 +322,7 @@ struct AlertRow: View {
                     
                     // Distance
                     VStack(alignment: .leading, spacing: 2) {
-                        Text("Distance")
+                        Text("alert_distance".localized)
                             .font(.caption2)
                             .foregroundColor(.secondary)
                         Text(distanceText)
@@ -402,7 +421,7 @@ struct CreateAlertSheet: View {
                 VStack(spacing: 24) {
                     // Symbol Selector
                     VStack(alignment: .leading, spacing: 8) {
-                        Text("Symbol")
+                        Text("alert_symbol".localized)
                             .font(.subheadline.bold())
                             .foregroundColor(.secondary)
                         
@@ -446,7 +465,7 @@ struct CreateAlertSheet: View {
                     
                     // Condition Selector
                     VStack(alignment: .leading, spacing: 8) {
-                        Text("Condition")
+                        Text("alert_condition".localized)
                             .font(.subheadline.bold())
                             .foregroundColor(.secondary)
                         
@@ -475,7 +494,7 @@ struct CreateAlertSheet: View {
                     
                     // Target Price
                     VStack(alignment: .leading, spacing: 8) {
-                        Text("Target Price")
+                        Text("alert_target_price".localized)
                             .font(.subheadline.bold())
                             .foregroundColor(.secondary)
                         
@@ -498,11 +517,11 @@ struct CreateAlertSheet: View {
                     
                     // Note
                     VStack(alignment: .leading, spacing: 8) {
-                        Text("Note (optional)")
+                        Text("alert_note".localized)
                             .font(.subheadline.bold())
                             .foregroundColor(.secondary)
                         
-                        TextField("Add a note...", text: $note)
+                        TextField("alert_add_note".localized, text: $note)
                             .padding()
                             .background(Color.enlikoSurface)
                             .cornerRadius(12)
@@ -514,7 +533,7 @@ struct CreateAlertSheet: View {
                             HStack {
                                 Image(systemName: "bell.fill")
                                     .foregroundColor(.enlikoPrimary)
-                                Text("Push Notification")
+                                Text("alert_push_notif".localized)
                             }
                         }
                         .toggleStyle(SwitchToggleStyle(tint: .enlikoPrimary))
@@ -523,7 +542,7 @@ struct CreateAlertSheet: View {
                             HStack {
                                 Image(systemName: "speaker.wave.2.fill")
                                     .foregroundColor(.enlikoPrimary)
-                                Text("Sound")
+                                Text("alert_sound".localized)
                             }
                         }
                         .toggleStyle(SwitchToggleStyle(tint: .enlikoPrimary))
@@ -532,7 +551,7 @@ struct CreateAlertSheet: View {
                             HStack {
                                 Image(systemName: "repeat")
                                     .foregroundColor(.enlikoPrimary)
-                                Text("Repeat Alert")
+                                Text("alert_repeat".localized)
                             }
                         }
                         .toggleStyle(SwitchToggleStyle(tint: .enlikoPrimary))
@@ -598,7 +617,7 @@ struct SymbolPickerSheet: View {
                     Image(systemName: "magnifyingglass")
                         .foregroundColor(.secondary)
                     
-                    TextField("Search symbol", text: $searchText)
+                    TextField("alert_search_symbol".localized, text: $searchText)
                 }
                 .padding()
                 .background(Color.enlikoSurface)

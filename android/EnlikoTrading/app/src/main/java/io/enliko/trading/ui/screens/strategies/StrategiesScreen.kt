@@ -22,6 +22,7 @@ import androidx.compose.ui.unit.dp
 import io.enliko.trading.ui.theme.LongGreen
 import io.enliko.trading.ui.theme.ShortRed
 import kotlinx.coroutines.delay
+import io.enliko.trading.util.LocalStrings
 
 // MARK: - Data Models
 data class Strategy(
@@ -115,6 +116,7 @@ fun StrategiesScreen(
 
 @Composable
 private fun StrategiesOverviewCard(strategies: List<Strategy>) {
+    val strings = LocalStrings.current
     val enabledCount = strategies.count { it.isEnabled }
     val totalPnL = strategies.sumOf { it.pnl }
     val totalTrades = strategies.sumOf { it.trades }
@@ -128,7 +130,7 @@ private fun StrategiesOverviewCard(strategies: List<Strategy>) {
     ) {
         Column(modifier = Modifier.padding(16.dp)) {
             Text(
-                text = "Strategies Overview",
+                text = strings.strategiesOverview,
                 style = MaterialTheme.typography.titleMedium,
                 fontWeight = FontWeight.Bold
             )

@@ -25,6 +25,7 @@ import io.enliko.trading.ui.theme.LongGreen
 import io.enliko.trading.ui.theme.ShortRed
 import kotlinx.coroutines.delay
 import kotlin.random.Random
+import io.enliko.trading.util.LocalStrings
 
 // MARK: - Data Models
 data class TradingStats(
@@ -186,6 +187,7 @@ fun StatsScreen(
 
 @Composable
 private fun MainStatsCard(stats: TradingStats) {
+    val strings = LocalStrings.current
     Card(
         modifier = Modifier.fillMaxWidth(),
         shape = RoundedCornerShape(16.dp)
@@ -193,7 +195,7 @@ private fun MainStatsCard(stats: TradingStats) {
         Column(modifier = Modifier.padding(16.dp)) {
             // Total PnL
             Text(
-                text = "Total PnL",
+                text = strings.totalPnl,
                 style = MaterialTheme.typography.labelMedium,
                 color = MaterialTheme.colorScheme.onSurfaceVariant
             )
@@ -280,13 +282,14 @@ private fun QuickStatItem(
 
 @Composable
 private fun PnLChartCard(dailyPnL: List<DailyPnL>) {
+    val strings = LocalStrings.current
     Card(
         modifier = Modifier.fillMaxWidth(),
         shape = RoundedCornerShape(16.dp)
     ) {
         Column(modifier = Modifier.padding(16.dp)) {
             Text(
-                text = "PnL Chart",
+                text = strings.pnlChartTitle,
                 style = MaterialTheme.typography.titleMedium,
                 fontWeight = FontWeight.Bold
             )
@@ -356,13 +359,14 @@ private fun PnLChart(
 
 @Composable
 private fun PerformanceMetricsCard(stats: TradingStats) {
+    val strings = LocalStrings.current
     Card(
         modifier = Modifier.fillMaxWidth(),
         shape = RoundedCornerShape(16.dp)
     ) {
         Column(modifier = Modifier.padding(16.dp)) {
             Text(
-                text = "Performance Metrics",
+                text = strings.performanceMetrics,
                 style = MaterialTheme.typography.titleMedium,
                 fontWeight = FontWeight.Bold
             )
@@ -416,13 +420,14 @@ private fun MetricRow(
 
 @Composable
 private fun WinLossDistributionCard(stats: TradingStats) {
+    val strings = LocalStrings.current
     Card(
         modifier = Modifier.fillMaxWidth(),
         shape = RoundedCornerShape(16.dp)
     ) {
         Column(modifier = Modifier.padding(16.dp)) {
             Text(
-                text = "Win/Loss Distribution",
+                text = strings.winLossDistribution,
                 style = MaterialTheme.typography.titleMedium,
                 fontWeight = FontWeight.Bold
             )
@@ -505,13 +510,14 @@ private fun WinLossDistributionCard(stats: TradingStats) {
 
 @Composable
 private fun StrategyBreakdownCard(strategies: List<StrategyStats>) {
+    val strings = LocalStrings.current
     Card(
         modifier = Modifier.fillMaxWidth(),
         shape = RoundedCornerShape(16.dp)
     ) {
         Column(modifier = Modifier.padding(16.dp)) {
             Text(
-                text = "Strategy Breakdown",
+                text = strings.strategyBreakdown,
                 style = MaterialTheme.typography.titleMedium,
                 fontWeight = FontWeight.Bold
             )
@@ -567,13 +573,14 @@ private fun StrategyBreakdownCard(strategies: List<StrategyStats>) {
 
 @Composable
 private fun TopSymbolsCard(symbols: List<SymbolStats>) {
+    val strings = LocalStrings.current
     Card(
         modifier = Modifier.fillMaxWidth(),
         shape = RoundedCornerShape(16.dp)
     ) {
         Column(modifier = Modifier.padding(16.dp)) {
             Text(
-                text = "Top Symbols",
+                text = strings.topSymbols,
                 style = MaterialTheme.typography.titleMedium,
                 fontWeight = FontWeight.Bold
             )

@@ -19,6 +19,7 @@ import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import io.enliko.trading.ui.theme.*
+import io.enliko.trading.util.LocalStrings
 
 /**
  * AdminScreen - Matching iOS AdminView.swift
@@ -117,6 +118,7 @@ fun AdminScreen(
 
 @Composable
 private fun OverviewTab() {
+    val strings = LocalStrings.current
     val metrics = remember {
         listOf(
             SystemMetric("Active Users", "1,247", Icons.Default.People, EnlikoGreen),
@@ -133,7 +135,7 @@ private fun OverviewTab() {
         // Quick stats
         item {
             Text(
-                text = "Quick Stats",
+                text = strings.quickStats,
                 style = MaterialTheme.typography.titleMedium,
                 fontWeight = FontWeight.SemiBold,
                 color = EnlikoTextPrimary
@@ -166,7 +168,7 @@ private fun OverviewTab() {
         item {
             Spacer(modifier = Modifier.height(8.dp))
             Text(
-                text = "Recent Activity",
+                text = strings.recentActivity,
                 style = MaterialTheme.typography.titleMedium,
                 fontWeight = FontWeight.SemiBold,
                 color = EnlikoTextPrimary
@@ -191,7 +193,7 @@ private fun OverviewTab() {
         item {
             Spacer(modifier = Modifier.height(8.dp))
             Text(
-                text = "Quick Actions",
+                text = strings.quickActions,
                 style = MaterialTheme.typography.titleMedium,
                 fontWeight = FontWeight.SemiBold,
                 color = EnlikoTextPrimary

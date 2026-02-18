@@ -22,6 +22,7 @@ import io.enliko.trading.data.api.PositionData
 import io.enliko.trading.ui.theme.*
 import java.text.NumberFormat
 import java.util.Locale
+import io.enliko.trading.util.LocalStrings
 
 /**
  * PositionsScreen - Matching iOS PositionsView.swift
@@ -422,6 +423,7 @@ private fun PriceInfoColumn(label: String, value: String) {
 
 @Composable
 private fun EmptyPositionsState() {
+    val strings = LocalStrings.current
     Card(
         modifier = Modifier.fillMaxWidth(),
         colors = CardDefaults.cardColors(containerColor = EnlikoCard),
@@ -441,13 +443,13 @@ private fun EmptyPositionsState() {
                 tint = EnlikoTextSecondary
             )
             Text(
-                text = "No Open Positions",
+                text = strings.noOpenPositions,
                 style = MaterialTheme.typography.titleMedium,
                 fontWeight = FontWeight.SemiBold,
                 color = EnlikoTextPrimary
             )
             Text(
-                text = "Your open positions will appear here",
+                text = strings.positionsWillAppear,
                 style = MaterialTheme.typography.bodyMedium,
                 color = EnlikoTextSecondary,
                 textAlign = TextAlign.Center
