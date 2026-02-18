@@ -90,6 +90,20 @@ struct TradingHubView: View {
                 }
             }
         }
+        // Refresh when exchange or account type changes
+        .onChange(of: appState.currentExchange) { _, _ in
+            Task { await tradingService.refreshAll() }
+        }
+        .onChange(of: appState.currentAccountType) { _, _ in
+            Task { await tradingService.refreshAll() }
+        }
+        .task {
+            // Initial data load for this view
+            if tradingService.positions.isEmpty && !tradingService.isLoadingPositions {
+                await tradingService.fetchPositions()
+                await tradingService.fetchOrders()
+            }
+        }
     }
     
     // MARK: - Market Type Picker (Futures / Spot)
@@ -477,7 +491,18 @@ struct TradingHubView: View {
     
     private var positionsContent: some View {
         Group {
-            if tradingService.positions.isEmpty {
+            if tradingService.isLoadingPositions {
+                VStack(spacing: 16) {
+                    ProgressView()
+                        .scaleEffect(1.5)
+                        .tint(.enlikoPrimary)
+                    Text("positions_loading".localized)
+                        .font(.subheadline)
+                        .foregroundColor(.secondary)
+                }
+                .frame(maxWidth: .infinity)
+                .padding(.vertical, 40)
+            } else if tradingService.positions.isEmpty {
                 emptyPositionsView
             } else {
                 ForEach(tradingService.positions) { position in

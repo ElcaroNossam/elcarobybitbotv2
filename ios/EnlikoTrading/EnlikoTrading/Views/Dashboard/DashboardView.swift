@@ -195,9 +195,19 @@ struct DashboardView: View {
     private var balanceCard: some View {
         VStack(spacing: 16) {
             VStack(spacing: 8) {
-                Text("total_balance".localized)
-                    .font(.subheadline)
-                    .foregroundColor(.enlikoTextSecondary)
+                HStack(spacing: 6) {
+                    Text("total_balance".localized)
+                        .font(.subheadline)
+                        .foregroundColor(.enlikoTextSecondary)
+                    // Currency badge (USDT for Bybit, USDC for HyperLiquid)
+                    Text(appState.currentExchange == .hyperliquid ? "USDC" : "USDT")
+                        .font(.caption2.weight(.bold))
+                        .padding(.horizontal, 6)
+                        .padding(.vertical, 2)
+                        .background(Color.enlikoPrimary.opacity(0.2))
+                        .foregroundColor(.enlikoPrimary)
+                        .cornerRadius(4)
+                }
                 
                 if viewModel.isLoading {
                     ProgressView()

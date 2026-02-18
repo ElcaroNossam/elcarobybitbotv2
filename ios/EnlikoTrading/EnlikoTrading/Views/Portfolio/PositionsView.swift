@@ -29,15 +29,12 @@ struct PositionsView: View {
                     // Tab Selector
                     tabSelector
                     
-                    // Content
-                    TabView(selection: $selectedTab) {
+                    // Content — conditional rendering (no TabView.page to avoid scroll blocking)
+                    if selectedTab == 0 {
                         positionsList
-                            .tag(0)
-                        
+                    } else {
                         ordersList
-                            .tag(1)
                     }
-                    .tabViewStyle(.page(indexDisplayMode: .never))
                 }
             }
             .navigationTitle("positions_title".localized)
