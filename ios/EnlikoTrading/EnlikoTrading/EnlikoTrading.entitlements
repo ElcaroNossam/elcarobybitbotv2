@@ -9,6 +9,10 @@
         <string>webcredentials:enliko.com</string>
     </array>
     
+    <!-- Push Notifications -->
+    <key>aps-environment</key>
+    <string>production</string>
+    
     <!-- Keychain Access Groups -->
     <key>keychain-access-groups</key>
     <array>

@@ -2,24 +2,49 @@
 //  NotificationSettingsView.swift
 //  EnlikoTrading
 //
-//  Notification settings - synced with Android and WebApp
+//  Notification settings - synced with server via PushNotificationService
 //
 
 import SwiftUI
 
 struct NotificationSettingsView: View {
-    @AppStorage("notifications_trades") private var tradesEnabled = true
-    @AppStorage("notifications_signals") private var signalsEnabled = true
-    @AppStorage("notifications_price_alerts") private var priceAlertsEnabled = true
-    @AppStorage("notifications_daily_summary") private var dailySummaryEnabled = false
-    @AppStorage("notifications_sound") private var soundEnabled = true
-    @AppStorage("notifications_vibration") private var vibrationEnabled = true
+    @ObservedObject private var pushService = PushNotificationService.shared
+    @State private var isLoading = true
+    @State private var permissionGranted = false
     
     var body: some View {
         List {
+            // MARK: - Push Permission Status
+            if !permissionGranted {
+                Section {
+                    Button {
+                        Task {
+                            await pushService.requestPermission()
+                            await checkPermission()
+                        }
+                    } label: {
+                        HStack {
+                            Image(systemName: "exclamationmark.triangle.fill")
+                                .foregroundColor(.orange)
+                            VStack(alignment: .leading) {
+                                Text("notification_enable_push".localized)
+                                    .foregroundColor(.enlikoText)
+                                Text("notification_enable_push_desc".localized)
+                                    .font(.caption)
+                                    .foregroundColor(.enlikoTextSecondary)
+                            }
+                            Spacer()
+                            Image(systemName: "chevron.right")
+                                .foregroundColor(.enlikoTextSecondary)
+                        }
+                    }
+                }
+                .listRowBackground(Color.enlikoCard)
+            }
+            
             // MARK: - Trading Notifications
             Section {
-                Toggle(isOn: $tradesEnabled) {
+                Toggle(isOn: $pushService.preferences.tradesEnabled) {
                     HStack {
                         Image(systemName: "arrow.left.arrow.right.circle.fill")
                             .foregroundColor(.enlikoPrimary)
@@ -34,7 +59,65 @@ struct NotificationSettingsView: View {
                 }
                 .tint(.enlikoPrimary)
                 
-                Toggle(isOn: $signalsEnabled) {
+                if pushService.preferences.tradesEnabled {
+                    Toggle(isOn: $pushService.preferences.tradeClosed) {
+                        HStack(spacing: 12) {
+                            Rectangle().fill(Color.clear).frame(width: 20)
+                            VStack(alignment: .leading) {
+                                Text("notification_tp_sl".localized)
+                                    .foregroundColor(.enlikoText)
+                                Text("notification_tp_sl_desc".localized)
+                                    .font(.caption)
+                                    .foregroundColor(.enlikoTextSecondary)
+                            }
+                        }
+                    }
+                    .tint(.enlikoPrimary)
+                    
+                    Toggle(isOn: $pushService.preferences.tradeOpened) {
+                        HStack(spacing: 12) {
+                            Rectangle().fill(Color.clear).frame(width: 20)
+                            VStack(alignment: .leading) {
+                                Text("notification_trade_opened".localized)
+                                    .foregroundColor(.enlikoText)
+                                Text("notification_trade_opened_desc".localized)
+                                    .font(.caption)
+                                    .foregroundColor(.enlikoTextSecondary)
+                            }
+                        }
+                    }
+                    .tint(.enlikoPrimary)
+                    
+                    Toggle(isOn: $pushService.preferences.breakEven) {
+                        HStack(spacing: 12) {
+                            Rectangle().fill(Color.clear).frame(width: 20)
+                            VStack(alignment: .leading) {
+                                Text("notification_break_even".localized)
+                                    .foregroundColor(.enlikoText)
+                                Text("notification_break_even_desc".localized)
+                                    .font(.caption)
+                                    .foregroundColor(.enlikoTextSecondary)
+                            }
+                        }
+                    }
+                    .tint(.enlikoPrimary)
+                    
+                    Toggle(isOn: $pushService.preferences.partialTp) {
+                        HStack(spacing: 12) {
+                            Rectangle().fill(Color.clear).frame(width: 20)
+                            VStack(alignment: .leading) {
+                                Text("notification_partial_tp".localized)
+                                    .foregroundColor(.enlikoText)
+                                Text("notification_partial_tp_desc".localized)
+                                    .font(.caption)
+                                    .foregroundColor(.enlikoTextSecondary)
+                            }
+                        }
+                    }
+                    .tint(.enlikoPrimary)
+                }
+                
+                Toggle(isOn: $pushService.preferences.signalsEnabled) {
                     HStack {
                         Image(systemName: "bell.badge.fill")
                             .foregroundColor(.enlikoSecondary)
@@ -49,7 +132,7 @@ struct NotificationSettingsView: View {
                 }
                 .tint(.enlikoPrimary)
                 
-                Toggle(isOn: $priceAlertsEnabled) {
+                Toggle(isOn: $pushService.preferences.priceAlertsEnabled) {
                     HStack {
                         Image(systemName: "chart.line.uptrend.xyaxis")
                             .foregroundColor(.enlikoAccent)
@@ -64,7 +147,7 @@ struct NotificationSettingsView: View {
                 }
                 .tint(.enlikoPrimary)
                 
-                Toggle(isOn: $dailySummaryEnabled) {
+                Toggle(isOn: $pushService.preferences.dailyReportEnabled) {
                     HStack {
                         Image(systemName: "calendar")
                             .foregroundColor(.enlikoGreen)
@@ -72,6 +155,21 @@ struct NotificationSettingsView: View {
                             Text("notification_daily_summary".localized)
                                 .foregroundColor(.enlikoText)
                             Text("notification_daily_summary_desc".localized)
+                                .font(.caption)
+                                .foregroundColor(.enlikoTextSecondary)
+                        }
+                    }
+                }
+                .tint(.enlikoPrimary)
+                
+                Toggle(isOn: $pushService.preferences.marginWarning) {
+                    HStack {
+                        Image(systemName: "exclamationmark.triangle.fill")
+                            .foregroundColor(.enlikoRed)
+                        VStack(alignment: .leading) {
+                            Text("notification_margin_warning".localized)
+                                .foregroundColor(.enlikoText)
+                            Text("notification_margin_warning_desc".localized)
                                 .font(.caption)
                                 .foregroundColor(.enlikoTextSecondary)
                         }
@@ -86,7 +184,7 @@ struct NotificationSettingsView: View {
             
             // MARK: - Notification Preferences
             Section {
-                Toggle(isOn: $soundEnabled) {
+                Toggle(isOn: $pushService.preferences.soundEnabled) {
                     HStack {
                         Image(systemName: "speaker.wave.2.fill")
                             .foregroundColor(.enlikoText)
@@ -96,7 +194,7 @@ struct NotificationSettingsView: View {
                 }
                 .tint(.enlikoPrimary)
                 
-                Toggle(isOn: $vibrationEnabled) {
+                Toggle(isOn: $pushService.preferences.vibrationEnabled) {
                     HStack {
                         Image(systemName: "iphone.radiowaves.left.and.right")
                             .foregroundColor(.enlikoText)
@@ -116,6 +214,29 @@ struct NotificationSettingsView: View {
         .background(Color.enlikoBackground)
         .navigationTitle("settings_notifications".localized)
         .navigationBarTitleDisplayMode(.inline)
+        .overlay {
+            if isLoading {
+                ProgressView()
+            }
+        }
+        .task {
+            await checkPermission()
+            await pushService.loadPreferences()
+            isLoading = false
+        }
+        .onChange(of: pushService.preferences) { _, _ in
+            Task {
+                await pushService.savePreferences()
+            }
+        }
+    }
+    
+    private func checkPermission() async {
+        let center = UNUserNotificationCenter.current()
+        let settings = await center.notificationSettings()
+        await MainActor.run {
+            permissionGranted = settings.authorizationStatus == .authorized
+        }
     }
 }
 

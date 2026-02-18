@@ -31,18 +31,28 @@ logger = logging.getLogger(__name__)
 # APNs Configuration
 # ============================================================================
 
-# TODO: Set these in environment variables
-APNS_KEY_ID = "YOUR_KEY_ID"  # From Apple Developer Portal
-APNS_TEAM_ID = "NDGY75Y29A"  # Your Team ID
+import os
+
+# APNs Configuration — from environment or defaults
+APNS_KEY_ID = os.environ.get("APNS_KEY_ID", "DAJ5RF8F46")
+APNS_TEAM_ID = os.environ.get("APNS_TEAM_ID", "NDGY75Y29A")
 APNS_BUNDLE_ID = "io.enliko.trading"
-APNS_AUTH_KEY_PATH = "/path/to/AuthKey_XXXX.p8"  # Download from Apple
+
+# Auth key path — search multiple locations
+_AUTH_KEY_FILENAME = f"AuthKey_{APNS_KEY_ID}.p8"
+_possible_paths = [
+    os.environ.get("APNS_AUTH_KEY_PATH", ""),
+    os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), _AUTH_KEY_FILENAME),
+    f"/home/ubuntu/project/elcarobybitbotv2/{_AUTH_KEY_FILENAME}",
+]
+APNS_AUTH_KEY_PATH = next((p for p in _possible_paths if p and os.path.exists(p)), _possible_paths[1])
 
 # APNs endpoints
 APNS_PRODUCTION = "https://api.push.apple.com"
 APNS_SANDBOX = "https://api.sandbox.push.apple.com"
 
-# Use sandbox for development, production for App Store
-APNS_HOST = APNS_SANDBOX  # Change to APNS_PRODUCTION for production
+# Use production for TestFlight/App Store builds, sandbox only for Xcode debug
+APNS_HOST = os.environ.get("APNS_HOST", APNS_PRODUCTION)
 
 
 @dataclass
@@ -220,10 +230,50 @@ class APNsService:
     async def send_to_user(self, user_id: int, payload: PushPayload) -> int:
         """
         Send push to all active devices of user.
+        Checks user's notification preferences before sending.
         
         Returns:
             Number of successful sends
         """
+        # Check user notification preferences
+        try:
+            prefs = execute_one("""
+                SELECT trades_enabled, signals_enabled, price_alerts_enabled,
+                       daily_report_enabled, trade_opened, trade_closed,
+                       break_even, partial_tp, margin_warning
+                FROM notification_preferences WHERE user_id = %s
+            """, (user_id,))
+            
+            if prefs:
+                category = payload.category or ""
+                p = prefs if isinstance(prefs, dict) else {}
+                
+                # Map APNs categories to preference keys
+                if category == "TRADE_CLOSED" and not p.get("trade_closed", True):
+                    logger.debug(f"User {user_id} disabled trade_closed notifications")
+                    return 0
+                if category == "TRADE_OPENED" and not p.get("trade_opened", True):
+                    logger.debug(f"User {user_id} disabled trade_opened notifications")
+                    return 0
+                if category == "BREAK_EVEN" and not p.get("break_even", True):
+                    logger.debug(f"User {user_id} disabled break_even notifications")
+                    return 0
+                if category == "PARTIAL_TP" and not p.get("partial_tp", True):
+                    logger.debug(f"User {user_id} disabled partial_tp notifications")
+                    return 0
+                if category == "SIGNAL" and not p.get("signals_enabled", True):
+                    logger.debug(f"User {user_id} disabled signal notifications")
+                    return 0
+                if category == "MARGIN_WARNING" and not p.get("margin_warning", True):
+                    logger.debug(f"User {user_id} disabled margin_warning notifications")
+                    return 0
+                if category in ("TRADE_CLOSED", "TRADE_OPENED") and not p.get("trades_enabled", True):
+                    logger.debug(f"User {user_id} disabled all trade notifications")
+                    return 0
+        except Exception as e:
+            logger.debug(f"Could not check preferences for user {user_id}: {e}")
+            # If preferences can't be loaded, send notification anyway
+        
         devices = execute("""
             SELECT device_token FROM user_devices
             WHERE user_id = %s AND device_type = 'ios' AND is_active = TRUE
