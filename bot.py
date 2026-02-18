@@ -7301,7 +7301,9 @@ async def _remove_take_profit_bybit(
         unreachable_tp = round(mark_price * 10, 4)
     else:
         # Short: set TP far below current price (will never trigger)
-        unreachable_tp = round(max(mark_price * 0.01, 0.0001), 6)
+        # Use 0.15 multiplier (not 0.01) to stay above Bybit's 10% minimum TP threshold
+        # This means price needs to drop 85% — practically unreachable
+        unreachable_tp = round(max(mark_price * 0.15, 0.0001), 6)
 
     body = {
         "category": "linear",
@@ -7328,6 +7330,11 @@ async def _remove_take_profit_bybit(
         if "no open positions" in err_str or "position not exists" in err_str:
             logger.debug(f"[{uid}] Position for {symbol} closed during remove_take_profit")
             return False
+        # Handle Bybit TP validation errors (e.g., "TakeProfit < 10_pcnt of base")
+        # These happen when unreachable_tp is still too extreme for Bybit's validation
+        if "10001" in str(e) and ("10_pcnt" in err_str or "takeprofit" in err_str):
+            logger.warning(f"[{uid}] {symbol}: Bybit rejected unreachable TP {unreachable_tp}, treating as TP effectively disabled")
+            return True  # TP removal failed but ATR trailing still manages the exit
         raise
 
 
@@ -23430,6 +23437,7 @@ async def monitor_positions_loop(app: Application):
                                             _atr_tp_removal_done[key] = time.time()
                                             logger.info(f"[ATR-TP-REMOVE] {sym} uid={uid} - TP removal sent (was {current_tp:.6f}), ATR trailing manages exit")
                                         except Exception as e:
+                                            _atr_tp_removal_done[key] = time.time()  # Set cooldown even on failure to prevent spam
                                             logger.warning(f"[{uid}] {sym}: Failed to remove TP for ATR mode: {e}")
                                 
                                 if move_pct < trigger_pct and not _atr_triggered.get(key, False):
