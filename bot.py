@@ -19487,6 +19487,11 @@ async def handle_trade_error(
             pass
         return True
     
+    # Contract not live / delisted symbol - skip silently (not user's fault)
+    if "110074" in error_msg or "not live" in error_msg.lower() or "closed symbol" in error_msg.lower():
+        logger.warning(f"[{user_id}] Delisted/closed symbol {symbol or '?'}: skipping (110074)")
+        return True
+    
     # Notional too low (equity too small for any trade) - daily notification
     if "notional" in error_msg.lower() and "minimum" in error_msg.lower():
         await notify_user_daily_error(
