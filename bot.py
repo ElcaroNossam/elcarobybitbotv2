@@ -21687,10 +21687,20 @@ async def monitor_positions_loop(app: Application):
     # Cooldown for new position notifications (5 minutes = 300 seconds)
     NEW_POSITION_NOTIFY_COOLDOWN = 300
 
+    _loop_iteration = 0
+    # Timeout for individual API calls inside monitor loop (seconds)
+    # Prevents entire loop from freezing on hung network calls
+    _MONITOR_API_TIMEOUT = 30
+
     while True:
         try:
-            # Use cached list of active trading users (with API keys)
-            for uid in get_active_trading_users():
+            _loop_iteration += 1
+            if _loop_iteration % 10 == 1:  # Log heartbeat every ~250s (10 iterations * 25s)
+                active_users = get_active_trading_users()
+                logger.info(f"[MONITOR-HEARTBEAT] iteration={_loop_iteration} users={len(active_users)}")
+            else:
+                active_users = get_active_trading_users()
+            for uid in active_users:
                 try:
                     if GLOBAL_PAUSED:
                         continue
@@ -21746,7 +21756,14 @@ async def monitor_positions_loop(app: Application):
                         open_syms_prev = _open_syms_prev.get(cache_key, set())
                         
                         # Pass exchange explicitly to ensure correct API is used
-                        open_positions = await fetch_open_positions(uid, account_type=current_account_type, exchange=current_exchange)
+                        try:
+                            open_positions = await asyncio.wait_for(
+                                fetch_open_positions(uid, account_type=current_account_type, exchange=current_exchange),
+                                timeout=_MONITOR_API_TIMEOUT
+                            )
+                        except asyncio.TimeoutError:
+                            logger.warning(f"[{uid}] {current_exchange}/{current_account_type}: fetch_open_positions TIMEOUT ({_MONITOR_API_TIMEOUT}s) — skipping")
+                            continue
                         
                         # CRITICAL GUARD: If fetch returned None, API error occurred.
                         # Skip this user/account entirely to prevent phantom position removal!
@@ -22977,13 +22994,16 @@ async def monitor_positions_loop(app: Application):
                                 
                                 if should_move_to_be:
                                     try:
-                                        filt = await get_symbol_filters(uid, sym, exchange=current_exchange)
+                                        filt = await asyncio.wait_for(get_symbol_filters(uid, sym, exchange=current_exchange), timeout=_MONITOR_API_TIMEOUT)
                                         tick = filt["tickSize"]
                                         # Quantize BE SL to valid price
                                         be_sl_quantized = quantize_up(be_sl, tick) if side == "Buy" else quantize(be_sl, tick)
                                         
                                         # Use is_be=True to skip price validation (SL = entry is intentional)
-                                        await set_trading_stop(uid, sym, sl_price=be_sl_quantized, side_hint=side, is_be=True, account_type=pos_account_type, exchange=current_exchange)
+                                        await asyncio.wait_for(
+                                            set_trading_stop(uid, sym, sl_price=be_sl_quantized, side_hint=side, is_be=True, account_type=pos_account_type, exchange=current_exchange),
+                                            timeout=_MONITOR_API_TIMEOUT
+                                        )
                                         _be_triggered[key] = True
                                         
                                         # Update SL in database so it persists across bot restarts
@@ -23060,7 +23080,7 @@ async def monitor_positions_loop(app: Application):
                                         try:
                                             close_qty = pos_size * (ptp_1_close / 100)
                                             # Get symbol filters for qty step
-                                            filt = await get_symbol_filters(uid, sym, exchange=current_exchange)
+                                            filt = await asyncio.wait_for(get_symbol_filters(uid, sym, exchange=current_exchange), timeout=_MONITOR_API_TIMEOUT)
                                             qty_step = float(filt.get("qtyStep", 0.001))
                                             close_qty = math.floor(close_qty / qty_step) * qty_step
                                             
@@ -23154,7 +23174,7 @@ async def monitor_positions_loop(app: Application):
                                                 # If Step 1 was done (possibly just now), adjust size
                                                 if get_ptp_flag(uid, sym, 1, account_type=pos_account_type, exchange=current_exchange):
                                                     step1_closed = pos_size * (ptp_1_close / 100)
-                                                    filt_adj = await get_symbol_filters(uid, sym, exchange=current_exchange)
+                                                    filt_adj = await asyncio.wait_for(get_symbol_filters(uid, sym, exchange=current_exchange), timeout=_MONITOR_API_TIMEOUT)
                                                     qty_step_adj = float(filt_adj.get("qtyStep", 0.001))
                                                     step1_closed = math.floor(step1_closed / qty_step_adj) * qty_step_adj
                                                     # Only adjust if current_size still equals original (stale data)
@@ -23163,7 +23183,7 @@ async def monitor_positions_loop(app: Application):
                                                 close_qty = current_size * (ptp_2_close / 100)
                                                 
                                                 # Get symbol filters for qty step
-                                                filt = await get_symbol_filters(uid, sym, exchange=current_exchange)
+                                                filt = await asyncio.wait_for(get_symbol_filters(uid, sym, exchange=current_exchange), timeout=_MONITOR_API_TIMEOUT)
                                                 qty_step = float(filt.get("qtyStep", 0.001))
                                                 close_qty = math.floor(close_qty / qty_step) * qty_step
                                                 
@@ -23438,10 +23458,13 @@ async def monitor_positions_loop(app: Application):
                                     last_tp_removal = _atr_tp_removal_done.get(key, 0)
                                     if time.time() - last_tp_removal > 300:  # 5 minute cooldown
                                         try:
-                                            await remove_take_profit(uid, sym, side_hint=side, account_type=pos_account_type, exchange=current_exchange)
+                                            await asyncio.wait_for(
+                                                remove_take_profit(uid, sym, side_hint=side, account_type=pos_account_type, exchange=current_exchange),
+                                                timeout=_MONITOR_API_TIMEOUT
+                                            )
                                             _atr_tp_removal_done[key] = time.time()
                                             logger.info(f"[ATR-TP-REMOVE] {sym} uid={uid} - TP removal sent (was {current_tp:.6f}), ATR trailing manages exit")
-                                        except Exception as e:
+                                        except (asyncio.TimeoutError, Exception) as e:
                                             _atr_tp_removal_done[key] = time.time()  # Set cooldown even on failure to prevent spam
                                             logger.warning(f"[{uid}] {sym}: Failed to remove TP for ATR mode: {e}")
                                 
@@ -23452,7 +23475,11 @@ async def monitor_positions_loop(app: Application):
                                     # Use strategy-specific SL% if available (already calculated above)
                                     base_sl = entry * (1 - sl_pct/100) if side == "Buy" else entry * (1 + sl_pct/100)
 
-                                    tick = (await get_symbol_filters(uid, sym, exchange=current_exchange))["tickSize"]
+                                    try:
+                                        tick = (await asyncio.wait_for(get_symbol_filters(uid, sym, exchange=current_exchange), timeout=_MONITOR_API_TIMEOUT))["tickSize"]
+                                    except asyncio.TimeoutError:
+                                        logger.warning(f"[{uid}] {sym}: get_symbol_filters TIMEOUT in ATR-WAIT — skipping")
+                                        continue
 
                                     sl0 = quantize_up(base_sl, tick) if side == "Buy" else quantize(base_sl, tick)
                                     
@@ -23486,7 +23513,10 @@ async def monitor_positions_loop(app: Application):
                                     
                                     if kwargs:
                                         try:
-                                            sl_result = await set_trading_stop(uid, sym, **kwargs, side_hint=side, account_type=pos_account_type, exchange=current_exchange)
+                                            sl_result = await asyncio.wait_for(
+                                                set_trading_stop(uid, sym, **kwargs, side_hint=side, account_type=pos_account_type, exchange=current_exchange),
+                                                timeout=_MONITOR_API_TIMEOUT
+                                            )
                                             if sl_result:
                                                 parts = []
                                                 if "sl_price" in kwargs:
@@ -23513,6 +23543,8 @@ async def monitor_positions_loop(app: Application):
                                                 logger.debug(f"{sym}: Position already closed")
                                             else:
                                                 raise
+                                        except asyncio.TimeoutError:
+                                            logger.warning(f"[{uid}] {sym}: set_trading_stop TIMEOUT in ATR-WAIT — skipping")
                                     continue
 
                                 # CRITICAL FIX (Feb 11, 2026): Guard ATR-ACTIVATED to only log ONCE
@@ -23537,10 +23569,17 @@ async def monitor_positions_loop(app: Application):
                                 # TP removal is now handled above (at line ~22497) on EVERY cycle
                                 # when current_tp is not None. No duplicate handling needed here.
 
-                                filt = await get_symbol_filters(uid, sym, exchange=current_exchange)
+                                try:
+                                    filt = await asyncio.wait_for(get_symbol_filters(uid, sym, exchange=current_exchange), timeout=_MONITOR_API_TIMEOUT)
+                                except asyncio.TimeoutError:
+                                    logger.warning(f"[{uid}] {sym}: get_symbol_filters TIMEOUT in ATR-TRAIL — skipping")
+                                    continue
                                 tick = filt["tickSize"]
                                 try:
-                                    atr_val = await calc_atr(sym, interval=ATR_INTERVAL, periods=atr_periods)
+                                    atr_val = await asyncio.wait_for(calc_atr(sym, interval=ATR_INTERVAL, periods=atr_periods), timeout=_MONITOR_API_TIMEOUT)
+                                except asyncio.TimeoutError:
+                                    logger.warning(f"[{uid}] {sym}: calc_atr TIMEOUT — skipping")
+                                    continue
                                 except Exception as e:
                                     logger.warning(f"{sym}: failed to count ATR: {e}")
                                     continue
@@ -23559,13 +23598,18 @@ async def monitor_positions_loop(app: Application):
                                     logger.info(f"[ATR-TRAIL] {sym} LONG: cand_raw={cand_raw:.6f} atr_cand={atr_cand:.6f} new_sl={new_sl:.6f} should_update={should_trail}")
                                     if should_trail:
                                         try:
-                                            result = await set_trading_stop(uid, sym, sl_price=new_sl, side_hint=side, is_trailing=True, account_type=pos_account_type, exchange=current_exchange)
+                                            result = await asyncio.wait_for(
+                                                set_trading_stop(uid, sym, sl_price=new_sl, side_hint=side, is_trailing=True, account_type=pos_account_type, exchange=current_exchange),
+                                                timeout=_MONITOR_API_TIMEOUT
+                                            )
                                             logger.info(f"[ATR-TRAIL] {sym} LONG: SL updated {current_sl} -> {new_sl}, result={result}")
                                             # Persist trailing SL to DB for crash recovery
                                             try:
                                                 db.update_atr_state(user_id=uid, symbol=sym, account_type=pos_account_type, atr_activated=True, atr_last_stop_price=new_sl, exchange=current_exchange)
                                             except Exception:
                                                 pass
+                                        except asyncio.TimeoutError:
+                                            logger.warning(f"[{uid}] {sym}: set_trading_stop TIMEOUT in ATR-TRAIL LONG — skipping")
                                         except RuntimeError as e:
                                             if "no open positions" in str(e).lower():
                                                 logger.debug(f"{sym}: Position closed, skipping ATR SL")
@@ -23584,13 +23628,18 @@ async def monitor_positions_loop(app: Application):
                                     logger.info(f"[ATR-TRAIL] {sym} SHORT: cand_raw={cand_raw:.6f} atr_cand={atr_cand:.6f} new_sl={new_sl:.6f} should_update={should_trail}")
                                     if should_trail:
                                         try:
-                                            result = await set_trading_stop(uid, sym, sl_price=new_sl, side_hint=side, is_trailing=True, account_type=pos_account_type, exchange=current_exchange)
+                                            result = await asyncio.wait_for(
+                                                set_trading_stop(uid, sym, sl_price=new_sl, side_hint=side, is_trailing=True, account_type=pos_account_type, exchange=current_exchange),
+                                                timeout=_MONITOR_API_TIMEOUT
+                                            )
                                             logger.info(f"[ATR-TRAIL] {sym} SHORT: SL updated {current_sl} -> {new_sl}, result={result}")
                                             # Persist trailing SL to DB for crash recovery
                                             try:
                                                 db.update_atr_state(user_id=uid, symbol=sym, account_type=pos_account_type, atr_activated=True, atr_last_stop_price=new_sl, exchange=current_exchange)
                                             except Exception:
                                                 pass
+                                        except asyncio.TimeoutError:
+                                            logger.warning(f"[{uid}] {sym}: set_trading_stop TIMEOUT in ATR-TRAIL SHORT — skipping")
                                         except RuntimeError as e:
                                             if "no open positions" in str(e).lower():
                                                 logger.debug(f"{sym}: Position closed, skipping ATR SL")
