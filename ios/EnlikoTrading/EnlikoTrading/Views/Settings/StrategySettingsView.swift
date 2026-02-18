@@ -188,6 +188,14 @@ struct StrategySettingsView: View {
         } message: {
             Text("strategy_settings_saved_message".localized)
         }
+        .alert("⚠️ Validation Error", isPresented: Binding(
+            get: { ptpValidationError != nil },
+            set: { if !$0 { ptpValidationError = nil } }
+        )) {
+            Button("OK", role: .cancel) { ptpValidationError = nil }
+        } message: {
+            Text(ptpValidationError ?? "")
+        }
     }
     
     // MARK: - Loading View
@@ -456,10 +464,55 @@ struct StrategySettingsView: View {
                     .cornerRadius(8)
                 }
             }
+            
+            // Direction Filter
+            HStack {
+                VStack(alignment: .leading, spacing: 2) {
+                    Text("direction".localized)
+                        .foregroundColor(.enlikoTextSecondary)
+                    Text("filter_signal_direction".localized)
+                        .font(.caption2)
+                        .foregroundColor(.enlikoTextMuted)
+                }
+                Spacer()
+                Menu {
+                    ForEach([("all", "↕️ All"), ("long", "📈 Long only"), ("short", "📉 Short only")], id: \.0) { value, label in
+                        Button(action: { currentSettings.wrappedValue.direction = value }) {
+                            HStack {
+                                Text(label)
+                                if currentSettings.wrappedValue.direction == value {
+                                    Image(systemName: "checkmark")
+                                }
+                            }
+                        }
+                    }
+                } label: {
+                    HStack {
+                        Text(directionDisplayName(currentSettings.wrappedValue.direction))
+                            .foregroundColor(.enlikoPrimary)
+                        Image(systemName: "chevron.down")
+                            .font(.caption)
+                            .foregroundColor(.enlikoTextMuted)
+                    }
+                    .padding(.horizontal, 12)
+                    .padding(.vertical, 8)
+                    .background(Color.enlikoSurface)
+                    .cornerRadius(8)
+                }
+            }
         }
         .padding()
         .background(Color.enlikoCard)
         .cornerRadius(16)
+    }
+    
+    // MARK: - Direction Display Name
+    private func directionDisplayName(_ direction: String) -> String {
+        switch direction {
+        case "long": return "📈 Long"
+        case "short": return "📉 Short"
+        default: return "↕️ All"
+        }
     }
     
     // MARK: - ATR Section

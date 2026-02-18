@@ -719,6 +719,8 @@ class LocalizationManager: ObservableObject {
         "main_parameters": "Main Parameters",
         "max_positions": "Max Positions",
         "coins_group": "Coins Group",
+        "direction": "Direction",
+        "filter_signal_direction": "Filter signals by direction",
         
         // Break-Even
         "break_even": "Break-Even",
@@ -1400,6 +1402,8 @@ class LocalizationManager: ObservableObject {
         "main_parameters": "Основные параметры",
         "max_positions": "Макс. позиций",
         "coins_group": "Группа монет",
+        "direction": "Направление",
+        "filter_signal_direction": "Фильтр сигналов по направлению",
         
         // Break-Even
         "break_even": "Безубыток (BE)",
