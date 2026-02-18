@@ -47,7 +47,6 @@ struct StrategyStatsView: View {
                         }
                     }
                     .padding()
-                    .padding(.bottom, 80)
                 }
                 .refreshable {
                     await viewModel.refresh(accountType: appState.currentAccountType.rawValue)

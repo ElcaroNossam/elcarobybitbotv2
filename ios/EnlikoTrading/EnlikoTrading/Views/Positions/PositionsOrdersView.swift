@@ -77,7 +77,6 @@ struct PositionsOrdersView: View {
                     }
                 }
                 .padding()
-                .padding(.bottom, 100)
             }
             .background(Color.enlikoBackground)
         }

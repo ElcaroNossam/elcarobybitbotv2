@@ -20,55 +20,54 @@ struct MainTabView: View {
     private let tabBarHeight: CGFloat = 85
     
     var body: some View {
-        GeometryReader { geometry in
-            ZStack(alignment: .bottom) {
-                // Content - 4 main tabs
-                TabView(selection: $selectedTab) {
-                    // Dashboard Tab (Balance + Stats + Recent Trades)
-                    NavigationStack {
-                        DashboardView()
-                    }
-                    .tag(0)
-                    
-                    // Strategies Tab (Strategy Settings like in bot)
-                    NavigationStack {
-                        StrategiesHubView()
-                    }
-                    .tag(1)
-                    
-                    // Trading Tab (Terminal - Positions + Orders + Manual Trade)
-                    NavigationStack {
-                        TradingHubView()
-                    }
-                    .tag(2)
-                    
-                    // Settings Tab (API Keys + Global Settings)
-                    NavigationStack {
-                        SettingsMainView()
-                    }
-                    .tag(3)
+        ZStack {
+            // Content - 4 main tabs
+            TabView(selection: $selectedTab) {
+                // Dashboard Tab (Balance + Stats + Recent Trades)
+                NavigationStack {
+                    DashboardView()
                 }
+                .tag(0)
                 
-                // Custom Tab Bar - Fixed safe area
+                // Strategies Tab (Strategy Settings like in bot)
+                NavigationStack {
+                    StrategiesHubView()
+                }
+                .tag(1)
+                
+                // Trading Tab (Terminal - Positions + Orders + Manual Trade)
+                NavigationStack {
+                    TradingHubView()
+                }
+                .tag(2)
+                
+                // Settings Tab (API Keys + Global Settings)
+                NavigationStack {
+                    SettingsMainView()
+                }
+                .tag(3)
+            }
+            // Custom Tab Bar as safe area inset — ALL child ScrollViews/Lists
+            // automatically get bottom inset, no manual padding needed
+            .safeAreaInset(edge: .bottom, spacing: 0) {
                 customTabBar
-                    .frame(width: geometry.size.width)
-                
-                // � Floating Support Chat Button
-                VStack {
+            }
+            
+            // Floating Support Chat Button
+            VStack {
+                Spacer()
+                HStack {
                     Spacer()
-                    HStack {
-                        Spacer()
-                        FloatingSupportButton(isOpen: $showSupportChat)
-                            .padding(.trailing, 16)
-                            .padding(.bottom, tabBarHeight + 20) // Above tab bar
-                    }
+                    FloatingSupportButton(isOpen: $showSupportChat)
+                        .padding(.trailing, 16)
+                        .padding(.bottom, tabBarHeight + 20) // Above tab bar
                 }
-                
-                // Confetti celebration overlay
-                if showConfetti {
-                    ConfettiView()
-                        .allowsHitTesting(false)
-                }
+            }
+            
+            // Confetti celebration overlay
+            if showConfetti {
+                ConfettiView()
+                    .allowsHitTesting(false)
             }
         }
         .ignoresSafeArea(.keyboard)

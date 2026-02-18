@@ -249,7 +249,6 @@ struct PortfolioView: View {
                         recentTradesSection
                     }
                     .padding()
-                    .padding(.bottom, 100)
                 }
                 .refreshable {
                     await loadPortfolioData()

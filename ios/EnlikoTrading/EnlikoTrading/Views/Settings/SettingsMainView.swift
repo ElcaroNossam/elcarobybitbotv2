@@ -36,7 +36,6 @@ struct SettingsMainView: View {
                 logoutSection
             }
             .padding()
-            .padding(.bottom, 100)
         }
         .background(Color.enlikoBackground)
         .navigationTitle("settings".localized)

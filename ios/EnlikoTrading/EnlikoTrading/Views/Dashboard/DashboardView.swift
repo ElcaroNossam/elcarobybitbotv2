@@ -41,7 +41,6 @@ struct DashboardView: View {
                 recentTradesSection
             }
             .padding(.horizontal, 16)
-            .padding(.bottom, 100)
         }
         .background(Color.enlikoBackground)
         .navigationTitle("dashboard".localized)

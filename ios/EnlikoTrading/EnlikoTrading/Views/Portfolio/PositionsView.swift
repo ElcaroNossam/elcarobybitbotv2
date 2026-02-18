@@ -191,7 +191,6 @@ struct PositionsView: View {
                         }
                     }
                     .padding()
-                    .padding(.bottom, 100) // Space for tab bar
                 }
             }
         }
@@ -213,7 +212,6 @@ struct PositionsView: View {
                         }
                     }
                     .padding()
-                    .padding(.bottom, 100) // Space for tab bar
                 }
             }
         }
