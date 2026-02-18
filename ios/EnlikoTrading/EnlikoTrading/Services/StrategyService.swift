@@ -8,6 +8,7 @@
 import Foundation
 import Combine
 
+@MainActor
 class StrategyService: ObservableObject {
     static let shared = StrategyService()
     

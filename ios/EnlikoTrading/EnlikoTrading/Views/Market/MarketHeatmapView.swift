@@ -43,6 +43,7 @@ struct HeatmapCoin: Identifiable {
 
 // MARK: - Heatmap View Model
 
+@MainActor
 class MarketHeatmapViewModel: ObservableObject {
     @Published var coins: [HeatmapCoin] = []
     @Published var isLoading = false

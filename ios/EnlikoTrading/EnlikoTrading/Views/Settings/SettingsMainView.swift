@@ -407,6 +407,7 @@ struct SettingsRowItem: View {
 }
 
 // MARK: - ViewModel
+@MainActor
 class SettingsMainViewModel: ObservableObject {
     @Published var apiConfigured = false
     @Published var apiStatusText = "tap_to_configure".localized

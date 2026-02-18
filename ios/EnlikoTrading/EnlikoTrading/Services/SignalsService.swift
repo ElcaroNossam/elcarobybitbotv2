@@ -96,6 +96,7 @@ struct SignalStats: Codable {
 }
 
 // MARK: - Signals Service
+@MainActor
 class SignalsService: ObservableObject {
     static let shared = SignalsService()
     

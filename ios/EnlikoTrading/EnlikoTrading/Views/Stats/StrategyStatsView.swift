@@ -472,6 +472,7 @@ struct LoadingOverlay: View {
 }
 
 // MARK: - View Model
+@MainActor
 class StrategyStatsViewModel: ObservableObject {
     @Published var selectedPeriod: StatsPeriod = .week
     @Published var selectedStrategy: TradingStrategy? = nil

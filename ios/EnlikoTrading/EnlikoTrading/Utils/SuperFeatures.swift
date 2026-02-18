@@ -223,6 +223,7 @@ enum TradeSound: String {
 }
 
 /// Sound Manager with haptic feedback
+@MainActor
 class SoundManager: ObservableObject {
     static let shared = SoundManager()
     

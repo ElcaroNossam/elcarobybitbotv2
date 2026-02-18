@@ -72,6 +72,7 @@ enum ChartIndicatorType: String, CaseIterable {
 
 // MARK: - Chart View Model
 
+@MainActor
 class AdvancedChartViewModel: ObservableObject {
     @Published var candles: [Candle] = []
     @Published var selectedTimeframe: ChartTimeframe = .h1

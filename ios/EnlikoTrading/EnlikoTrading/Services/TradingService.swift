@@ -8,6 +8,7 @@
 import Foundation
 import Combine
 
+@MainActor
 class TradingService: ObservableObject {
     static let shared = TradingService()
     

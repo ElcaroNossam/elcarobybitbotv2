@@ -175,6 +175,7 @@ struct PositionsSummary: Codable {
 }
 
 // MARK: - Stats Service
+@MainActor
 class StatsService: ObservableObject {
     static let shared = StatsService()
     

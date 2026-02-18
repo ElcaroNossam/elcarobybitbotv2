@@ -506,6 +506,10 @@ async def websocket_terminal_anonymous(websocket: WebSocket):
                         "type": "ticker",
                         "price": price_data.get("price", 0),
                         "change": price_data.get("change24h", 0),
+                        "high24h": price_data.get("high24h", 0),
+                        "low24h": price_data.get("low24h", 0),
+                        "volume24h": price_data.get("volume24h", 0),
+                        "fundingRate": price_data.get("fundingRate", 0),
                         "symbol": subscribed_symbol
                     })
                 await asyncio.sleep(1)

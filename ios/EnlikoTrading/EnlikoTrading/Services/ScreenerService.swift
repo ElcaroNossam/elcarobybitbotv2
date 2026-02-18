@@ -171,6 +171,7 @@ struct SymbolIndicators: Codable {
 }
 
 // MARK: - Screener Service
+@MainActor
 class ScreenerService: ObservableObject {
     static let shared = ScreenerService()
     

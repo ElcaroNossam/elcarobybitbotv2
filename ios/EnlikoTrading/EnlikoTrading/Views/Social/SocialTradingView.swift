@@ -58,6 +58,7 @@ struct TraderStats: Identifiable {
 
 // MARK: - View Model
 
+@MainActor
 class SocialTradingViewModel: ObservableObject {
     @Published var topTraders: [TopTrader] = []
     @Published var followedTraders: [TopTrader] = []

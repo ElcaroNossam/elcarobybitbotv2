@@ -36,6 +36,7 @@ struct AIMessage: Identifiable, Codable {
 
 // MARK: - AI Copilot View Model
 
+@MainActor
 class AICopilotViewModel: ObservableObject {
     @Published var messages: [AIMessage] = []
     @Published var inputText: String = ""

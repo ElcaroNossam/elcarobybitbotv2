@@ -59,6 +59,7 @@ enum BiometricType {
 }
 
 /// Менеджер биометрической аутентификации
+@MainActor
 class BiometricAuthManager: ObservableObject {
     static let shared = BiometricAuthManager()
     

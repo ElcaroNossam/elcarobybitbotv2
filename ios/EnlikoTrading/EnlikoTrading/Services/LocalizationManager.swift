@@ -75,6 +75,7 @@ enum AppLanguage: String, CaseIterable, Identifiable {
 }
 
 // MARK: - Localization Manager
+@MainActor
 class LocalizationManager: ObservableObject {
     static let shared = LocalizationManager()
     

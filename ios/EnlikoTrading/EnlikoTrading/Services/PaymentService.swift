@@ -147,6 +147,7 @@ struct PaymentHistoryItem: Identifiable, Codable {
 
 // MARK: - PaymentService
 
+@MainActor
 class PaymentService: ObservableObject {
     static let shared = PaymentService()
     

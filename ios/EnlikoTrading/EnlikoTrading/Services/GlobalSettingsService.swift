@@ -198,6 +198,7 @@ struct ExchangeToggleUpdate: Codable {
 
 // MARK: - Service
 
+@MainActor
 class GlobalSettingsService: ObservableObject {
     static let shared = GlobalSettingsService()
     

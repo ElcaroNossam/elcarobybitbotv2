@@ -60,27 +60,27 @@
                         <span class="symbol-name" id="symbolName">BTCUSDT</span>
                         <span class="symbol-pair">Perpetual</span>
                     </div>
-                    <span class="symbol-price" id="symbolPrice">$97,542.30</span>
-                    <span class="symbol-change positive" id="symbolChange">+2.34%</span>
+                    <span class="symbol-price" id="symbolPrice">--</span>
+                    <span class="symbol-change" id="symbolChange">--</span>
                     <i class="fas fa-chevron-down" style="color: var(--text-muted); margin-left: 8px;"></i>
                 </div>
             </div>
             <div class="header-center">
                 <div class="market-stat">
                     <span class="market-stat-label">24h High</span>
-                    <span class="market-stat-value" id="high24h">$98,200.00</span>
+                    <span class="market-stat-value" id="high24h">--</span>
                 </div>
                 <div class="market-stat">
                     <span class="market-stat-label">24h Low</span>
-                    <span class="market-stat-value" id="low24h">$94,100.00</span>
+                    <span class="market-stat-value" id="low24h">--</span>
                 </div>
                 <div class="market-stat">
                     <span class="market-stat-label">24h Volume</span>
-                    <span class="market-stat-value" id="volume24h">$2.4B</span>
+                    <span class="market-stat-value" id="volume24h">--</span>
                 </div>
                 <div class="market-stat">
                     <span class="market-stat-label">Funding</span>
-                    <span class="market-stat-value" id="fundingRate" style="color: var(--green);">+0.0100%</span>
+                    <span class="market-stat-value" id="fundingRate">--</span>
                 </div>
             </div>
             <div class="header-right">
@@ -226,10 +226,10 @@
                 </div>
                 <div class="orderbook-asks" id="asks"></div>
                 <div class="orderbook-spread">
-                    <div class="spread-price up" id="lastPrice">97,542.30 <i class="fas fa-arrow-up"></i></div>
+                    <div class="spread-price" id="lastPrice">-- <i class="fas fa-arrow-up"></i></div>
                     <div class="spread-info">
-                        <span>Spread: <span id="spreadValue">$12.50</span></span>
-                        <span id="spreadPercent">0.01%</span>
+                        <span>Spread: <span id="spreadValue">--</span></span>
+                        <span id="spreadPercent">--</span>
                     </div>
                 </div>
                 <div class="orderbook-bids" id="bids"></div>
@@ -272,15 +272,15 @@
             <div class="balance-bar">
                 <div class="balance-item">
                     <span class="balance-label">Available</span>
-                    <span class="balance-value" id="availableBalance">$10,000.00</span>
+                    <span class="balance-value" id="availableBalance">--</span>
                 </div>
                 <div class="balance-item">
                     <span class="balance-label">Equity</span>
-                    <span class="balance-value" id="equity">$12,450.00</span>
+                    <span class="balance-value" id="equity">--</span>
                 </div>
                 <div class="balance-item">
                     <span class="balance-label">Unrealized</span>
-                    <span class="balance-value positive" id="unrealizedPnl">+$450.00</span>
+                    <span class="balance-value" id="unrealizedPnl">--</span>
                 </div>
             </div>
             
@@ -346,7 +346,7 @@
                 <div class="form-group" id="priceGroup">
                     <div class="form-label">
                         <span>Price</span>
-                        <span id="markPrice">Mark: $97,540.00</span>
+                        <span id="markPrice">Mark: --</span>
                     </div>
                     <div class="form-input-wrap">
                         <input type="number" class="form-input" id="priceInput" placeholder="0.00" step="0.01">
@@ -953,6 +953,7 @@
             loadPositions();
             loadOrders();
             loadBalance();
+            loadMarketData();
             
             // 5. Auto-refresh data every 10 seconds
             setInterval(() => {
@@ -1674,6 +1675,29 @@
                 if (lastPriceEl) {
                     lastPriceEl.textContent = data.price.toLocaleString(undefined, {minimumFractionDigits: 2});
                 }
+                // Update mark price
+                document.getElementById('markPrice').textContent = 'Mark: $' + Number(data.price).toLocaleString(undefined, {minimumFractionDigits: 2, maximumFractionDigits: 2});
+                // Update market stats
+                if (data.high24h) {
+                    document.getElementById('high24h').textContent = '$' + Number(data.high24h).toLocaleString(undefined, {minimumFractionDigits: 2, maximumFractionDigits: 2});
+                }
+                if (data.low24h) {
+                    document.getElementById('low24h').textContent = '$' + Number(data.low24h).toLocaleString(undefined, {minimumFractionDigits: 2, maximumFractionDigits: 2});
+                }
+                if (data.volume24h !== undefined) {
+                    const vol = Number(data.volume24h);
+                    let volStr;
+                    if (vol >= 1e9) volStr = '$' + (vol / 1e9).toFixed(2) + 'B';
+                    else if (vol >= 1e6) volStr = '$' + (vol / 1e6).toFixed(2) + 'M';
+                    else volStr = '$' + vol.toLocaleString(undefined, {maximumFractionDigits: 0});
+                    document.getElementById('volume24h').textContent = volStr;
+                }
+                if (data.fundingRate !== undefined) {
+                    const fr = Number(data.fundingRate);
+                    const frEl = document.getElementById('fundingRate');
+                    frEl.textContent = (fr >= 0 ? '+' : '') + fr.toFixed(4) + '%';
+                    frEl.style.color = fr >= 0 ? 'var(--green)' : 'var(--red)';
+                }
             } else if (data.type === 'positions') {
                 renderPositions(data.data);
             } else if (data.type === 'orders') {
@@ -1803,6 +1827,44 @@
                 document.getElementById('unrealizedPnl').textContent = '--';
             } finally {
                 state.loading.balance = false;
+            }
+        }
+
+        async function loadMarketData() {
+            try {
+                const symbol = state.symbol || 'BTCUSDT';
+                const res = await fetch(`https://api.bybit.com/v5/market/tickers?category=linear&symbol=${symbol}`);
+                const json = await res.json();
+                if (json.retCode === 0 && json.result && json.result.list && json.result.list.length > 0) {
+                    const t = json.result.list[0];
+                    const price = parseFloat(t.lastPrice || 0);
+                    const change = parseFloat(t.price24hPcnt || 0) * 100;
+                    const high = parseFloat(t.highPrice24h || 0);
+                    const low = parseFloat(t.lowPrice24h || 0);
+                    const volume = parseFloat(t.turnover24h || 0);
+                    const funding = parseFloat(t.fundingRate || 0) * 100;
+
+                    state.lastPrice = price;
+                    document.getElementById('symbolPrice').textContent = '$' + price.toLocaleString();
+                    document.getElementById('symbolChange').textContent = (change >= 0 ? '+' : '') + change.toFixed(2) + '%';
+                    document.getElementById('symbolChange').className = 'symbol-change ' + (change >= 0 ? 'positive' : 'negative');
+                    document.getElementById('markPrice').textContent = 'Mark: $' + price.toLocaleString(undefined, {minimumFractionDigits: 2, maximumFractionDigits: 2});
+
+                    document.getElementById('high24h').textContent = '$' + high.toLocaleString(undefined, {minimumFractionDigits: 2, maximumFractionDigits: 2});
+                    document.getElementById('low24h').textContent = '$' + low.toLocaleString(undefined, {minimumFractionDigits: 2, maximumFractionDigits: 2});
+
+                    let volStr;
+                    if (volume >= 1e9) volStr = '$' + (volume / 1e9).toFixed(2) + 'B';
+                    else if (volume >= 1e6) volStr = '$' + (volume / 1e6).toFixed(2) + 'M';
+                    else volStr = '$' + volume.toLocaleString(undefined, {maximumFractionDigits: 0});
+                    document.getElementById('volume24h').textContent = volStr;
+
+                    const frEl = document.getElementById('fundingRate');
+                    frEl.textContent = (funding >= 0 ? '+' : '') + funding.toFixed(4) + '%';
+                    frEl.style.color = funding >= 0 ? 'var(--green)' : 'var(--red)';
+                }
+            } catch (e) {
+                console.error('loadMarketData error:', e);
             }
         }
         
@@ -2434,6 +2496,7 @@
             document.getElementById('sizeSymbol').textContent = symbol.replace('USDT', '');
             closeSymbolModal();
             initTradingView();
+            loadMarketData();
             
             // Refresh trade history if panel is open
             if (tradeHistoryVisible) {
@@ -2655,11 +2718,33 @@
             if (data.price) {
                 state.lastPrice = data.price;
                 document.getElementById('symbolPrice').textContent = '$' + data.price.toLocaleString();
+                document.getElementById('markPrice').textContent = 'Mark: $' + Number(data.price).toLocaleString(undefined, {minimumFractionDigits: 2, maximumFractionDigits: 2});
             }
             if (data.change24h !== undefined) {
                 const changeEl = document.getElementById('symbolChange');
                 changeEl.textContent = (data.change24h >= 0 ? '+' : '') + data.change24h.toFixed(2) + '%';
                 changeEl.className = 'symbol-change ' + (data.change24h >= 0 ? 'positive' : 'negative');
+            }
+            // Update market stats from price_update
+            if (data.high24h) {
+                document.getElementById('high24h').textContent = '$' + Number(data.high24h).toLocaleString(undefined, {minimumFractionDigits: 2, maximumFractionDigits: 2});
+            }
+            if (data.low24h) {
+                document.getElementById('low24h').textContent = '$' + Number(data.low24h).toLocaleString(undefined, {minimumFractionDigits: 2, maximumFractionDigits: 2});
+            }
+            if (data.volume24h !== undefined) {
+                const vol = Number(data.volume24h);
+                let volStr;
+                if (vol >= 1e9) volStr = '$' + (vol / 1e9).toFixed(2) + 'B';
+                else if (vol >= 1e6) volStr = '$' + (vol / 1e6).toFixed(2) + 'M';
+                else volStr = '$' + vol.toLocaleString(undefined, {maximumFractionDigits: 0});
+                document.getElementById('volume24h').textContent = volStr;
+            }
+            if (data.fundingRate !== undefined) {
+                const fr = Number(data.fundingRate);
+                const frEl = document.getElementById('fundingRate');
+                frEl.textContent = (fr >= 0 ? '+' : '') + fr.toFixed(4) + '%';
+                frEl.style.color = fr >= 0 ? 'var(--green)' : 'var(--red)';
             }
         }
         

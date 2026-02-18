@@ -172,6 +172,7 @@ private struct TriggerSyncResponse: Codable {
 }
 
 // MARK: - Activity Service
+@MainActor
 class ActivityService: ObservableObject {
     static let shared = ActivityService()
     

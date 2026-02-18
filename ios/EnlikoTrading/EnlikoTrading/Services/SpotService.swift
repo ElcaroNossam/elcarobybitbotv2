@@ -223,6 +223,7 @@ struct SpotSettings: Codable {
 
 // MARK: - Service
 
+@MainActor
 class SpotService: ObservableObject {
     static let shared = SpotService()
     

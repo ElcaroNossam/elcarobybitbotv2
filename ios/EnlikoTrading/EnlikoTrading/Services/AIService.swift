@@ -119,6 +119,7 @@ struct MarketConditions: Codable {
 }
 
 // MARK: - AI Service
+@MainActor
 class AIService: ObservableObject {
     static let shared = AIService()
     

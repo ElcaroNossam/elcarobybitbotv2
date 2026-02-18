@@ -375,6 +375,7 @@ struct InfoColumn: View {
 }
 
 // MARK: - ViewModel
+@MainActor
 class PositionsOrdersViewModel: ObservableObject {
     @Published var positions: [Position] = []
     @Published var orders: [Order] = []

@@ -39,6 +39,7 @@ enum AppTheme: String, CaseIterable {
 }
 
 // MARK: - App State
+@MainActor
 class AppState: ObservableObject {
     static let shared = AppState()
     
