@@ -419,7 +419,10 @@ async def switch_account_type(
     
     # Update trading mode for both Bybit and HyperLiquid
     # Bug #9 Fix: Also update trading_mode for HL so iOS can sync correctly
-    db.set_trading_mode(user_id, new_mode)
+    # CRITICAL FIX: set_trading_mode only accepts 'demo', 'real', 'both'
+    # For HyperLiquid, map testnet→demo, mainnet→real before calling
+    db_mode = {"testnet": "demo", "mainnet": "real"}.get(new_mode, new_mode)
+    db.set_trading_mode(user_id, db_mode)
     
     # Also save last_viewed_account for iOS sync
     db.set_user_field(user_id, "last_viewed_account", data.account_type)
