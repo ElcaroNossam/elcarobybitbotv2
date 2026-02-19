@@ -1139,7 +1139,7 @@ async def fetch_positions_universal(
                 logger.error(f"Bybit positions error: {e}")
         
         elif target.exchange == Exchange.HYPERLIQUID.value:
-            positions = await router._get_hl_positions(user_id, symbol)
+            positions = await router._get_hl_positions(user_id, symbol, target=target)
             for p in positions:
                 p["exchange"] = "hyperliquid"
                 p["account_type"] = target.account_type
@@ -1234,7 +1234,7 @@ async def get_balance_universal(user_id: int, bybit_get_balance_func=None) -> di
                 continue
         
         elif target.exchange == Exchange.HYPERLIQUID.value:
-            balance = await router._get_hl_balance(user_id)
+            balance = await router._get_hl_balance(user_id, target=target)
             if balance.get("equity", 0) > 0:
                 return balance
     

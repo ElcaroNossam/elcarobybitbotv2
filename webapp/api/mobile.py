@@ -168,13 +168,33 @@ async def mobile_login(
 ):
     """
     Mobile app login endpoint.
+    Requires a valid one-time auth_token (from /app_login bot command).
     Registers device and returns tokens.
     """
     try:
-        from webapp.api.auth import create_access_token
+        from webapp.api.auth import create_access_token, create_refresh_token
+        from webapp.services.telegram_auth import validate_login_token
         
         user_id = request.user_id
         device_info = request.device_info
+        
+        # ── SECURITY: Validate auth_token (one-time login token) ──
+        auth_token = request.auth_token
+        if not auth_token:
+            raise HTTPException(status_code=401, detail="auth_token is required")
+        
+        client_ip = req.headers.get("X-Forwarded-For", "").split(",")[0].strip()
+        if not client_ip:
+            client_ip = req.client.host if req.client else "unknown"
+        user_agent = req.headers.get("User-Agent", "")
+        
+        validated_user_id = validate_login_token(auth_token, ip_address=client_ip, user_agent=user_agent)
+        if validated_user_id is None:
+            raise HTTPException(status_code=401, detail="Invalid or expired auth token")
+        
+        if validated_user_id != user_id:
+            logger.warning(f"Mobile login: token user_id mismatch: token={validated_user_id}, request={user_id}")
+            raise HTTPException(status_code=401, detail="Token does not match user")
         
         # Verify user exists
         with get_db_connection() as conn:
@@ -195,17 +215,10 @@ async def mobile_login(
         # Register device
         device_registered = register_device(user_id, device_info)
         
-        # Create tokens (using existing create_access_token)
+        # Create tokens (using existing create_access_token + create_refresh_token)
         is_admin = user_id == ADMIN_ID
         access_token = create_access_token(user_id, is_admin)
-        
-        # Generate simple refresh token (hash of user_id + device_id + secret)
-        refresh_token = hashlib.sha256(f"{user_id}:{device_info.device_id}:{REFRESH_SECRET}".encode()).hexdigest()
-        
-        # Log login
-        client_ip = req.headers.get("X-Forwarded-For", "").split(",")[0].strip()
-        if not client_ip:
-            client_ip = req.client.host if req.client else "unknown"
+        refresh_token = create_refresh_token(user_id)
         
         logger.info(f"Mobile login: user={user_id}, platform={device_info.platform}, ip={client_ip}")
         
