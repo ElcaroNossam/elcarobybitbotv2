@@ -1322,7 +1322,7 @@ def log_calls(func):
             raise
     return wrapper
 
-def once_per(key: tuple[int, str, str], seconds: int) -> bool:
+def once_per(key: tuple, seconds: int) -> bool:
     now = int(time.time())
     if len(_last_notice) > 5000:
         cutoff = now - max(NOTICE_WINDOW, 3600)
@@ -5516,6 +5516,7 @@ _atr_tp_removal_done: dict[tuple[int, str, str], float] = {}  # (uid, symbol, ac
 _be_triggered: dict[tuple[int, str, str], bool] = {}  # Track if BE (break-even) was applied for (uid, symbol, account_type)
 _close_all_cooldown: dict[int, float] = {}  # uid -> timestamp when cooldown ends
 _notification_retry_after: dict[int, float] = {}  # uid -> timestamp when Telegram rate limit expires
+_chat_not_found_users: dict[int, float] = {}  # uid -> timestamp when "Chat not found" was detected (suppress for 1 hour)
 _telegram_id_cache: dict[int, int | None] = {}  # uid -> telegram_id (None = no telegram linked)
 # HyperLiquid SL cache - HL API doesn't return stopLoss field, so we track what we set
 # Key: (uid, symbol), Value: sl_price that was last set
@@ -5588,6 +5589,12 @@ async def safe_send_notification(bot, uid: int, text: str, **kwargs) -> bool:
         logger.debug(f"[{telegram_id}] Skipping notification - rate limited until {retry_until}")
         return False
     
+    # Check if user chat is unreachable (bot blocked / not started)
+    chat_blocked_until = _chat_not_found_users.get(telegram_id, 0)
+    if time.time() < chat_blocked_until:
+        logger.debug(f"[{telegram_id}] Skipping notification - chat unreachable (suppressed)")
+        return False
+    
     try:
         await bot.send_message(telegram_id, text, **kwargs)
         return True
@@ -5597,6 +5604,13 @@ async def safe_send_notification(bot, uid: int, text: str, **kwargs) -> bool:
         logger.warning(f"[{telegram_id}] Telegram rate limit hit, retry after {e.retry_after}s")
         return False
     except Exception as e:
+        error_str = str(e).lower()
+        if "chat not found" in error_str or "bot was blocked" in error_str or "user is deactivated" in error_str:
+            # Suppress notifications for this user for 1 hour
+            _chat_not_found_users[telegram_id] = time.time() + 3600
+            if once_per((telegram_id, "chat_not_found"), 3600):
+                logger.warning(f"[{telegram_id}] Chat not reachable (blocked/not started), suppressing notifications for 1h")
+            return False
         logger.error(f"[{telegram_id}] Failed to send notification: {e}")
         return False
 
@@ -19488,8 +19502,8 @@ async def handle_trade_error(
         return True
     
     # Contract not live / delisted symbol - skip silently (not user's fault)
-    if "110074" in error_msg or "not live" in error_msg.lower() or "closed symbol" in error_msg.lower():
-        logger.warning(f"[{user_id}] Delisted/closed symbol {symbol or '?'}: skipping (110074)")
+    if "110074" in error_msg or "not live" in error_msg.lower() or "closed symbol" in error_msg.lower() or "delisting" in error_msg.lower() or "delisted" in error_msg.lower():
+        logger.warning(f"[{user_id}] Delisted/closed symbol {symbol or '?'}: skipping")
         return True
     
     # Notional too low (equity too small for any trade) - daily notification
@@ -21643,11 +21657,15 @@ async def on_channel_post(update: Update, ctx: ContextTypes.DEFAULT_TYPE):
                 continue
 
         except Exception as e:
-            # Handle Telegram rate limits gracefully
-            from telegram.error import RetryAfter
+            # Handle Telegram rate limits and chat errors gracefully
+            from telegram.error import RetryAfter, BadRequest
             if isinstance(e, RetryAfter):
                 _notification_retry_after[uid] = time.time() + e.retry_after
                 logger.warning(f"[{uid}] Rate limited in channel handler, retry after {e.retry_after}s")
+            elif isinstance(e, BadRequest) and "chat not found" in str(e).lower():
+                _chat_not_found_users[uid] = time.time() + 3600
+                if once_per((uid, "chat_not_found_loop"), 3600):
+                    logger.warning(f"[{uid}] Chat not found in channel handler — user hasn't started bot, suppressing for 1h")
             else:
                 logger.error(f"User loop error for uid={uid}: {e}", exc_info=True)
             continue
@@ -21910,16 +21928,16 @@ async def monitor_positions_loop(app: Application):
                                                 applied_sl_pct = trade_params_pending.get("sl_pct"),
                                                 applied_tp_pct = trade_params_pending.get("tp_pct"),
                                             )
-                                            await bot.send_message(
-                                                uid,
+                                            await safe_send_notification(
+                                                bot, uid,
                                                 t['limit_order_filled'].format(
                                                     symbol = sym,
                                                     price  = pos["avgPrice"]
                                                 )
                                             )
                                         else:
-                                            await bot.send_message(
-                                                uid,
+                                            await safe_send_notification(
+                                                bot, uid,
                                                 t['limit_order_cancelled'].format(symbol=sym, order_id=order_id)
                                             )                                
                                         remove_pending_limit_order(uid, order_id, exchange=current_exchange)
@@ -23760,7 +23778,13 @@ async def monitor_positions_loop(app: Application):
                                         logger.warning(f"[STALE-CLEANUP] Failed to remove {db_sym} for {uid}: {e}")
 
                 except Exception as e:
-                    logger.error(f"Monitoring error for {uid}: {e}", exc_info=True)
+                    error_str = str(e).lower()
+                    if "chat not found" in error_str or "bot was blocked" in error_str or "user is deactivated" in error_str:
+                        _chat_not_found_users[uid] = time.time() + 3600
+                        if once_per(3600, (uid, "chat_not_found_monitor")):
+                            logger.warning(f"[{uid}] Chat unreachable in monitor — suppressing for 1h")
+                    else:
+                        logger.error(f"Monitoring error for {uid}: {e}", exc_info=True)
 
             await asyncio.sleep(CHECK_INTERVAL)
 
