@@ -13,6 +13,7 @@ import Combine
 // MARK: - Dashboard View (Main Profile Screen)
 struct DashboardView: View {
     @EnvironmentObject var appState: AppState
+    @EnvironmentObject var tradingService: TradingService
     @StateObject private var viewModel = DashboardViewModel()
     @ObservedObject var localization = LocalizationManager.shared
     
@@ -194,9 +195,21 @@ struct DashboardView: View {
     // MARK: - Balance Card (Modern Glassmorphism)
     private var balanceCard: some View {
         VStack(spacing: 16) {
+            // Futures / Spot Toggle
+            HStack(spacing: 0) {
+                balanceTypeButton(title: "Futures", isSelected: viewModel.balanceType == .futures) {
+                    viewModel.balanceType = .futures
+                }
+                balanceTypeButton(title: "Spot", isSelected: viewModel.balanceType == .spot) {
+                    viewModel.balanceType = .spot
+                }
+            }
+            .background(Color.enlikoBorder.opacity(0.3))
+            .cornerRadius(10)
+            
             VStack(spacing: 8) {
                 HStack(spacing: 6) {
-                    Text("total_balance".localized)
+                    Text(viewModel.balanceType == .futures ? "futures_balance".localized : "spot_balance".localized)
                         .font(.subheadline)
                         .foregroundColor(.enlikoTextSecondary)
                     // Currency badge (USDT for Bybit, USDC for HyperLiquid)
@@ -213,13 +226,27 @@ struct DashboardView: View {
                     ProgressView()
                         .frame(height: 40)
                 } else {
-                    Text(viewModel.totalBalance.formattedCurrency)
-                        .font(.system(size: 42, weight: .bold, design: .rounded))
-                        .foregroundColor(.white)
+                    if viewModel.balanceType == .futures {
+                        Text(viewModel.totalBalance.formattedCurrency)
+                            .font(.system(size: 42, weight: .bold, design: .rounded))
+                            .foregroundColor(.white)
+                    } else {
+                        // Spot balance
+                        let spotValue = tradingService.hlSpotBalance?.totalUsdValue ?? 0
+                        Text(spotValue.formattedCurrency)
+                            .font(.system(size: 42, weight: .bold, design: .rounded))
+                            .foregroundColor(.white)
+                        
+                        if let spotBalance = tradingService.hlSpotBalance, spotBalance.numTokens > 0 {
+                            Text("\(spotBalance.numTokens) " + "tokens".localized)
+                                .font(.caption)
+                                .foregroundColor(.enlikoTextSecondary)
+                        }
+                    }
                 }
                 
-                // Unrealized PnL
-                if viewModel.unrealizedPnl != 0 {
+                // Unrealized PnL (futures only)
+                if viewModel.balanceType == .futures && viewModel.unrealizedPnl != 0 {
                     HStack(spacing: 4) {
                         Text("unrealized".localized + ":")
                             .font(.caption)
@@ -231,13 +258,41 @@ struct DashboardView: View {
                 }
             }
             
-            // PnL Summary Row
-            HStack(spacing: 0) {
-                pnlCell(title: "today".localized, value: viewModel.todayPnl)
-                Divider().frame(height: 40).background(Color.enlikoBorder)
-                pnlCell(title: "7d".localized, value: viewModel.weekPnl)
-                Divider().frame(height: 40).background(Color.enlikoBorder)
-                pnlCell(title: "30d".localized, value: viewModel.monthPnl)
+            // PnL Summary Row (futures only)
+            if viewModel.balanceType == .futures {
+                HStack(spacing: 0) {
+                    pnlCell(title: "today".localized, value: viewModel.todayPnl)
+                    Divider().frame(height: 40).background(Color.enlikoBorder)
+                    pnlCell(title: "7d".localized, value: viewModel.weekPnl)
+                    Divider().frame(height: 40).background(Color.enlikoBorder)
+                    pnlCell(title: "30d".localized, value: viewModel.monthPnl)
+                }
+            }
+            
+            // Spot token list (when spot selected & has tokens)
+            if viewModel.balanceType == .spot,
+               let spotBalance = tradingService.hlSpotBalance,
+               !spotBalance.tokens.isEmpty {
+                VStack(spacing: 6) {
+                    ForEach(spotBalance.tokens.prefix(5), id: \.token) { token in
+                        HStack {
+                            Text(token.token)
+                                .font(.subheadline.bold())
+                                .foregroundColor(.white)
+                            Spacer()
+                            VStack(alignment: .trailing, spacing: 2) {
+                                Text(String(format: "%.4f", token.total))
+                                    .font(.subheadline)
+                                    .foregroundColor(.white)
+                                Text(String(format: "$%.2f", token.usdValue ?? 0))
+                                    .font(.caption)
+                                    .foregroundColor(.secondary)
+                            }
+                        }
+                        .padding(.vertical, 4)
+                    }
+                }
+                .padding(.top, 4)
             }
         }
         .padding(24)
@@ -273,6 +328,19 @@ struct DashboardView: View {
                 .foregroundColor(value >= 0 ? .enlikoGreen : .enlikoRed)
         }
         .frame(maxWidth: .infinity)
+    }
+    
+    // Balance type toggle button
+    private func balanceTypeButton(title: String, isSelected: Bool, action: @escaping () -> Void) -> some View {
+        Button(action: action) {
+            Text(title)
+                .font(.subheadline.bold())
+                .foregroundColor(isSelected ? .white : .secondary)
+                .frame(maxWidth: .infinity)
+                .padding(.vertical, 8)
+                .background(isSelected ? Color.enlikoPrimary : Color.clear)
+                .cornerRadius(8)
+        }
     }
     
     // MARK: - Period Filter
@@ -826,10 +894,17 @@ struct DashboardRecentTrade: Codable, Identifiable {
     }
 }
 
+// MARK: - Balance Type Enum
+enum BalanceType: String {
+    case futures
+    case spot
+}
+
 // MARK: - ViewModel
 @MainActor
 class DashboardViewModel: ObservableObject {
     @Published var selectedPeriod: DashboardPeriod = .week
+    @Published var balanceType: BalanceType = .futures
     @Published var isLoading = false
     
     @Published var totalBalance: Double = 0

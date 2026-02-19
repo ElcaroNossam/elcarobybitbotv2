@@ -2,7 +2,7 @@
 //  MainTabView.swift
 //  EnlikoTrading
 //
-//  UPDATED: 4 tabs - Dashboard | Strategies | Trading | Settings
+//  UPDATED: 5 tabs - Dashboard | Market | Strategies | Trading | Settings
 //  Full functionality like Telegram bot
 //
 
@@ -32,13 +32,17 @@ struct MainTabView: View {
                         }
                     case 1:
                         NavigationStack {
-                            StrategiesHubView()
+                            MarketOverviewView()
                         }
                     case 2:
                         NavigationStack {
-                            TradingHubView()
+                            StrategiesHubView()
                         }
                     case 3:
+                        NavigationStack {
+                            TradingHubView()
+                        }
+                    case 4:
                         NavigationStack {
                             SettingsMainView()
                         }
@@ -95,10 +99,10 @@ struct MainTabView: View {
         }
         // Push notification navigation handlers
         .onReceive(NotificationCenter.default.publisher(for: .navigateToPositions)) { _ in
-            selectedTab = 2 // Trading tab
+            selectedTab = 3 // Trading tab
         }
         .onReceive(NotificationCenter.default.publisher(for: .navigateToSignals)) { _ in
-            selectedTab = 1 // Strategies tab (signals)
+            selectedTab = 2 // Strategies tab (signals)
         }
         .onReceive(NotificationCenter.default.publisher(for: .navigateToHistory)) { _ in
             selectedTab = 0 // Dashboard (has recent trades)
@@ -153,15 +157,18 @@ struct MainTabView: View {
                 // Dashboard
                 tabBarItem(icon: "chart.pie.fill", label: "dashboard".localized, index: 0)
                 
+                // Market
+                tabBarItem(icon: "globe.americas.fill", label: "market".localized, index: 1)
+                
                 // Strategies
-                tabBarItem(icon: "brain.head.profile", label: "strategies".localized, index: 1)
+                tabBarItem(icon: "brain.head.profile", label: "strategies".localized, index: 2)
                 
                 // Trading (Terminal) - Primary action
-                tabBarItem(icon: "arrow.up.arrow.down", label: "trading".localized, index: 2, isPrimary: true,
+                tabBarItem(icon: "arrow.up.arrow.down", label: "trading".localized, index: 3, isPrimary: true,
                           badge: tradingService.positions.count)
                 
                 // Settings
-                tabBarItem(icon: "gearshape.fill", label: "settings".localized, index: 3)
+                tabBarItem(icon: "gearshape.fill", label: "settings".localized, index: 4)
             }
             .padding(.horizontal, 8)
             .padding(.top, 8)

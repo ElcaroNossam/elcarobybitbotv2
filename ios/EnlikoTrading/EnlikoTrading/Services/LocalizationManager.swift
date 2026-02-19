@@ -540,6 +540,11 @@ class LocalizationManager: ObservableObject {
         "market_losers": "Top Losers",
         "market_volume": "Volume",
         "market_24h": "24h Change",
+        "market_overview": "Market Overview",
+        "full_screener": "Full Screener",
+        "futures_balance": "Futures Balance",
+        "spot_balance": "Spot Balance",
+        "tokens": "tokens",
         
         // Screener
         "screener_title": "Screener",
