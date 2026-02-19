@@ -695,10 +695,11 @@ class ExchangeRouter:
                 # Normalize symbol for HL
                 hl_symbol = normalize_symbol(intent.symbol, Exchange.HYPERLIQUID.value)
                 
-                # Set leverage
+                # Set leverage (with user's margin mode)
                 if intent.leverage:
                     try:
-                        await adapter.set_leverage(hl_symbol, intent.leverage)
+                        hl_margin = db.get_user_field(intent.user_id, "hl_margin_mode") or "cross"
+                        await adapter.set_leverage(hl_symbol, intent.leverage, margin_mode=hl_margin)
                     except Exception as lev_err:
                         logger.warning(f"[{intent.user_id}] HL leverage error: {lev_err}")
                 
@@ -943,7 +944,8 @@ class ExchangeRouter:
                         )
                         async with adapter:
                             hl_symbol = normalize_symbol(symbol, Exchange.HYPERLIQUID.value)
-                            result = await adapter.set_leverage(hl_symbol, leverage)
+                            hl_margin = db.get_user_field(user_id, "hl_margin_mode") or "cross"
+                            result = await adapter.set_leverage(hl_symbol, leverage, margin_mode=hl_margin)
                             if result.get("retCode") == 0:
                                 success = True
                 # Bybit via factory

@@ -29,6 +29,15 @@ struct GlobalSettings: Codable {
     private var _atrMultiplierSl: Double?
     private var _atrTriggerPct: Double?
     private var _atrStepPct: Double?
+    // Per-exchange settings
+    private var _bybitMarginMode: String?
+    private var _bybitLeverage: Int?
+    private var _bybitOrderType: String?
+    private var _bybitCoinsGroup: String?
+    private var _hlMarginMode: String?
+    private var _hlLeverage: Int?
+    private var _hlOrderType: String?
+    private var _hlCoinsGroup: String?
     
     // Public computed properties with defaults
     var percent: Double { _percent ?? 1.0 }
@@ -48,6 +57,15 @@ struct GlobalSettings: Codable {
     var atrMultiplierSl: Double { _atrMultiplierSl ?? 0.5 }
     var atrTriggerPct: Double { _atrTriggerPct ?? 3.0 }
     var atrStepPct: Double { _atrStepPct ?? 0.5 }
+    // Per-exchange computed
+    var bybitMarginMode: String { _bybitMarginMode ?? "cross" }
+    var bybitLeverage: Int { _bybitLeverage ?? 10 }
+    var bybitOrderType: String { _bybitOrderType ?? "market" }
+    var bybitCoinsGroup: String { _bybitCoinsGroup ?? "ALL" }
+    var hlMarginMode: String { _hlMarginMode ?? "cross" }
+    var hlLeverage: Int { _hlLeverage ?? 10 }
+    var hlOrderType: String { _hlOrderType ?? "market" }
+    var hlCoinsGroup: String { _hlCoinsGroup ?? "ALL" }
     
     enum CodingKeys: String, CodingKey {
         case _percent = "percent"
@@ -67,6 +85,15 @@ struct GlobalSettings: Codable {
         case _atrMultiplierSl = "atr_multiplier_sl"
         case _atrTriggerPct = "atr_trigger_pct"
         case _atrStepPct = "atr_step_pct"
+        // Per-exchange
+        case _bybitMarginMode = "bybit_margin_mode"
+        case _bybitLeverage = "bybit_leverage"
+        case _bybitOrderType = "bybit_order_type"
+        case _bybitCoinsGroup = "bybit_coins_group"
+        case _hlMarginMode = "hl_margin_mode"
+        case _hlLeverage = "hl_leverage"
+        case _hlOrderType = "hl_order_type"
+        case _hlCoinsGroup = "hl_coins_group"
     }
     
     static var `default`: GlobalSettings {
@@ -98,6 +125,14 @@ struct GlobalSettings: Codable {
         self._atrMultiplierSl = nil
         self._atrTriggerPct = nil
         self._atrStepPct = nil
+        self._bybitMarginMode = nil
+        self._bybitLeverage = nil
+        self._bybitOrderType = nil
+        self._bybitCoinsGroup = nil
+        self._hlMarginMode = nil
+        self._hlLeverage = nil
+        self._hlOrderType = nil
+        self._hlCoinsGroup = nil
     }
 }
 
@@ -194,6 +229,20 @@ struct RiskSettingsUpdate: Codable {
 struct ExchangeToggleUpdate: Codable {
     let exchange: String
     let enabled: Bool
+}
+
+struct ExchangeSettingsUpdate: Codable {
+    let marginMode: String?
+    let leverage: Int?
+    let orderType: String?
+    let coinsGroup: String?
+    
+    enum CodingKeys: String, CodingKey {
+        case marginMode = "margin_mode"
+        case leverage
+        case orderType = "order_type"
+        case coinsGroup = "coins_group"
+    }
 }
 
 // MARK: - Service
@@ -353,6 +402,32 @@ class GlobalSettingsService: ObservableObject {
             return true
         } catch {
             print("Failed to toggle exchange: \(error)")
+            AppState.shared.showError(error.localizedDescription)
+            return false
+        }
+    }
+    
+    // MARK: - Update Per-Exchange Settings (Margin, Leverage, Order Type, Coins)
+    @MainActor
+    func updateExchangeSettings(
+        exchange: String,
+        marginMode: String? = nil,
+        leverage: Int? = nil,
+        orderType: String? = nil,
+        coinsGroup: String? = nil
+    ) async -> Bool {
+        do {
+            let update = ExchangeSettingsUpdate(
+                marginMode: marginMode,
+                leverage: leverage,
+                orderType: orderType,
+                coinsGroup: coinsGroup
+            )
+            let _: EmptyResponse = try await network.put("/users/exchange-settings/\(exchange)", body: update)
+            await fetchGlobalSettings()
+            return true
+        } catch {
+            print("Failed to update \(exchange) settings: \(error)")
             AppState.shared.showError(error.localizedDescription)
             return false
         }

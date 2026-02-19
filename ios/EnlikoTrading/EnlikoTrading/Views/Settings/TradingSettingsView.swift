@@ -31,11 +31,93 @@ struct TradingSettingsView: View {
     @State private var bybitEnabled = true
     @State private var hyperliquidEnabled = false
     
+    // Per-exchange settings
+    @State private var bybitMarginMode = "cross"
+    @State private var bybitLeverage = 10
+    @State private var bybitOrderType = "market"
+    @State private var bybitCoinsGroup = "ALL"
+    
+    @State private var hlMarginMode = "cross"
+    @State private var hlLeverage = 10
+    @State private var hlOrderType = "market"
+    @State private var hlCoinsGroup = "ALL"
+    
     @State private var showingSaveAlert = false
     @State private var isSaving = false
     
+    private let leverageOptions = [1, 2, 3, 5, 10, 20, 25, 50, 100]
+    private let coinsOptions = ["ALL", "TOP", "VOLATILE"]
+    
     var body: some View {
         Form {
+            // MARK: - Bybit Exchange Settings
+            Section {
+                Picker("margin_type".localized, selection: $bybitMarginMode) {
+                    Text("🔄 CROSS").tag("cross")
+                    Text("📦 ISOLATED").tag("isolated")
+                }
+                .pickerStyle(.segmented)
+                
+                Picker("leverage".localized, selection: $bybitLeverage) {
+                    ForEach(leverageOptions, id: \.self) { lev in
+                        Text("\(lev)x").tag(lev)
+                    }
+                }
+                
+                Picker("order_type".localized, selection: $bybitOrderType) {
+                    Text("market".localized).tag("market")
+                    Text("limit".localized).tag("limit")
+                }
+                .pickerStyle(.segmented)
+                
+                Picker("coins_filter".localized, selection: $bybitCoinsGroup) {
+                    ForEach(coinsOptions, id: \.self) { group in
+                        Text(coinsGroupLabel(group)).tag(group)
+                    }
+                }
+            } header: {
+                HStack {
+                    Image(systemName: "circle.fill")
+                        .foregroundColor(.orange)
+                        .font(.caption2)
+                    Text("Bybit")
+                }
+            }
+            
+            // MARK: - HyperLiquid Exchange Settings
+            Section {
+                Picker("margin_type".localized, selection: $hlMarginMode) {
+                    Text("🔄 CROSS").tag("cross")
+                    Text("📦 ISOLATED").tag("isolated")
+                }
+                .pickerStyle(.segmented)
+                
+                Picker("leverage".localized, selection: $hlLeverage) {
+                    ForEach(leverageOptions, id: \.self) { lev in
+                        Text("\(lev)x").tag(lev)
+                    }
+                }
+                
+                Picker("order_type".localized, selection: $hlOrderType) {
+                    Text("market".localized).tag("market")
+                    Text("limit".localized).tag("limit")
+                }
+                .pickerStyle(.segmented)
+                
+                Picker("coins_filter".localized, selection: $hlCoinsGroup) {
+                    ForEach(coinsOptions, id: \.self) { group in
+                        Text(coinsGroupLabel(group)).tag(group)
+                    }
+                }
+            } header: {
+                HStack {
+                    Image(systemName: "circle.fill")
+                        .foregroundColor(.blue)
+                        .font(.caption2)
+                    Text("HyperLiquid")
+                }
+            }
+            
             // MARK: - Order Type Section
             Section {
                 Picker("order_type".localized, selection: $orderType) {
@@ -245,6 +327,16 @@ struct TradingSettingsView: View {
         atrTriggerPct = settings.atrTriggerPct
         atrStepPct = settings.atrStepPct
         
+        // Per-exchange settings
+        bybitMarginMode = settings.bybitMarginMode
+        bybitLeverage = settings.bybitLeverage
+        bybitOrderType = settings.bybitOrderType
+        bybitCoinsGroup = settings.bybitCoinsGroup
+        hlMarginMode = settings.hlMarginMode
+        hlLeverage = settings.hlLeverage
+        hlOrderType = settings.hlOrderType
+        hlCoinsGroup = settings.hlCoinsGroup
+        
         if let status = service.exchangeStatus {
             bybitEnabled = status.bybitEnabled
             hyperliquidEnabled = status.hyperliquidEnabled
@@ -298,9 +390,36 @@ struct TradingSettingsView: View {
                 }
             }
             
+            // Per-exchange settings: Bybit
+            success = await service.updateExchangeSettings(
+                exchange: "bybit",
+                marginMode: bybitMarginMode,
+                leverage: bybitLeverage,
+                orderType: bybitOrderType,
+                coinsGroup: bybitCoinsGroup
+            ) && success
+            
+            // Per-exchange settings: HyperLiquid
+            success = await service.updateExchangeSettings(
+                exchange: "hyperliquid",
+                marginMode: hlMarginMode,
+                leverage: hlLeverage,
+                orderType: hlOrderType,
+                coinsGroup: hlCoinsGroup
+            ) && success
+            
             if success {
                 showingSaveAlert = true
             }
+        }
+    }
+    
+    private func coinsGroupLabel(_ group: String) -> String {
+        switch group {
+        case "ALL": return "🌐 ALL"
+        case "TOP": return "💎 TOP"
+        case "VOLATILE": return "🔥 VOLATILE"
+        default: return group
         }
     }
 }

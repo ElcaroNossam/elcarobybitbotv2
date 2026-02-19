@@ -2564,10 +2564,49 @@ Use the buttons below to configure:"""
     if action == "bybit_margin":
         current = db.get_user_field(uid, "bybit_margin_mode") or "cross"
         new_mode = "isolated" if current == "cross" else "cross"
+        
+        # Call Bybit API to actually set margin mode on exchange
+        api_mode = "ISOLATED_MARGIN" if new_mode == "isolated" else "REGULAR_MARGIN"
+        api_success = True
+        error_msg = ""
+        
+        # Try on all configured Bybit accounts (demo + real)
+        for acc_type in ("demo", "real"):
+            try:
+                api_key, api_secret = get_user_credentials(uid, acc_type)
+                if api_key and api_secret:
+                    resp = await _bybit_request(
+                        uid, "POST", "/v5/account/set-margin-mode",
+                        body={"setMarginMode": api_mode},
+                        account_type=acc_type
+                    )
+                    ret_code = resp.get("retCode", -1)
+                    if ret_code == 0:
+                        logger.info(f"[{uid}] Bybit {acc_type} margin mode set to {api_mode}")
+                    elif ret_code == 110026:
+                        # Already in this mode — success
+                        logger.info(f"[{uid}] Bybit {acc_type} margin mode already {api_mode}")
+                    elif ret_code == 10032:
+                        # Demo accounts may not support — treat as success
+                        logger.info(f"[{uid}] Bybit {acc_type} margin mode skip (demo): {api_mode}")
+                    else:
+                        error_msg = resp.get("retMsg", "Unknown error")
+                        logger.warning(f"[{uid}] Bybit {acc_type} set margin mode failed: {error_msg}")
+                        api_success = False
+            except MissingAPICredentials:
+                pass  # Account not configured — skip
+            except Exception as e:
+                logger.error(f"[{uid}] Bybit {acc_type} set margin mode error: {e}")
+                # Don't block DB update for non-critical errors
+        
+        # Always update DB (user intent)
         db.set_user_field(uid, "bybit_margin_mode", new_mode)
         
         mode_emoji = "📦 ISOLATED" if new_mode == "isolated" else "🔄 CROSS"
-        await q.answer(f"Bybit Margin Mode: {mode_emoji}", show_alert=True)
+        if api_success:
+            await q.answer(f"Bybit Margin Mode: {mode_emoji}", show_alert=True)
+        else:
+            await q.answer(f"Bybit Margin Mode: {mode_emoji}\n⚠️ {error_msg}", show_alert=True)
         
         creds = get_all_user_credentials(uid)
         msg = format_api_settings_message(t, creds, uid)

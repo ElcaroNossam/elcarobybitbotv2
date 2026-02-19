@@ -730,6 +730,16 @@ async def get_global_settings(user: dict = Depends(get_current_user)):
         
         # Live trading confirmation
         "live_enabled": bool(cfg.get("live_enabled", 0)),
+        
+        # Per-exchange settings (iOS compat)
+        "bybit_margin_mode": cfg.get("bybit_margin_mode") or "cross",
+        "bybit_leverage": cfg.get("bybit_leverage") or 10,
+        "bybit_order_type": cfg.get("bybit_order_type") or "market",
+        "bybit_coins_group": cfg.get("bybit_coins_group") or "ALL",
+        "hl_margin_mode": cfg.get("hl_margin_mode") or "cross",
+        "hl_leverage": cfg.get("hl_leverage") or 10,
+        "hl_order_type": cfg.get("hl_order_type") or "market",
+        "hl_coins_group": cfg.get("hl_coins_group") or "ALL",
     }
 
 
@@ -748,7 +758,10 @@ async def update_global_settings(
         "dca_enabled", "dca_pct_1", "dca_pct_2",
         "spot_enabled",
         "use_atr", "atr_periods", "atr_multiplier_sl", "atr_trigger_pct", "atr_step_pct",
-        "live_enabled"
+        "live_enabled",
+        # Per-exchange settings
+        "bybit_margin_mode", "bybit_leverage", "bybit_order_type", "bybit_coins_group",
+        "hl_margin_mode", "hl_leverage", "hl_order_type", "hl_coins_group",
     }
     
     updated = {}
@@ -856,6 +869,98 @@ async def toggle_exchange_trading(
         return {"success": False, "error": f"Unknown exchange: {exchange}"}
     
     return {"success": True, "exchange": exchange, "enabled": enabled}
+
+
+# ========== PER-EXCHANGE SETTINGS (Margin, Leverage, Order Type, Coins) ==========
+
+@router.get("/exchange-settings")
+async def get_exchange_settings(user: dict = Depends(get_current_user)):
+    """Get per-exchange settings: margin mode, leverage, order type, coins group."""
+    user_id = user["user_id"]
+    cfg = db.get_user_config(user_id)
+
+    return {
+        "bybit": {
+            "margin_mode": cfg.get("bybit_margin_mode") or "cross",
+            "leverage": cfg.get("bybit_leverage") or 10,
+            "order_type": cfg.get("bybit_order_type") or "market",
+            "coins_group": cfg.get("bybit_coins_group") or "ALL",
+        },
+        "hyperliquid": {
+            "margin_mode": cfg.get("hl_margin_mode") or "cross",
+            "leverage": cfg.get("hl_leverage") or 10,
+            "order_type": cfg.get("hl_order_type") or "market",
+            "coins_group": cfg.get("hl_coins_group") or "ALL",
+        },
+    }
+
+
+@router.put("/exchange-settings/{exchange}")
+async def update_exchange_settings(
+    exchange: str,
+    data: dict,
+    user: dict = Depends(get_current_user)
+):
+    """Update per-exchange settings: margin_mode, leverage, order_type, coins_group."""
+    user_id = user["user_id"]
+
+    if exchange not in ("bybit", "hyperliquid"):
+        return {"success": False, "error": f"Unknown exchange: {exchange}"}
+
+    prefix = "bybit" if exchange == "bybit" else "hl"
+
+    allowed_fields = {
+        "margin_mode": f"{prefix}_margin_mode",
+        "leverage": f"{prefix}_leverage",
+        "order_type": f"{prefix}_order_type",
+        "coins_group": f"{prefix}_coins_group",
+    }
+
+    # Validation
+    updated = {}
+    for key, db_field in allowed_fields.items():
+        if key not in data:
+            continue
+        value = data[key]
+
+        if key == "margin_mode" and value not in ("cross", "isolated"):
+            return {"success": False, "error": f"Invalid margin_mode: {value}"}
+        if key == "leverage":
+            value = int(value)
+            if value < 1 or value > 100:
+                return {"success": False, "error": f"Leverage must be 1-100"}
+        if key == "order_type" and value not in ("market", "limit"):
+            return {"success": False, "error": f"Invalid order_type: {value}"}
+        if key == "coins_group" and value not in ("ALL", "TOP", "VOLATILE"):
+            return {"success": False, "error": f"Invalid coins_group: {value}"}
+
+        db.set_user_field(user_id, db_field, value)
+        updated[key] = value
+
+    # If Bybit margin_mode changed, call Bybit API to actually switch it
+    if exchange == "bybit" and "margin_mode" in updated:
+        new_mode = updated["margin_mode"]
+        api_mode = "ISOLATED_MARGIN" if new_mode == "isolated" else "REGULAR_MARGIN"
+        from exchanges.bybit import BybitExchange
+
+        for acc_type in ("demo", "real"):
+            try:
+                creds = db.get_all_user_credentials(user_id)
+                api_key_field = f"{acc_type}_api_key"
+                api_secret_field = f"{acc_type}_api_secret"
+                api_key = creds.get(api_key_field)
+                api_secret = creds.get(api_secret_field)
+                if api_key and api_secret:
+                    bybit = BybitExchange(
+                        api_key=api_key,
+                        api_secret=api_secret,
+                        testnet=(acc_type == "demo"),
+                    )
+                    await bybit.set_margin_mode(api_mode)
+            except Exception as e:
+                logger.warning(f"[{user_id}] Bybit {acc_type} set margin mode via API failed: {e}")
+
+    return {"success": True, "exchange": exchange, "updated": updated}
 
 
 # ========== API KEYS MANAGEMENT ==========
