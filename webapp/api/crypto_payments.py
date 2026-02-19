@@ -274,62 +274,8 @@ async def get_currencies():
         CurrencyInfo(
             symbol="USDT",
             name="Tether USD",
-            networks=["Tron", "BSC", "Ethereum", "Polygon", "The Open Network"],
+            networks=["Tron", "BSC", "Ethereum"],
             min_amount=5.0,
-        ),
-        CurrencyInfo(
-            symbol="BTC",
-            name="Bitcoin",
-            networks=["Bitcoin"],
-            min_amount=10.0,
-        ),
-        CurrencyInfo(
-            symbol="ETH",
-            name="Ethereum",
-            networks=["Ethereum", "Base"],
-            min_amount=10.0,
-        ),
-        CurrencyInfo(
-            symbol="TON",
-            name="Toncoin",
-            networks=["The Open Network"],
-            min_amount=5.0,
-        ),
-        CurrencyInfo(
-            symbol="SOL",
-            name="Solana",
-            networks=["Solana"],
-            min_amount=5.0,
-        ),
-        CurrencyInfo(
-            symbol="TRX",
-            name="TRON",
-            networks=["Tron"],
-            min_amount=10.0,
-        ),
-        CurrencyInfo(
-            symbol="LTC",
-            name="Litecoin",
-            networks=["Litecoin"],
-            min_amount=5.0,
-        ),
-        CurrencyInfo(
-            symbol="DOGE",
-            name="Dogecoin",
-            networks=["Dogecoin"],
-            min_amount=5.0,
-        ),
-        CurrencyInfo(
-            symbol="BNB",
-            name="BNB",
-            networks=["BSC"],
-            min_amount=5.0,
-        ),
-        CurrencyInfo(
-            symbol="XMR",
-            name="Monero",
-            networks=["Monero"],
-            min_amount=10.0,
         ),
     ]
     return currencies

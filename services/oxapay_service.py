@@ -635,23 +635,9 @@ Use /menu to access all community tools.
             logger.error(f"Failed to notify user {user_id}: {e}")
     
     def get_available_currencies(self) -> List[Dict[str, Any]]:
-        """Get list of available payment currencies - network names match OxaPay API"""
+        """Get list of available payment currencies - USDT only on 3 networks"""
         return [
-            {"code": "USDT", "name": "Tether USD", "networks": ["Tron", "BSC", "Ethereum", "Polygon", "The Open Network"]},
-            {"code": "BTC", "name": "Bitcoin", "networks": ["Bitcoin"]},
-            {"code": "ETH", "name": "Ethereum", "networks": ["Ethereum", "Base"]},
-            {"code": "TRX", "name": "Tron", "networks": ["Tron"]},
-            {"code": "BNB", "name": "BNB", "networks": ["BSC"]},
-            {"code": "SOL", "name": "Solana", "networks": ["Solana"]},
-            {"code": "TON", "name": "Toncoin", "networks": ["The Open Network"]},
-            {"code": "LTC", "name": "Litecoin", "networks": ["Litecoin"]},
-            {"code": "DOGE", "name": "Dogecoin", "networks": ["Dogecoin"]},
-            {"code": "XMR", "name": "Monero", "networks": ["Monero"]},
-            {"code": "USDC", "name": "USD Coin", "networks": ["Ethereum"]},
-            {"code": "POL", "name": "Polygon", "networks": ["Polygon"]},
-            {"code": "BCH", "name": "Bitcoin Cash", "networks": ["BitcoinCash"]},
-            {"code": "NOT", "name": "NotCoin", "networks": ["The Open Network"]},
-            {"code": "SHIB", "name": "Shiba Inu", "networks": ["BSC"]},
+            {"code": "USDT", "name": "Tether USD", "networks": ["Tron", "BSC", "Ethereum"]},
         ]
     
     def get_plans(self) -> Dict[str, Any]:

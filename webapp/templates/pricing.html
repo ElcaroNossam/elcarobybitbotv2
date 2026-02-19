@@ -506,27 +506,27 @@
             <h3 style="margin: 24px 0 16px;">Select Payment Method</h3>
             
             <div class="payment-methods">
-                <div class="payment-method" onclick="selectPayment('ton')">
-                    <div class="payment-icon">💎</div>
-                    <div class="payment-info">
-                        <h4>TON Wallet</h4>
-                        <p>Pay with TON cryptocurrency</p>
-                    </div>
-                </div>
-                
-                <div class="payment-method" onclick="selectPayment('usdt')">
+                <div class="payment-method" onclick="selectPayment('usdt_trc20')">
                     <div class="payment-icon">💵</div>
                     <div class="payment-info">
-                        <h4>USDT (TON)</h4>
-                        <p>Pay with jUSDT on TON chain</p>
+                        <h4>USDT (TRC20)</h4>
+                        <p>Pay with USDT on Tron network</p>
                     </div>
                 </div>
                 
-                <div class="payment-method" onclick="selectPayment('web3')">
-                    <div class="payment-icon">🦊</div>
+                <div class="payment-method" onclick="selectPayment('usdt_bep20')">
+                    <div class="payment-icon">💵</div>
                     <div class="payment-info">
-                        <h4>MetaMask / Web3</h4>
-                        <p>Connect your Ethereum wallet</p>
+                        <h4>USDT (BEP20)</h4>
+                        <p>Pay with USDT on BSC network</p>
+                    </div>
+                </div>
+                
+                <div class="payment-method" onclick="selectPayment('usdt_erc20')">
+                    <div class="payment-icon">💵</div>
+                    <div class="payment-info">
+                        <h4>USDT (ERC20)</h4>
+                        <p>Pay with USDT on Ethereum network</p>
                     </div>
                 </div>
             </div>
@@ -724,13 +724,17 @@
             }
             
             try {
-                // Call payment API based on selected method
-                if (selectedPaymentMethod === 'web3') {
-                    await processWeb3Payment();
-                } else if (selectedPaymentMethod === 'ton') {
-                    await processTONPayment();
-                } else if (selectedPaymentMethod === 'usdt') {
-                    await processUSDTPayment();
+                // All payments via USDT on OxaPay
+                const networkMap = {
+                    'usdt_trc20': 'Tron',
+                    'usdt_bep20': 'BSC',
+                    'usdt_erc20': 'Ethereum'
+                };
+                const network = networkMap[selectedPaymentMethod];
+                if (network) {
+                    await processUSDTPayment(network);
+                } else {
+                    showToast('Invalid payment method', 'error');
                 }
             } catch (error) {
                 console.error('Payment error:', error);
@@ -738,104 +742,31 @@
             }
         }
         
-        // Web3 Payment
-        async function processWeb3Payment() {
-            if (!window.ethereum) {
-                alert('Please install MetaMask');
+        // USDT Payment via OxaPay - supports TRC20, BEP20, ERC20
+        async function processUSDTPayment(network) {
+            if (!selectedPlan) {
+                showToast('Please select a plan first', 'error');
                 return;
             }
             
-            try {
-                await window.ethereum.request({ method: 'eth_requestAccounts' });
-                const web3 = new Web3(window.ethereum);
-                const accounts = await web3.eth.getAccounts();
-                
-                // Call backend API to create payment
-                const response = await fetch('/api/payments/create', {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({
-                        plan: selectedPlan.key,
-                        period: selectedPlan.period,
-                        amount: selectedPlan.price,
-                        payment_method: 'web3',
-                        wallet_address: accounts[0]
-                    })
-                });
-                
-                const data = await response.json();
-                
-                if (data.success) {
-                    alert('Payment successful! Redirecting...');
-                    window.location.href = '/dashboard';
-                } else {
-                    throw new Error(data.error || 'Payment failed');
-                }
-            } catch (error) {
-                throw error;
-            }
-        }
-        
-        // TON Payment - redirect to OxaPay
-        async function processTONPayment() {
-            const selectedPlan = document.querySelector('.plan-card.selected');
-            const selectedPeriod = document.querySelector('.period-btn.active');
-            
-            if (!selectedPlan || !selectedPeriod) {
-                showToast('Please select a plan and period', 'error');
-                return;
-            }
-            
-            const plan = selectedPlan.dataset.plan;
-            const period = selectedPeriod.dataset.period;
+            const durationMap = { monthly: '1m', quarterly: '3m', semiannual: '6m', yearly: '1y' };
+            const duration = durationMap[selectedPlan.period] || '1m';
             
             try {
-                const response = await fetch('/api/payments/crypto/create', {
+                const response = await fetch('/api/crypto/create', {
                     method: 'POST',
                     headers: { 
                         'Content-Type': 'application/json',
                         'Authorization': `Bearer ${localStorage.getItem('token')}`
                     },
-                    body: JSON.stringify({ plan, duration: period, currency: 'TON', network: 'TON' })
+                    body: JSON.stringify({ plan: selectedPlan.key, duration: duration, currency: 'USDT', network: network })
                 });
                 
                 const data = await response.json();
-                if (data.success && data.payment_url) {
-                    window.location.href = data.payment_url;
-                } else {
-                    showToast(data.error || 'Failed to create payment', 'error');
-                }
-            } catch (error) {
-                showToast('Payment error: ' + error.message, 'error');
-            }
-        }
-        
-        // USDT Payment - redirect to OxaPay
-        async function processUSDTPayment() {
-            const selectedPlan = document.querySelector('.plan-card.selected');
-            const selectedPeriod = document.querySelector('.period-btn.active');
-            
-            if (!selectedPlan || !selectedPeriod) {
-                showToast('Please select a plan and period', 'error');
-                return;
-            }
-            
-            const plan = selectedPlan.dataset.plan;
-            const period = selectedPeriod.dataset.period;
-            
-            try {
-                const response = await fetch('/api/payments/crypto/create', {
-                    method: 'POST',
-                    headers: { 
-                        'Content-Type': 'application/json',
-                        'Authorization': `Bearer ${localStorage.getItem('token')}`
-                    },
-                    body: JSON.stringify({ plan, duration: period, currency: 'USDT', network: 'TRC20' })
-                });
-                
-                const data = await response.json();
-                if (data.success && data.payment_url) {
-                    window.location.href = data.payment_url;
+                if (data.success && data.pay_url) {
+                    window.location.href = data.pay_url;
+                } else if (data.address) {
+                    showToast('Payment address: ' + data.address, 'success');
                 } else {
                     showToast(data.error || 'Failed to create payment', 'error');
                 }

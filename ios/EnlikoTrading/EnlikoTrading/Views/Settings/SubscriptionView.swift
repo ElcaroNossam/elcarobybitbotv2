@@ -592,7 +592,7 @@ struct PaymentDetailsView: View {
                     .font(.title.weight(.bold))
                     .foregroundColor(.white)
                 
-                Text("TRC20 Network")
+                Text("\(invoice.network ?? "TRC20") Network")
                     .font(.caption)
                     .foregroundColor(.enlikoTextSecondary)
             }
