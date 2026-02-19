@@ -218,36 +218,44 @@ struct SettingsMainView: View {
                 .foregroundColor(.white)
             
             LazyVGrid(columns: [GridItem(.flexible()), GridItem(.flexible())], spacing: 12) {
-                QuickToolCard(
-                    icon: "globe",
-                    title: "language".localized,
-                    subtitle: LocalizationManager.shared.currentLanguage.displayName
-                ) {
-                    // Show language picker
+                NavigationLink {
+                    LanguageSettingsView()
+                } label: {
+                    QuickToolCard(
+                        icon: "globe",
+                        title: "language".localized,
+                        subtitle: LocalizationManager.shared.currentLanguage.displayName
+                    )
                 }
                 
-                QuickToolCard(
-                    icon: "bell.fill",
-                    title: "notifications".localized,
-                    subtitle: "configured".localized
-                ) {
-                    // Show notifications settings
+                NavigationLink {
+                    NotificationSettingsView()
+                } label: {
+                    QuickToolCard(
+                        icon: "bell.fill",
+                        title: "notifications".localized,
+                        subtitle: "configured".localized
+                    )
                 }
                 
-                QuickToolCard(
-                    icon: "crown.fill",
-                    title: "premium".localized,
-                    subtitle: "upgrade".localized
-                ) {
-                    // Show premium
+                NavigationLink {
+                    SubscriptionView()
+                } label: {
+                    QuickToolCard(
+                        icon: "crown.fill",
+                        title: "premium".localized,
+                        subtitle: "upgrade".localized
+                    )
                 }
                 
-                QuickToolCard(
-                    icon: "clock.arrow.circlepath",
-                    title: "history".localized,
-                    subtitle: "view_trades".localized
-                ) {
-                    // Show history
+                NavigationLink {
+                    TradeHistoryView()
+                } label: {
+                    QuickToolCard(
+                        icon: "clock.arrow.circlepath",
+                        title: "trade_history".localized,
+                        subtitle: "view_trades".localized
+                    )
                 }
             }
         }
@@ -352,28 +360,25 @@ struct QuickToolCard: View {
     let icon: String
     let title: String
     let subtitle: String
-    let action: () -> Void
     
     var body: some View {
-        Button(action: action) {
-            VStack(alignment: .leading, spacing: 8) {
-                Image(systemName: icon)
-                    .font(.title2)
-                    .foregroundColor(.enlikoPrimary)
-                
-                Text(title)
-                    .font(.subheadline.bold())
-                    .foregroundColor(.white)
-                
-                Text(subtitle)
-                    .font(.caption)
-                    .foregroundColor(.secondary)
-            }
-            .frame(maxWidth: .infinity, alignment: .leading)
-            .padding(12)
-            .background(Color.enlikoBackground)
-            .cornerRadius(12)
+        VStack(alignment: .leading, spacing: 8) {
+            Image(systemName: icon)
+                .font(.title2)
+                .foregroundColor(.enlikoPrimary)
+            
+            Text(title)
+                .font(.subheadline.bold())
+                .foregroundColor(.white)
+            
+            Text(subtitle)
+                .font(.caption)
+                .foregroundColor(.secondary)
         }
+        .frame(maxWidth: .infinity, alignment: .leading)
+        .padding(12)
+        .background(Color.enlikoBackground)
+        .cornerRadius(12)
     }
 }
 
