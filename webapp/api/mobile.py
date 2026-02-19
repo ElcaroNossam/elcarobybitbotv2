@@ -672,7 +672,7 @@ async def get_app_config(
             },
             "links": {
                 "support": "https://t.me/enliko_support",
-                "telegram_bot": "https://t.me/enliko_bybit_bot",
+                "telegram_bot": "https://t.me/enliko_bot",
                 "website": "https://enliko.com",
                 "terms": "https://enliko.com/terms",
                 "privacy": "https://enliko.com/privacy"
