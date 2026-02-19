@@ -115,7 +115,11 @@ class AuthViewModel @Inject constructor(
     }
 
     fun verifyEmail(code: String) {
-        val email = _uiState.value.pendingEmail ?: return
+        val email = _uiState.value.pendingEmail
+        if (email.isNullOrBlank()) {
+            _uiState.value = _uiState.value.copy(error = "No email to verify. Please register again.")
+            return
+        }
         viewModelScope.launch {
             _uiState.value = _uiState.value.copy(isLoading = true, error = null)
             try {
@@ -127,17 +131,26 @@ class AuthViewModel @Inject constructor(
                         preferencesRepository.saveLanguage(authResponse.user.lang)
                         _uiState.value = AuthUiState(isSuccess = true)
                     } ?: run {
-                        _uiState.value = _uiState.value.copy(isLoading = false, error = "Invalid response")
+                        _uiState.value = _uiState.value.copy(isLoading = false, error = "Empty response from server")
                     }
                 } else {
+                    val errorBody = response.errorBody()?.string() ?: ""
                     val errorMsg = when (response.code()) {
-                        400 -> "Invalid or expired verification code"
-                        else -> "Verification failed: ${response.code()}"
+                        400 -> if (errorBody.contains("expired")) "Code expired. Please register again." 
+                               else "Invalid verification code"
+                        404 -> "No pending registration. Please register again."
+                        else -> "Server error: ${response.code()}"
                     }
                     _uiState.value = _uiState.value.copy(isLoading = false, error = errorMsg)
                 }
             } catch (e: Exception) {
-                _uiState.value = _uiState.value.copy(isLoading = false, error = e.message ?: "Unknown error")
+                val errorDetail = when {
+                    e.message?.contains("JsonDecodingException") == true -> "Server response format error"
+                    e.message?.contains("Unable to resolve") == true -> "No internet connection"
+                    e.message?.contains("timeout") == true -> "Connection timeout"
+                    else -> e.message ?: "Unknown error"
+                }
+                _uiState.value = _uiState.value.copy(isLoading = false, error = errorDetail)
             }
         }
     }
