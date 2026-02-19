@@ -415,6 +415,9 @@ class LocalizationManager: ObservableObject {
         "auth_login_button": "Login",
         "auth_register_button": "Register",
         "auth_register_subtitle": "Create new account",
+        "auth_email_invalid": "Enter a valid email",
+        "auth_name_hint": "Optional, for personalization",
+        "auth_code_hint": "Check your email for the code",
         
         // Debug
         "debug_dev_mode": "Development Mode",
@@ -610,7 +613,6 @@ class LocalizationManager: ObservableObject {
         "spot_start_dca": "Start building your portfolio with DCA",
         "futures": "Futures",
         "spot": "Spot",
-        "spot_balance": "Spot Balance",
         "spot_buy_sell": "Buy / Sell",
         
         // Common
@@ -2290,7 +2292,6 @@ class LocalizationManager: ObservableObject {
         "view_all": "Показати все",
         "positions": "Позиції",
         "orders": "Ордери",
-        "alerts": "Сповіщення",
         "history": "Історія",
         
         // === Auth View (REQUIRED!) ===

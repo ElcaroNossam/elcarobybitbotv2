@@ -12,10 +12,15 @@ import Combine
 
 struct PaymentPlan: Identifiable, Codable {
     let id = UUID()
-    let name: String
-    let displayName: String
-    let features: [String]
-    let prices: [String: Double]
+    let name: String?
+    let displayName: String?
+    let features: [String]?
+    let prices: [String: Double]?
+    
+    var nameValue: String { name ?? "" }
+    var displayNameValue: String { displayName ?? nameValue.capitalized }
+    var featuresList: [String] { features ?? [] }
+    var pricesMap: [String: Double] { prices ?? [:] }
     
     enum CodingKeys: String, CodingKey {
         case name, displayName = "display_name", features, prices
@@ -24,10 +29,15 @@ struct PaymentPlan: Identifiable, Codable {
 
 struct PaymentCurrency: Identifiable, Codable {
     let id = UUID()
-    let symbol: String
-    let name: String
-    let networks: [String]
-    let minAmount: Double
+    let symbol: String?
+    let name: String?
+    let networks: [String]?
+    let minAmount: Double?
+    
+    var symbolValue: String { symbol ?? "USDT" }
+    var nameValue: String { name ?? symbolValue }
+    var networksList: [String] { networks ?? [] }
+    var minAmountValue: Double { minAmount ?? 5.0 }
     
     enum CodingKeys: String, CodingKey {
         case symbol, name, networks, minAmount = "min_amount"
@@ -47,17 +57,26 @@ struct CreatePaymentRequest: Codable {
 }
 
 struct PaymentInvoice: Codable {
-    let paymentId: String
-    let address: String
-    let amountUsd: Double
-    let amountCrypto: Double
-    let currency: String
-    let network: String
-    let expiresAt: String
-    let status: String
+    let paymentId: String?
+    let address: String?
+    let amountUsd: Double?
+    let amountCrypto: Double?
+    let currency: String?
+    let network: String?
+    let expiresAt: String?
+    let status: String?
     let qrCodeUrl: String?
     let discountPercent: Double?
     let originalAmount: Double?
+    
+    var paymentIdValue: String { paymentId ?? "" }
+    var addressValue: String { address ?? "" }
+    var amountUsdValue: Double { amountUsd ?? 0 }
+    var amountCryptoValue: Double { amountCrypto ?? 0 }
+    var currencyValue: String { currency ?? "USDT" }
+    var networkValue: String { network ?? "TRC20" }
+    var expiresAtValue: String { expiresAt ?? "" }
+    var statusValue: String { status ?? "pending" }
     
     enum CodingKeys: String, CodingKey {
         case paymentId = "payment_id"
@@ -110,11 +129,14 @@ struct PaymentStatusResponse: Codable {
 }
 
 struct PromoCodeResponse: Codable {
-    let valid: Bool
+    let valid: Bool?
     let discountPercent: Double?
     let finalAmount: Double?
     let originalAmount: Double?
-    let message: String
+    let message: String?
+    
+    var isValid: Bool { valid ?? false }
+    var messageValue: String { message ?? "" }
     
     enum CodingKeys: String, CodingKey {
         case valid
@@ -127,14 +149,22 @@ struct PromoCodeResponse: Codable {
 
 struct PaymentHistoryItem: Identifiable, Codable {
     let id = UUID()
-    let paymentId: String
-    let amountUsd: Double
-    let currency: String
-    let status: String
-    let plan: String
-    let duration: String
-    let createdAt: String
+    let paymentId: String?
+    let amountUsd: Double?
+    let currency: String?
+    let status: String?
+    let plan: String?
+    let duration: String?
+    let createdAt: String?
     let confirmedAt: String?
+    
+    var paymentIdValue: String { paymentId ?? "" }
+    var amountUsdValue: Double { amountUsd ?? 0 }
+    var currencyValue: String { currency ?? "USDT" }
+    var statusValue: String { status ?? "unknown" }
+    var planValue: String { plan ?? "" }
+    var durationValue: String { duration ?? "" }
+    var createdAtValue: String { createdAt ?? "" }
     
     enum CodingKeys: String, CodingKey {
         case paymentId = "payment_id"
@@ -261,8 +291,8 @@ class PaymentService: ObservableObject {
     
     func getPrice(for plan: String, duration: String) -> Double? {
         // Try from loaded plans first
-        if let planData = plans.first(where: { $0.name == plan }),
-           let price = planData.prices[duration] {
+        if let planData = plans.first(where: { $0.nameValue == plan }),
+           let price = planData.pricesMap[duration] {
             return price
         }
         // Fallback to default prices
@@ -270,7 +300,7 @@ class PaymentService: ObservableObject {
     }
     
     func getPlanDisplayName(_ plan: String) -> String {
-        plans.first(where: { $0.name == plan })?.displayName ?? plan.capitalized
+        plans.first(where: { $0.nameValue == plan })?.displayNameValue ?? plan.capitalized
     }
     
     func getDurationDisplayName(_ duration: String) -> String {
@@ -287,13 +317,13 @@ class PaymentService: ObservableObject {
     
     func fetchELCBalance() async throws -> Double {
         struct BalanceResponse: Codable {
-            let available: Double
-            let staked: Double
-            let total: Double
+            let available: Double?
+            let staked: Double?
+            let total: Double?
         }
         
         let response: BalanceResponse = try await networkService.get(Config.Endpoints.elcBalance)
-        return response.available
+        return response.available ?? 0
     }
     
     // MARK: - Create ELC Purchase
@@ -332,9 +362,12 @@ class PaymentService: ObservableObject {
 // MARK: - ELC Models
 
 struct ELCPurchaseInvoice: Codable {
-    let success: Bool
-    let paymentId: String
+    let success: Bool?
+    let paymentId: String?
     let address: String?
+    
+    var isSuccess: Bool { success ?? false }
+    var paymentIdValue: String { paymentId ?? "" }
     let amountUSD: Double?
     let elcAmount: Double?
     let fee: Double?
@@ -347,9 +380,12 @@ struct ELCPurchaseInvoice: Codable {
 }
 
 struct ELCPaymentStatusResponse: Codable {
-    let paymentId: String
-    let status: String
+    let paymentId: String?
+    let status: String?
     let amountUSD: Double?
+    
+    var paymentIdValue: String { paymentId ?? "" }
+    var statusValue: String { status ?? "unknown" }
     let elcAmount: Double?
     let currency: String?
     let network: String?
@@ -359,8 +395,10 @@ struct ELCPaymentStatusResponse: Codable {
 }
 
 struct ELCPaymentResult: Codable {
-    let success: Bool
+    let success: Bool?
     let subscriptionActivated: Bool?
+    
+    var isSuccess: Bool { success ?? false }
     let plan: String?
     let duration: String?
     let elcPaid: Double?

@@ -157,7 +157,7 @@ struct User: Codable, Identifiable {
             return n
         }
         if let first = firstName {
-            return lastName != nil ? "\(first) \(lastName!)" : first
+            return lastName != nil ? "\(first) \(lastName ?? "")" : first
         }
         return username ?? email ?? "User \(id)"
     }
@@ -1325,8 +1325,8 @@ struct APIKeysStatus: Codable {
     let hlHasKey: Bool?
     
     // Convenience accessors
-    var hasBybitDemo: Bool { demoApiKey != nil && !demoApiKey!.isEmpty }
-    var hasBybitReal: Bool { realApiKey != nil && !realApiKey!.isEmpty }
+    var hasBybitDemo: Bool { !(demoApiKey ?? "").isEmpty }
+    var hasBybitReal: Bool { !(realApiKey ?? "").isEmpty }
     var hasHyperliquid: Bool { hlHasKey ?? false }
     
     // For backward compatibility - synthesize nested structure

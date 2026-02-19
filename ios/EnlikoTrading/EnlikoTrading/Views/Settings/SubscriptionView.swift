@@ -376,7 +376,7 @@ struct SubscriptionView: View {
             let result = try await paymentService.payWithELC(plan: selectedPlan, duration: selectedDuration)
             await MainActor.run {
                 isLoading = false
-                if result.success {
+                if result.isSuccess {
                     successMessage = result.message ?? "subscription_activated".localized
                     elcBalance = result.newBalance ?? elcBalance
                 } else {
@@ -538,13 +538,13 @@ struct BuyELCSheet: View {
     }
     
     private func checkPaymentStatus() async {
-        guard let paymentId = currentInvoice?.paymentId else { return }
+        guard let paymentId = currentInvoice?.paymentIdValue, !paymentId.isEmpty else { return }
         
         do {
             let response = try await paymentService.checkELCPaymentStatus(paymentId: paymentId)
             await MainActor.run {
-                paymentStatus = response.status
-                if response.status == "confirmed" {
+                paymentStatus = response.statusValue
+                if response.statusValue == "confirmed" {
                     onPurchaseComplete(currentInvoice?.elcAmount ?? elcAmount)
                 }
             }
