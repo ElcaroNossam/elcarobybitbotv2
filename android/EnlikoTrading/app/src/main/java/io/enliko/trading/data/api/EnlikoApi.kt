@@ -6,11 +6,11 @@ import retrofit2.http.*
 
 interface EnlikoApi {
 
-    // ==================== AUTH ====================
-    @POST("/api/auth/login")
+    // ==================== AUTH (Email-based) ====================
+    @POST("/api/auth/email/login")
     suspend fun login(@Body request: LoginRequest): Response<AuthResponse>
 
-    @POST("/api/auth/register")
+    @POST("/api/auth/email/register")
     suspend fun register(@Body request: RegisterRequest): Response<AuthResponse>
 
     @GET("/api/users/me")

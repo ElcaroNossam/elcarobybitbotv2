@@ -10,16 +10,16 @@ import androidx.compose.ui.graphics.Color
 // ═══════════════════════════════════════════════════════════════════════════════
 
 // ═══════════════════════════════════════════════════════════════════════════════
-// BRAND COLORS
+// BRAND COLORS (Synced with iOS - Violet Theme 2026)
 // ═══════════════════════════════════════════════════════════════════════════════
-val EnlikoPrimary = Color(0xFFDC2626)        // Main brand red
-val EnlikoPrimaryLight = Color(0xFFEF4444)   // Lighter red
-val EnlikoPrimaryDark = Color(0xFFB91C1C)    // Darker red
-val EnlikoSecondary = Color(0xFFFFD700)      // Gold accent
-val EnlikoAccent = Color(0xFF00D4FF)         // Cyan accent
+val EnlikoPrimary = Color(0xFF7C3AED)        // Violet - primary accent (synced with iOS)
+val EnlikoPrimaryLight = Color(0xFFA78BFA)   // Light violet - secondary accent
+val EnlikoPrimaryDark = Color(0xFF5B21B6)    // Darker violet
+val EnlikoSecondary = Color(0xFFC084FC)      // Soft purple - utility accent
+val EnlikoAccent = Color(0xFFD946EF)         // Fuchsia - for highlights
 
-// Extended brand palette (NEW 2026)
-val EnlikoPink = Color(0xFFEC4899)           // Pink accent
+// Extended brand palette (Synced with iOS)
+val EnlikoPink = Color(0xFFD946EF)           // Fuchsia accent
 val EnlikoViolet = Color(0xFF8B5CF6)         // Violet for premium
 val EnlikoOrange = Color(0xFFF97316)         // Orange accent
 val EnlikoTeal = Color(0xFF14B8A6)           // Teal accent
@@ -76,21 +76,21 @@ val LightOnSurface = Color(0xFF1F2937)
 val LightOnSurfaceVariant = Color(0xFF6B7280)
 
 // ═══════════════════════════════════════════════════════════════════════════════
-// GRADIENT COLORS (For premium feel)
+// GRADIENT COLORS (Synced with iOS - Violet Theme)
 // ═══════════════════════════════════════════════════════════════════════════════
-val GradientStart = Color(0xFFDC2626)     // Red
-val GradientMiddle = Color(0xFFF97316)    // Orange
-val GradientEnd = Color(0xFFFFD700)       // Gold
+val GradientStart = Color(0xFF7C3AED)     // Violet (synced with iOS)
+val GradientMiddle = Color(0xFFA78BFA)    // Light violet
+val GradientEnd = Color(0xFFC084FC)       // Soft purple
 
-val PremiumGradientStart = Color(0xFF8B5CF6)  // Violet
-val PremiumGradientMiddle = Color(0xFFEC4899) // Pink
-val PremiumGradientEnd = Color(0xFFF97316)    // Orange
+val PremiumGradientStart = Color(0xFF7C3AED)  // Violet (synced with iOS)
+val PremiumGradientMiddle = Color(0xFFD946EF) // Fuchsia
+val PremiumGradientEnd = Color(0xFFA78BFA)    // Light violet
 
 // Gradient color lists for Brush.linearGradient()
-val GradientPrimaryColors = listOf(EnlikoPrimary, EnlikoOrange)
+val GradientPrimaryColors = listOf(EnlikoPrimary, EnlikoSecondary)  // Violet gradient
 val GradientProfitColors = listOf(EnlikoGreen, EnlikoTeal)
 val GradientLossColors = listOf(EnlikoRed, EnlikoPink)
-val GradientPremiumColors = listOf(EnlikoViolet, EnlikoPink, EnlikoOrange)
+val GradientPremiumColors = listOf(EnlikoPrimary, EnlikoPink, EnlikoSecondary)
 val GradientGlassColors = listOf(GlassHighlight, GlassBackground)
 
 // ═══════════════════════════════════════════════════════════════════════════════
