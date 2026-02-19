@@ -630,6 +630,9 @@ def pg_init_db():
                 max_positions   INTEGER DEFAULT 0,      -- 0 = unlimited
                 coins_group     TEXT DEFAULT 'ALL',     -- ALL, TOP100, VOLATILE
                 
+                -- Exchange (4D multitenancy)
+                exchange        TEXT NOT NULL DEFAULT 'bybit',  -- 'bybit' or 'hyperliquid'
+                
                 -- Timestamps
                 created_at      TIMESTAMP DEFAULT NOW(),
                 updated_at      TIMESTAMP DEFAULT NOW(),

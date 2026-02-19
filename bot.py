@@ -16633,6 +16633,7 @@ async def handle_balance_callback(update: Update, ctx: ContextTypes.DEFAULT_TYPE
                     testnet=testnet
                     # main_wallet_address auto-discovered via userRole API
                 )
+                await adapter.initialize()  # REQUIRED: auto-discovers main wallet
                 
                 result = await adapter.get_balance()
                 
@@ -18929,10 +18930,13 @@ async def place_limit_order(
         if "insufficient" in msg.lower() or "balance" in msg.lower() or "110007" in msg or "ab not enough" in msg.lower():
             raise ValueError("INSUFFICIENT_BALANCE")
 
+        if "110090" in msg:
+            raise ValueError("POSITION_LIMIT_EXCEEDED")
+
         if "position idx not match position mode" in msg.lower():
             alt_mode = "one_way" if mode == "hedge" else "hedge"
             order_body["positionIdx"] = position_idx_for(side, alt_mode)
-            _position_mode_cache[(user_id, symbol)] = alt_mode
+            _position_mode_cache[(user_id, symbol, account_type or "auto")] = alt_mode
             logger.info(f"{symbol}: retry limit with alt position mode {alt_mode}")
             res = await _bybit_request(user_id, "POST", "/v5/order/create", body=order_body, account_type=account_type)
         elif "110013" in msg or "cannot set leverage" in msg.lower():
@@ -20856,10 +20860,10 @@ async def on_channel_post(update: Update, ctx: ContextTypes.DEFAULT_TYPE):
                         # Set TP/SL on ALL exchanges where position was opened
                         if side == "Buy":
                             actual_sl = spot_price * (1 - user_sl_pct / 100)
-                            actual_tp = spot_price * (1 + user_tp_pct / 100)
+                            actual_tp = spot_price * (1 + user_tp_pct / 100) if user_tp_pct else None
                         else:
                             actual_sl = spot_price * (1 + user_sl_pct / 100)
-                            actual_tp = spot_price * (1 - user_tp_pct / 100)
+                            actual_tp = spot_price * (1 - user_tp_pct / 100) if user_tp_pct else None
                         
                         if not pos_use_atr:
                             for target_key, target_result in order_results.items():
@@ -21017,10 +21021,10 @@ async def on_channel_post(update: Update, ctx: ContextTypes.DEFAULT_TYPE):
                         # Set TP/SL on ALL exchanges where position was opened
                         if side == "Buy":
                             actual_sl = spot_price * (1 - user_sl_pct / 100)
-                            actual_tp = spot_price * (1 + user_tp_pct / 100)
+                            actual_tp = spot_price * (1 + user_tp_pct / 100) if user_tp_pct else None
                         else:
                             actual_sl = spot_price * (1 + user_sl_pct / 100)
-                            actual_tp = spot_price * (1 - user_tp_pct / 100)
+                            actual_tp = spot_price * (1 - user_tp_pct / 100) if user_tp_pct else None
                         
                         if not pos_use_atr:
                             for target_key, target_result in order_results.items():
@@ -21195,10 +21199,10 @@ async def on_channel_post(update: Update, ctx: ContextTypes.DEFAULT_TYPE):
                             # Calculate SL/TP prices from user settings percentages
                             if side == "Buy":
                                 actual_sl = spot_price * (1 - sl_pct / 100)
-                                actual_tp = spot_price * (1 + tp_pct / 100)
+                                actual_tp = spot_price * (1 + tp_pct / 100) if tp_pct else None
                             else:
                                 actual_sl = spot_price * (1 + sl_pct / 100)
-                                actual_tp = spot_price * (1 - tp_pct / 100)
+                                actual_tp = spot_price * (1 - tp_pct / 100) if tp_pct else None
                             
                             # Set TP/SL on ALL exchanges where position was opened
                             if not pos_use_atr:
@@ -21404,10 +21408,10 @@ async def on_channel_post(update: Update, ctx: ContextTypes.DEFAULT_TYPE):
                             # Calculate SL/TP from user settings percentages
                             if side == "Buy":
                                 actual_sl = spot_price * (1 - fibo_sl_pct / 100)
-                                actual_tp = spot_price * (1 + fibo_tp_pct / 100)
+                                actual_tp = spot_price * (1 + fibo_tp_pct / 100) if fibo_tp_pct else None
                             else:
                                 actual_sl = spot_price * (1 + fibo_sl_pct / 100)
-                                actual_tp = spot_price * (1 - fibo_tp_pct / 100)
+                                actual_tp = spot_price * (1 - fibo_tp_pct / 100) if fibo_tp_pct else None
                             
                             # Set TP/SL on ALL exchanges where position was opened
                             if not pos_use_atr:
@@ -21574,10 +21578,10 @@ async def on_channel_post(update: Update, ctx: ContextTypes.DEFAULT_TYPE):
                         # Calculate SL/TP prices for set_trading_stop
                         if side == "Buy":
                             actual_sl = spot_price * (1 - user_sl_pct / 100)
-                            actual_tp = spot_price * (1 + user_tp_pct / 100)
+                            actual_tp = spot_price * (1 + user_tp_pct / 100) if user_tp_pct else None
                         else:
                             actual_sl = spot_price * (1 + user_sl_pct / 100)
-                            actual_tp = spot_price * (1 - user_tp_pct / 100)
+                            actual_tp = spot_price * (1 - user_tp_pct / 100) if user_tp_pct else None
                         
                         # Set TP/SL on ALL exchanges where position was opened
                         if not pos_use_atr:
@@ -23781,7 +23785,7 @@ async def monitor_positions_loop(app: Application):
                     error_str = str(e).lower()
                     if "chat not found" in error_str or "bot was blocked" in error_str or "user is deactivated" in error_str:
                         _chat_not_found_users[uid] = time.time() + 3600
-                        if once_per(3600, (uid, "chat_not_found_monitor")):
+                        if once_per((uid, "chat_not_found_monitor"), 3600):
                             logger.warning(f"[{uid}] Chat unreachable in monitor — suppressing for 1h")
                     else:
                         logger.error(f"Monitoring error for {uid}: {e}", exc_info=True)
@@ -32777,6 +32781,7 @@ async def on_hl_callback(update: Update, ctx: ContextTypes.DEFAULT_TYPE):
                 testnet=is_testnet
                 # vault_address auto-discovered via initialize()
             )
+            await adapter.initialize()  # REQUIRED: auto-discovers main wallet
             result = await adapter.fetch_positions()
             
             if result.get("success"):

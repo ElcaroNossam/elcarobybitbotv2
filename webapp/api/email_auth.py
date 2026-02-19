@@ -547,10 +547,14 @@ async def email_register(request: Request, data: EmailRegisterRequest, backgroun
 
 
 @router.post("/verify")
-async def email_verify(data: EmailVerifyRequest):
+async def email_verify(data: EmailVerifyRequest, request: Request):
     """
     Verify email with code and complete registration.
     """
+    # SECURITY: Rate limit verification attempts (prevent brute-force on 6-digit code)
+    ip = get_client_ip(request)
+    check_rate_limit(ip, RATE_LIMIT_MAX_ATTEMPTS)
+    
     email = data.email.lower()
     
     pending = await _get_verification_code(email)
@@ -566,7 +570,7 @@ async def email_verify(data: EmailVerifyRequest):
         await _delete_verification_code(email)
         raise HTTPException(400, "Verification code expired")
     
-    if pending['code'] != data.code:
+    if not secrets.compare_digest(str(pending['code']), str(data.code)):
         raise HTTPException(400, "Invalid verification code")
     
     # Create user
@@ -674,10 +678,14 @@ async def email_login(data: EmailLoginRequest, request: Request):
 
 
 @router.post("/forgot-password")
-async def forgot_password(data: PasswordResetRequest, background_tasks: BackgroundTasks):
+async def forgot_password(data: PasswordResetRequest, request: Request, background_tasks: BackgroundTasks):
     """
     Request password reset - sends code to email.
     """
+    # SECURITY: Rate limit forgot-password to prevent email bombing
+    ip = get_client_ip(request)
+    check_rate_limit(ip, RATE_LIMIT_MAX_REGISTER)  # 3 attempts per 5 min window
+    
     email = data.email.lower()
     
     user = get_email_user(email)
@@ -736,7 +744,7 @@ async def reset_password(request: Request, data: PasswordResetConfirmRequest):
         await _delete_password_reset_code(email)
         raise HTTPException(400, "Reset code expired")
     
-    if pending['code'] != data.code:
+    if not secrets.compare_digest(str(pending['code']), str(data.code)):
         raise HTTPException(400, "Invalid reset code")
     
     # Validate new password
