@@ -21144,15 +21144,12 @@ async def on_channel_post(update: Update, ctx: ContextTypes.DEFAULT_TYPE):
                         except Exception as e:
                             logger.warning(f"[{uid}] Enliko: failed to set leverage: {e}")
 
-                    # Enliko: automatically decide Market vs Limit based on Entry price
-                    # If current price is close to Entry (within 0.3%) - use Market
-                    # Otherwise use Limit at Entry price
-                    entry_diff_pct = abs(spot_price - elcaro_entry) / spot_price * 100 if elcaro_entry else 0
-                    use_limit_entry = elcaro_entry and entry_diff_pct > 0.3
+                    # Use user's order_type setting (market/limit) — same as all other strategies
+                    use_limit = elcaro_strat_settings.get("order_type", "market") == "limit"
                     
                     order_leverage = elcaro_leverage
                     
-                    if use_limit_entry:
+                    if use_limit:
                         # Limit order at Entry price from signal
                         try:
                             await place_limit_order_with_strategy(
@@ -21343,24 +21340,19 @@ async def on_channel_post(update: Update, ctx: ContextTypes.DEFAULT_TYPE):
                         except Exception as e:
                             logger.warning(f"[{uid}] Fibonacci: failed to set leverage: {e}")
                     
-                    # Decide Market vs Limit based on entry zone
-                    # If current price is within entry zone → Market
-                    # If current price is outside entry zone → Limit at best boundary
-                    use_limit_entry = False
+                    # Use user's order_type setting (market/limit) — same as all other strategies
+                    use_limit = strat_settings.get("order_type", "market") == "limit"
                     limit_entry_price = fibo_entry  # Default to mid-point
                     
-                    if fibo_entry_low and fibo_entry_high:
+                    if use_limit and fibo_entry_low and fibo_entry_high:
                         # For LONG: use lower boundary (buy cheaper)
                         # For SHORT: use upper boundary (sell higher)
                         if side == "Buy":
                             limit_entry_price = fibo_entry_low
                         else:  # Sell
                             limit_entry_price = fibo_entry_high
-                        
-                        if not (fibo_entry_low <= spot_price <= fibo_entry_high):
-                            use_limit_entry = True
                     
-                    if use_limit_entry:
+                    if use_limit:
                         # Limit order at optimal entry zone boundary
                         try:
                             await place_limit_order_with_strategy(
