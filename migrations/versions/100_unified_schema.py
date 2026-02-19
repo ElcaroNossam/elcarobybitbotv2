@@ -379,6 +379,7 @@ def upgrade(cur):
     
     cur.execute("CREATE INDEX IF NOT EXISTS idx_plo_user ON pending_limit_orders(user_id)")
     cur.execute("CREATE INDEX IF NOT EXISTS idx_plo_status ON pending_limit_orders(status)")
+    cur.execute("CREATE UNIQUE INDEX IF NOT EXISTS idx_plo_unique ON pending_limit_orders(user_id, order_id, exchange)")
     print("  [OK] Created pending_limit_orders table")
     
     # 7. EMAIL_USERS

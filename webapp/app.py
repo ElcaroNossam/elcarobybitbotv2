@@ -285,7 +285,7 @@ class SecurityHeadersMiddleware(BaseHTTPMiddleware):
         # Content Security Policy - allow TradingView widgets, Telegram WebApp, Chart.js, FontAwesome
         csp = (
             "default-src 'self'; "
-            "script-src 'self' 'unsafe-inline' 'unsafe-eval' https://s3.tradingview.com https://*.tradingview.com https://telegram.org https://cdn.jsdelivr.net; "
+            "script-src 'self' 'unsafe-inline' 'unsafe-eval' https://unpkg.com https://s3.tradingview.com https://*.tradingview.com https://telegram.org https://cdn.jsdelivr.net; "
             "style-src 'self' 'unsafe-inline' https://*.tradingview.com https://fonts.googleapis.com https://cdnjs.cloudflare.com; "
             "img-src 'self' data: https: blob:; "
             "font-src 'self' data: https://fonts.gstatic.com https://cdnjs.cloudflare.com; "

@@ -20695,6 +20695,7 @@ async def on_channel_post(update: Update, ctx: ContextTypes.DEFAULT_TYPE):
                         
                         # Send unified entry message with account details
                         side_display = 'LONG' if side == 'Buy' else 'SHORT'
+                        side_emoji = '📈' if side == 'Buy' else '📉'
                         
                         # Build accounts display string
                         accounts_lines = []
@@ -20704,26 +20705,41 @@ async def on_channel_post(update: Update, ctx: ContextTypes.DEFAULT_TYPE):
                             accounts_lines.extend(f'• {acc}' for acc in skipped_accounts)
                         accounts_str = '\n'.join(accounts_lines) if accounts_lines else f'• Qty: {qty}'
                         
-                        # Calculate SL price
+                        # Calculate SL/TP prices
                         sl_price = spot_price * (1 - user_sl_pct/100) if side == 'Buy' else spot_price * (1 + user_sl_pct/100)
-                        side_emoji = '📈' if side == 'Buy' else '📉'
+                        tp_price = spot_price * (1 + user_tp_pct/100) if side == 'Buy' else spot_price * (1 - user_tp_pct/100)
+                        
+                        # Compute margin/qty for notification
+                        total_qty = sum(r.get("qty", 0) for r in order_results.values() if r.get("success")) or qty
+                        notif_leverage = int(user_leverage or 10)
+                        notif_margin = float(total_qty) * spot_price / notif_leverage if notif_leverage else 0
+                        qty_display = f"{total_qty:.4g}"
+                        
+                        atr_info = ""
+                        if pos_use_atr:
+                            atr_info = "📉 ATR trailing enabled\n"
                         
                         signal_info = t.get('rsi_bb_entry', (
                             '📊 *RSI+BB* {side_emoji} *{side}*\n'
                             '━━━━━━━━━━━━━━━━\n'
                             '🪙 `{symbol}`\n'
-                            '💰 Entry: `{price:.6f}`\n'
+                            '💰 Entry: `{price:.6g}`\n'
+                            '📏 Size: `{qty_display}` • Margin: `{margin:.2f} USDT`\n'
+                            '⚡ Leverage: `{leverage}x`\n'
                             '📈 RSI: `{rsi}` ({rsi_zone})\n'
-                            '🛡️ SL: `{sl_price:.6f}` ({sl_pct:.2f}%)\n\n'
+                            '🛡️ SL: `{sl_price:.6g}` ({sl_pct:.2f}%)\n'
+                            '🎯 TP: `{tp_price:.6g}` ({tp_pct:.2f}%)\n\n'
                             '*Opened on:*\n{accounts}\n'
-                            '━━━━━━━━━━━━━━━━\n'
-                            '_📊 Indicators aligned. Execute._'
+                            '{atr_info}'
                         )).format(
                             side_emoji=side_emoji, side=side_display,
                             symbol=symbol, price=spot_price,
                             rsi=rv, rsi_zone=rsi_zone,
                             sl_price=sl_price, sl_pct=user_sl_pct,
-                            accounts=accounts_str
+                            tp_price=tp_price, tp_pct=user_tp_pct,
+                            accounts=accounts_str, atr_info=atr_info,
+                            qty_display=qty_display, margin=notif_margin,
+                            leverage=notif_leverage
                         )
                         
                         await ctx.bot.send_message(uid, signal_info, parse_mode="Markdown")
@@ -20853,23 +20869,35 @@ async def on_channel_post(update: Update, ctx: ContextTypes.DEFAULT_TYPE):
                         sl_price = spot_price * (1 - user_sl_pct/100) if side == 'Buy' else spot_price * (1 + user_sl_pct/100)
                         tp_price = spot_price * (1 + user_tp_pct/100) if side == 'Buy' else spot_price * (1 - user_tp_pct/100)
                         
+                        # Compute margin/qty for notification
+                        total_qty = sum(r.get("qty", 0) for r in order_results.values() if r.get("success")) or qty
+                        notif_leverage = int(user_leverage or 10)
+                        notif_margin = float(total_qty) * spot_price / notif_leverage if notif_leverage else 0
+                        qty_display = f"{total_qty:.4g}"
+                        
+                        atr_info = ""
+                        if pos_use_atr:
+                            atr_info = "📉 ATR trailing enabled\n"
+                        
                         signal_info = t.get('scryptomera_entry', (
                             '🔮 *SCRYPTOMERA* {side_emoji} *{side}*\n'
                             '━━━━━━━━━━━━━━━━\n'
                             '🪙 `{symbol}`\n'
-                            '💰 Entry: `{price:.6f}`\n'
-                            '🛡️ SL: `{sl_price:.6f}` ({sl_pct:.2f}%)\n'
-                            '🎯 TP: `{tp_price:.6f}` ({tp_pct:.2f}%)\n\n'
+                            '💰 Entry: `{price:.6g}`\n'
+                            '📏 Size: `{qty_display}` • Margin: `{margin:.2f} USDT`\n'
+                            '⚡ Leverage: `{leverage}x`\n'
+                            '🛡️ SL: `{sl_price:.6g}` ({sl_pct:.2f}%)\n'
+                            '🎯 TP: `{tp_price:.6g}` ({tp_pct:.2f}%)\n\n'
                             '*Opened on:*\n{accounts}\n'
                             '{atr_info}'
-                            '━━━━━━━━━━━━━━━━\n'
-                            '_🌙 The oracle has spoken. Destiny awaits._'
                         )).format(
                             side_emoji=side_emoji, side=side_display,
                             symbol=symbol, price=spot_price,
                             sl_price=sl_price, sl_pct=user_sl_pct,
                             tp_price=tp_price, tp_pct=user_tp_pct,
-                            accounts=accounts_str, atr_info=""
+                            accounts=accounts_str, atr_info=atr_info,
+                            qty_display=qty_display, margin=notif_margin,
+                            leverage=notif_leverage
                         )
                         
                         await ctx.bot.send_message(uid, signal_info, parse_mode="Markdown")
@@ -21002,23 +21030,35 @@ async def on_channel_post(update: Update, ctx: ContextTypes.DEFAULT_TYPE):
                         sl_price = spot_price * (1 - user_sl_pct/100) if side == 'Buy' else spot_price * (1 + user_sl_pct/100)
                         tp_price = spot_price * (1 + user_tp_pct/100) if side == 'Buy' else spot_price * (1 - user_tp_pct/100)
                         
+                        # Compute margin/qty for notification
+                        total_qty = sum(r.get("qty", 0) for r in order_results.values() if r.get("success")) or qty
+                        notif_leverage = int(user_leverage or 10)
+                        notif_margin = float(total_qty) * spot_price / notif_leverage if notif_leverage else 0
+                        qty_display = f"{total_qty:.4g}"
+                        
+                        atr_info = ""
+                        if pos_use_atr:
+                            atr_info = "📉 ATR trailing enabled\n"
+                        
                         signal_info = t.get('scalper_entry', (
                             '⚡ *SCALPER* {side_emoji} *{side}*\n'
                             '━━━━━━━━━━━━━━━━\n'
                             '🪙 `{symbol}`\n'
-                            '💰 Entry: `{price:.6f}`\n'
-                            '🛡️ SL: `{sl_price:.6f}` ({sl_pct:.2f}%)\n'
-                            '🎯 TP: `{tp_price:.6f}` ({tp_pct:.2f}%)\n\n'
+                            '💰 Entry: `{price:.6g}`\n'
+                            '📏 Size: `{qty_display}` • Margin: `{margin:.2f} USDT`\n'
+                            '⚡ Leverage: `{leverage}x`\n'
+                            '🛡️ SL: `{sl_price:.6g}` ({sl_pct:.2f}%)\n'
+                            '🎯 TP: `{tp_price:.6g}` ({tp_pct:.2f}%)\n\n'
                             '*Opened on:*\n{accounts}\n'
                             '{atr_info}'
-                            '━━━━━━━━━━━━━━━━\n'
-                            '_⚡ Strike fast. Leave no trace._'
                         )).format(
                             side_emoji=side_emoji, side=side_display,
                             symbol=symbol, price=spot_price,
                             sl_price=sl_price, sl_pct=user_sl_pct,
                             tp_price=tp_price, tp_pct=user_tp_pct,
-                            accounts=accounts_str, atr_info=""
+                            accounts=accounts_str, atr_info=atr_info,
+                            qty_display=qty_display, margin=notif_margin,
+                            leverage=notif_leverage
                         )
                         
                         await ctx.bot.send_message(uid, signal_info, parse_mode="Markdown")
@@ -21172,23 +21212,31 @@ async def on_channel_post(update: Update, ctx: ContextTypes.DEFAULT_TYPE):
                             side_display = 'LONG' if side == 'Buy' else 'SHORT'
                             side_emoji = '📈' if side == 'Buy' else '📉'
                             
+                            # Compute margin/qty for notification
+                            total_qty = sum(r.get("qty", 0) for r in order_results.values() if r.get("success")) or qty
+                            notif_leverage = int(elcaro_leverage or 10)
+                            notif_margin = float(total_qty) * spot_price / notif_leverage if notif_leverage else 0
+                            qty_display = f"{total_qty:.4g}"
+                            
                             signal_info = t.get('elcaro_entry', (
                                 '🔥 *ENLIKO* {side_emoji} *{side}*\n'
                                 '━━━━━━━━━━━━━━━━\n'
                                 '🪙 `{symbol}`\n'
-                                '💰 Entry: `{price:.6f}`\n'
-                                '🛡️ SL: `{sl_price:.6f}` ({sl_pct:.2f}%)\n'
-                                '🎯 TP: `{tp_price:.6f}` ({tp_pct:.2f}%)\n\n'
+                                '💰 Entry: `{price:.6g}`\n'
+                                '📏 Size: `{qty_display}` • Margin: `{margin:.2f} USDT`\n'
+                                '⚡ Leverage: `{leverage}x`\n'
+                                '🛡️ SL: `{sl_price:.6g}` ({sl_pct:.2f}%)\n'
+                                '🎯 TP: `{tp_price:.6g}` ({tp_pct:.2f}%)\n\n'
                                 '*Opened on:*\n{accounts}\n'
                                 '{atr_info}'
-                                '━━━━━━━━━━━━━━━━\n'
-                                '_🔥 Liquidity burns. We collect the ashes._'
                             )).format(
                                 side_emoji=side_emoji, side=side_display,
                                 symbol=symbol, price=spot_price,
                                 sl_price=actual_sl, sl_pct=sl_pct,
                                 tp_price=actual_tp, tp_pct=tp_pct,
-                                accounts=accounts_str, atr_info=atr_info
+                                accounts=accounts_str, atr_info=atr_info,
+                                qty_display=qty_display, margin=notif_margin,
+                                leverage=notif_leverage
                             )
                             
                             await ctx.bot.send_message(uid, signal_info, parse_mode="Markdown")
@@ -21375,23 +21423,40 @@ async def on_channel_post(update: Update, ctx: ContextTypes.DEFAULT_TYPE):
                             if pos_use_atr and fibo_atr_periods:
                                 atr_info = f"\n📉 ATR: {fibo_atr_periods} | ×{fibo_atr_mult} | Trigger: {fibo_atr_trigger}%"
                             
+                            # Compute margin/qty for notification
+                            total_qty = sum(r.get("qty", 0) for r in order_results.values() if r.get("success")) or qty
+                            notif_leverage = int(user_leverage or 10)
+                            notif_margin = float(total_qty) * spot_price / notif_leverage if notif_leverage else 0
+                            qty_display = f"{total_qty:.4g}"
+                            
                             # Format entry zone (may be None if not in signal)
                             zone_str = ""
                             if fibo_entry_low is not None and fibo_entry_high is not None:
                                 zone_str = f"🎯 Zone: {fibo_entry_low:.6g} – {fibo_entry_high:.6g}\n"
                             
-                            signal_info = (
-                                f"📐 *Fibonacci* {'📈 LONG' if side=='Buy' else '📉 SHORT'}\n"
-                                f"🪙 {symbol}\n"
-                                f"💰 Entry: {spot_price:.6g}\n"
-                                f"{zone_str}"
-                                f"🛑 SL: {actual_sl:.6g} ({fibo_sl_pct:.2f}%)\n"
-                                f"✅ TP: {actual_tp:.6g} ({fibo_tp_pct:.2f}%)\n"
-                                f"🟢 Quality: {quality_grade} ({quality_score}/100){atr_info}\n\n"
-                                f"*Opened on:*\n{accounts_str}"
+                            fibo_side_display = 'LONG' if side == 'Buy' else 'SHORT'
+                            fibo_side_emoji = '📈' if side == 'Buy' else '📉'
+                            
+                            signal_info = t.get('fibonacci_entry', (
+                                '📐 *Fibonacci* {side_emoji} *{side}*\n'
+                                '━━━━━━━━━━━━━━━━\n'
+                                '🪙 `{symbol}`\n'
+                                '💰 Entry: `{price:.6g}`\n'
+                                '📏 Size: `{qty_display}` • Margin: `{margin:.2f} USDT`\n'
+                                '⚡ Leverage: `{leverage}x`\n'
+                                '🛡️ SL: `{sl_price:.6g}` ({sl_pct:.2f}%)\n'
+                                '🎯 TP: `{tp_price:.6g}` ({tp_pct:.2f}%)\n\n'
+                                '*Opened on:*\n{accounts}\n'
+                                '{atr_info}'
+                            )).format(
+                                side_emoji=fibo_side_emoji, side=fibo_side_display,
+                                symbol=symbol, price=spot_price,
+                                sl_price=actual_sl, sl_pct=fibo_sl_pct,
+                                tp_price=actual_tp, tp_pct=fibo_tp_pct,
+                                accounts=accounts_str, atr_info=atr_info,
+                                qty_display=qty_display, margin=notif_margin,
+                                leverage=notif_leverage
                             )
-                            if trigger_info:
-                                signal_info += f"\n⚡ {trigger_info}"
                             
                             await ctx.bot.send_message(uid, signal_info, parse_mode="Markdown")
                             
@@ -21529,23 +21594,31 @@ async def on_channel_post(update: Update, ctx: ContextTypes.DEFAULT_TYPE):
                         sl_price = spot_price * (1 - user_sl_pct/100) if side == 'Buy' else spot_price * (1 + user_sl_pct/100)
                         tp_price = spot_price * (1 + user_tp_pct/100) if side == 'Buy' else spot_price * (1 - user_tp_pct/100)
                         
+                        # Compute margin/qty for notification
+                        total_qty = sum(r.get("qty", 0) for r in order_results.values() if r.get("success")) or qty_mkt
+                        notif_leverage = int(user_leverage or 10)
+                        notif_margin = float(total_qty) * spot_price / notif_leverage if notif_leverage else 0
+                        qty_display = f"{total_qty:.4g}"
+                        
                         signal_info = t.get('oi_entry', (
                             '🐋 *OI SIGNAL* {side_emoji} *{side}*\n'
                             '━━━━━━━━━━━━━━━━\n'
                             '🪙 `{symbol}`\n'
-                            '💰 Entry: `{price:.6f}`\n'
-                            '🛡️ SL: `{sl_price:.6f}` ({sl_pct:.2f}%)\n'
-                            '🎯 TP: `{tp_price:.6f}` ({tp_pct:.2f}%)\n\n'
+                            '💰 Entry: `{price:.6g}`\n'
+                            '📏 Size: `{qty_display}` • Margin: `{margin:.2f} USDT`\n'
+                            '⚡ Leverage: `{leverage}x`\n'
+                            '🛡️ SL: `{sl_price:.6g}` ({sl_pct:.2f}%)\n'
+                            '🎯 TP: `{tp_price:.6g}` ({tp_pct:.2f}%)\n\n'
                             '*Opened on:*\n{accounts}\n'
                             '{atr_info}'
-                            '━━━━━━━━━━━━━━━━\n'
-                            '_🦈 Whale detected. Hunt initiated._'
                         )).format(
                             side_emoji=side_emoji, side=side_display,
                             symbol=symbol, price=spot_price,
                             sl_price=sl_price, sl_pct=user_sl_pct,
                             tp_price=tp_price, tp_pct=user_tp_pct,
-                            accounts=accounts_str, atr_info=""
+                            accounts=accounts_str, atr_info="",
+                            qty_display=qty_display, margin=notif_margin,
+                            leverage=notif_leverage
                         )
                         
                         await ctx.bot.send_message(uid, signal_info, parse_mode="Markdown")
@@ -22568,6 +22641,12 @@ async def monitor_positions_loop(app: Application):
                                         # Calculate net PnL (after fee)
                                         net_pnl = pnl_value - fee_paid
                                         
+                                        # Compute side display and margin for close notification
+                                        close_side_display = "LONG" if ap_side == "Buy" else "SHORT"
+                                        close_side_emoji = "📈" if ap_side == "Buy" else "📉"
+                                        close_leverage = int(leverage) if leverage else 10
+                                        close_margin = float(size_for_pnl) * float(entry_price) / close_leverage if close_leverage else 0
+                                        
                                         close_message = t.get(close_template_key, t['position_closed']).format(
                                             symbol=sym,
                                             reason=reason_text,
@@ -22580,6 +22659,11 @@ async def monitor_positions_loop(app: Application):
                                             market_type=market_type_display,
                                             fee=fee_paid,
                                             net_pnl=net_pnl,
+                                            side_emoji=close_side_emoji,
+                                            side_display=close_side_display,
+                                            leverage=close_leverage,
+                                            margin=close_margin,
+                                            size=float(size_for_pnl),
                                         )
                                         
                                         await safe_send_notification(

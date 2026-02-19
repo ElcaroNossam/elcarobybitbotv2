@@ -1679,7 +1679,7 @@
 
         // Initialize
         document.addEventListener('DOMContentLoaded', () => {
-            initChart();
+            try { initChart(); } catch(e) { console.warn('Chart init failed:', e); }
             fetchHomeData();
             fetchGoldChart().then(() => {
                 if (currentChart === 'gold' && goldData.length > 0) {
