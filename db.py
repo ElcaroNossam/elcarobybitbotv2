@@ -1328,6 +1328,14 @@ def get_user_config(user_id: int) -> dict:
         # Global direction
         if _col_exists(conn, "users", "direction"):
             cols.append("direction")
+        # Per-exchange settings (leverage, order_type, coins_group)
+        for _exc_col in (
+            "bybit_leverage", "hl_leverage",
+            "bybit_order_type", "hl_order_type",
+            "bybit_coins_group", "hl_coins_group",
+        ):
+            if _col_exists(conn, "users", _exc_col):
+                cols.append(_exc_col)
 
         row = conn.execute(f"SELECT {', '.join(cols)} FROM users WHERE user_id=?",
                            (user_id,)).fetchone()
@@ -1484,6 +1492,13 @@ def get_user_config(user_id: int) -> dict:
         "exchange_type": data.get("exchange_type") or "bybit",
         "trading_mode": data.get("trading_mode") or "demo",
         "live_enabled": bool(data.get("live_enabled") or 0),
+        # Per-exchange settings
+        "bybit_leverage": int(data.get("bybit_leverage") or 0) if data.get("bybit_leverage") else None,
+        "hl_leverage": int(data.get("hl_leverage") or 0) if data.get("hl_leverage") else None,
+        "bybit_order_type": data.get("bybit_order_type") or None,
+        "hl_order_type": data.get("hl_order_type") or None,
+        "bybit_coins_group": data.get("bybit_coins_group") or None,
+        "hl_coins_group": data.get("hl_coins_group") or None,
     }
     # Store in cache
     _user_config_cache[user_id] = (time.time(), cfg)

@@ -5269,15 +5269,26 @@ def get_strategy_trade_params(uid: int, cfg: dict, symbol: str, strategy: str, s
         if side_leverage is not None and side_leverage > 0:
             leverage = int(side_leverage)
         else:
-            # Fallback to global user leverage
-            leverage = int(cfg.get("leverage", 10))
+            # Fallback: per-exchange leverage → global leverage
+            _exc_lev_key = "bybit_leverage" if (exchange or "").lower() != "hyperliquid" else "hl_leverage"
+            _exc_lev = cfg.get(_exc_lev_key)
+            if _exc_lev is not None and _exc_lev > 0:
+                leverage = int(_exc_lev)
+            else:
+                leverage = int(cfg.get("leverage", 10))
         
         # Get side-specific order_type and limit_offset_pct
         side_order_type = strat_settings.get(f"{side_prefix}_order_type")
         if side_order_type:
             order_type = side_order_type
         else:
-            order_type = cfg.get("global_order_type", "market")
+            # Fallback: per-exchange order_type → global order_type
+            _exc_ot_key = "bybit_order_type" if (exchange or "").lower() != "hyperliquid" else "hl_order_type"
+            _exc_ot = cfg.get(_exc_ot_key)
+            if _exc_ot:
+                order_type = _exc_ot
+            else:
+                order_type = cfg.get("global_order_type", "market")
         
         side_limit_offset = strat_settings.get(f"{side_prefix}_limit_offset_pct")
         if side_limit_offset is not None and side_limit_offset > 0:
@@ -5373,10 +5384,21 @@ def get_strategy_trade_params(uid: int, cfg: dict, symbol: str, strategy: str, s
     if strat_leverage is not None and strat_leverage > 0:
         leverage = int(strat_leverage)
     else:
-        leverage = int(cfg.get("leverage", 10))
+        # Fallback: per-exchange leverage → global leverage
+        _exc_lev_key = "bybit_leverage" if (exchange or "").lower() != "hyperliquid" else "hl_leverage"
+        _exc_lev = cfg.get(_exc_lev_key)
+        if _exc_lev is not None and _exc_lev > 0:
+            leverage = int(_exc_lev)
+        else:
+            leverage = int(cfg.get("leverage", 10))
     
     # Order type defaults when side not provided
-    order_type = cfg.get("global_order_type", "market")
+    _exc_ot_key = "bybit_order_type" if (exchange or "").lower() != "hyperliquid" else "hl_order_type"
+    _exc_ot = cfg.get(_exc_ot_key)
+    if _exc_ot:
+        order_type = _exc_ot
+    else:
+        order_type = cfg.get("global_order_type", "market")
     limit_offset_pct = float(cfg.get("limit_offset_pct", 0.1))
     
     return {
