@@ -1,5 +1,5 @@
 """
-Celery Task Queue for Enliko Trading Platform
+Celery Task Queue for Enliko Platform
 =============================================
 Distributed task processing for 10K+ users
 

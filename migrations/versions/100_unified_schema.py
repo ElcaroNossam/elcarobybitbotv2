@@ -2,7 +2,7 @@
 Migration: Unified Schema - Complete Database Structure
 Version: 100
 
-FULL PRODUCTION SCHEMA for Enliko Trading Platform.
+FULL PRODUCTION SCHEMA for Enliko Platform.
 2 Exchanges: Bybit (demo/real) + HyperLiquid (testnet/mainnet)
 7 Strategies: oi, scryptomera, scalper, elcaro, fibonacci, rsi_bb, manual
 4D Multitenancy: (user_id, strategy, side, exchange)

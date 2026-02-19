@@ -2,7 +2,7 @@
 //  SuperFeatures.swift
 //  EnlikoTrading
 //
-//  🚀 SUPER FEATURES - Premium UX for Enliko Trading
+//  🚀 SUPER FEATURES - Premium UX for Enliko
 //  =================================================
 //  
 //  ✨ What's included:

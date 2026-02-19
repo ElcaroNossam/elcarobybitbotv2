@@ -1,7 +1,7 @@
 """
 Android App Integration Tests
 =============================
-Тесты для проверки Android приложения Enliko Trading
+Тесты для проверки Android приложения Enliko
 
 Тестируемые компоненты:
 - API endpoints compatibility

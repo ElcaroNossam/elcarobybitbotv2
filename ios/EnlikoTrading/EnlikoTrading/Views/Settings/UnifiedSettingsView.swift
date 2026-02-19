@@ -236,7 +236,7 @@ struct UnifiedSettingsView: View {
                 HStack {
                     Spacer()
                     VStack(spacing: 4) {
-                        Text("Enliko Trading")
+                        Text("Enliko")
                             .font(.caption.bold())
                         Text("Version \(Bundle.main.infoDictionary?["CFBundleShortVersionString"] as? String ?? "1.0")")
                             .font(.caption2)

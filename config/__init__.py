@@ -1,5 +1,5 @@
 """
-Enliko Trading Platform - Configuration Module
+Enliko Platform - Configuration Module
 """
 from config.settings import settings, get_settings, Settings
 from config.analytics_db import (

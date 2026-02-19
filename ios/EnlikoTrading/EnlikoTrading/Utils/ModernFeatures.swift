@@ -4,7 +4,7 @@ import SwiftUI
 import Combine
 
 /**
- * Modern Features Module for Enliko Trading iOS App
+ * Modern Features Module for Enliko iOS App
  * =================================================
  * 
  * Топовые фичи современной мобильной разработки 2024-2026:
@@ -96,7 +96,7 @@ class BiometricAuthManager: ObservableObject {
     }
     
     /// Аутентификация
-    func authenticate(reason: String = "Authenticate to access Enliko Trading") async -> BiometricResult {
+    func authenticate(reason: String = "Authenticate to access Enliko") async -> BiometricResult {
         guard isAvailable else {
             return .notAvailable
         }

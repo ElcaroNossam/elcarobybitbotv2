@@ -1,13 +1,12 @@
 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64">
   <defs>
-    <linearGradient id="stark-gradient" x1="0%" y1="0%" x2="100%" y2="100%">
-      <stop offset="0%" style="stop-color:#2563eb"/>
-      <stop offset="50%" style="stop-color:#991b1b"/>
-      <stop offset="100%" style="stop-color:#7f1d1d"/>
+    <linearGradient id="enliko-gradient" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" style="stop-color:#7C3AED"/>
+      <stop offset="100%" style="stop-color:#5B21B6"/>
     </linearGradient>
-    <linearGradient id="gold-gradient" x1="0%" y1="0%" x2="100%" y2="100%">
-      <stop offset="0%" style="stop-color:#d4a017"/>
-      <stop offset="100%" style="stop-color:#b8860b"/>
+    <linearGradient id="accent-gradient" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" style="stop-color:#22c55e"/>
+      <stop offset="100%" style="stop-color:#16a34a"/>
     </linearGradient>
     <filter id="glow">
       <feGaussianBlur stdDeviation="2" result="coloredBlur"/>
@@ -19,14 +18,12 @@
   </defs>
   <!-- Background -->
   <rect width="64" height="64" rx="14" fill="#050505"/>
-  <rect width="64" height="64" rx="14" fill="url(#stark-gradient)" opacity="0.15"/>
-  <!-- T Letter - Stylized -->
+  <rect width="64" height="64" rx="14" fill="url(#enliko-gradient)" opacity="0.12"/>
+  <!-- E Letter -->
   <g filter="url(#glow)">
-    <!-- Main T shape -->
-    <path d="M16 16 L48 16 L48 24 L36 24 L36 52 L28 52 L28 24 L16 24 Z" 
-          fill="url(#stark-gradient)"/>
-    <!-- Arc reactor style circle -->
-    <circle cx="32" cy="38" r="6" fill="none" stroke="url(#gold-gradient)" stroke-width="2"/>
-    <circle cx="32" cy="38" r="3" fill="#d4a017"/>
+    <path d="M18 14 L46 14 L46 22 L26 22 L26 28 L42 28 L42 36 L26 36 L26 42 L46 42 L46 50 L18 50 Z" 
+          fill="url(#enliko-gradient)"/>
+    <!-- Signal dot -->
+    <circle cx="48" cy="14" r="4" fill="url(#accent-gradient)"/>
   </g>
 </svg>

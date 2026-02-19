@@ -260,7 +260,7 @@ SUB_SETTINGS_REPLACEMENTS = [
     ('Text("Website")', 'Text("about_website".localized)'),
     ('Text("Support")', 'Text("about_support".localized)'),
     ('Text("Telegram")', 'Text("about_telegram".localized)'),
-    ('Text("© 2026 Enliko Trading. All rights reserved.")', 'Text("about_copyright".localized)'),
+    ('Text("© 2026 Enliko. All rights reserved.")', 'Text("about_copyright".localized)'),
     ('.navigationTitle("About")', '.navigationTitle("about_title".localized)'),
     # API Keys
     ('Text("Demo Account")', 'Text("apikey_demo_account".localized)'),

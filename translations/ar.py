@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 """
-Enliko Trading Tools — Arabic Translations (العربية)
+Enliko — Arabic Translations (العربية)
 Version: 4.0.0 | Updated: 28 January 2026
 LEGAL: Educational platform, not financial advice.
 RTL Language: Right-to-Left text direction
@@ -39,7 +39,7 @@ TEXTS = {
     
     # Welcome - Updated with legal positioning
     'welcome': (
-        '📊 *مرحبًا بك في Enliko Trading Tools*\n\n'
+        '📊 *مرحبًا بك في Enliko*\n\n'
         '🎯 منصة تعليمية:\n'
         '• تتبع وتحليل المحفظة\n'
         '• اختبار الاستراتيجيات\n'
@@ -50,7 +50,7 @@ TEXTS = {
     ),
     
     'welcome_back': (
-        '📊 *Enliko Trading Tools*\n\n'
+        '📊 *Enliko*\n\n'
         '⚠️ _منصة تعليمية. ليست نصيحة مالية._'
     ),
     
@@ -1138,12 +1138,12 @@ TEXTS = {
         '• This is an educational platform\n'
         '• You are responsible for all trading decisions\n'
         '• Past performance does not guarantee future results\n\n'
-        'Welcome to Enliko Trading Tools!'
+        'Welcome to Enliko!'
     ),
     'disclaimer_decline_btn': '❌ I Decline',
     'disclaimer_declined_msg': (
         '❌ *Disclaimer Declined*\n\n'
-        'You must accept the disclaimer to use Enliko Trading Tools.\n\n'
+        'You must accept the disclaimer to use Enliko.\n\n'
         'If you change your mind, use /start to begin again.'
     ),
     
@@ -1248,7 +1248,7 @@ TEXTS = {
     
     'terms_title': (
         '📜 *Terms of Service*\n\n'
-        'By using Enliko Trading Tools, you agree:\n\n'
+        'By using Enliko, you agree:\n\n'
         '1. *Educational Purpose*\n'
         'This platform provides educational tools for learning about '
         'cryptocurrency markets. It is NOT financial advice.\n\n'

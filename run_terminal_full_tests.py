@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 """
 ═══════════════════════════════════════════════════════════════════════════
-Enliko Trading Terminal - Full Multi-User Functional Tests
+Enliko Terminal - Full Multi-User Functional Tests
 ═══════════════════════════════════════════════════════════════════════════
 
 Comprehensive test suite for trading terminal covering:
@@ -291,7 +291,7 @@ class TerminalFunctionalTests:
     async def setup(self):
         """Setup test environment"""
         print(f"\n{Colors.HEADER}{'═'*80}{Colors.ENDC}")
-        print(f"{Colors.HEADER}{Colors.BOLD}Enliko Trading Terminal - Full Functional Tests{Colors.ENDC}")
+        print(f"{Colors.HEADER}{Colors.BOLD}Enliko Terminal - Full Functional Tests{Colors.ENDC}")
         print(f"{Colors.HEADER}{'═'*80}{Colors.ENDC}\n")
         
         print(f"{Colors.OKCYAN}🔧 Setting up test environment...{Colors.ENDC}")

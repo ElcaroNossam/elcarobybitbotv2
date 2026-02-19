@@ -9,9 +9,9 @@ from typing import Optional
 _APP_NAME: str = os.getenv("APP_NAME", "Enliko")
 
 # Derived names
-_APP_DISPLAY_NAME: str = f"{_APP_NAME} Trading"
-_APP_TERMINAL_NAME: str = f"{_APP_NAME} Trading Terminal"
-_APP_BOT_NAME: str = f"{_APP_NAME} Trading Bot"
+_APP_DISPLAY_NAME: str = _APP_NAME
+_APP_TERMINAL_NAME: str = f"{_APP_NAME} Terminal"
+_APP_BOT_NAME: str = f"{_APP_NAME} Bot"
 _APP_BUNDLE_PREFIX: str = f"io.{_APP_NAME.lower()}"
 
 
@@ -21,17 +21,17 @@ def get_app_name() -> str:
 
 
 def get_display_name() -> str:
-    """Get the display name (e.g., 'Enliko Trading')"""
+    """Get the display name (e.g., 'Enliko')"""
     return _APP_DISPLAY_NAME
 
 
 def get_terminal_name() -> str:
-    """Get the terminal name (e.g., 'Enliko Trading Terminal')"""
+    """Get the terminal name (e.g., 'Enliko Terminal')"""
     return _APP_TERMINAL_NAME
 
 
 def get_bot_name() -> str:
-    """Get the bot name (e.g., 'Enliko Trading Bot')"""
+    """Get the bot name (e.g., 'Enliko Bot')"""
     return _APP_BOT_NAME
 
 

@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 """
-Enliko Trading Tools — Czech Translations (Čeština)
+Enliko — Czech Translations (Čeština)
 Version: 4.0.0 | Updated: 28 January 2026
 LEGAL: Educational platform, not financial advice.
 """
@@ -37,7 +37,7 @@ TEXTS = {
     
     # Welcome - Updated with legal positioning
     'welcome': (
-        '📊 *Vítejte v Enliko Trading Tools*\n\n'
+        '📊 *Vítejte v Enliko*\n\n'
         '🎯 Vzdělávací platforma:\n'
         '• Sledování a analýza portfolia\n'
         '• Backtesting strategií\n'
@@ -48,7 +48,7 @@ TEXTS = {
     ),
     
     'welcome_back': (
-        '📊 *Enliko Trading Tools*\n\n'
+        '📊 *Enliko*\n\n'
         '⚠️ _Vzdělávací platforma. Není to finanční poradenství._'
     ),
     
@@ -1129,12 +1129,12 @@ Denní odměny • Okamžitý výběr''',
         '• This is an educational platform\n'
         '• You are responsible for all trading decisions\n'
         '• Past performance does not guarantee future results\n\n'
-        'Welcome to Enliko Trading Tools!'
+        'Welcome to Enliko!'
     ),
     'disclaimer_decline_btn': '❌ I Decline',
     'disclaimer_declined_msg': (
         '❌ *Disclaimer Declined*\n\n'
-        'You must accept the disclaimer to use Enliko Trading Tools.\n\n'
+        'You must accept the disclaimer to use Enliko.\n\n'
         'If you change your mind, use /start to begin again.'
     ),
     
@@ -1239,7 +1239,7 @@ Denní odměny • Okamžitý výběr''',
     
     'terms_title': (
         '📜 *Terms of Service*\n\n'
-        'By using Enliko Trading Tools, you agree:\n\n'
+        'By using Enliko, you agree:\n\n'
         '1. *Educational Purpose*\n'
         'This platform provides educational tools for learning about '
         'cryptocurrency markets. It is NOT financial advice.\n\n'

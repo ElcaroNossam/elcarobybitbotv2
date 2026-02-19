@@ -1,5 +1,5 @@
 /**
- * Enliko Trading Platform - Customizable Hotkey Manager
+ * Enliko Platform - Customizable Hotkey Manager
  * Version 1.0.0 - February 2026
  * 
  * Full-featured hotkey system with user customization and persistence.

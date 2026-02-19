@@ -3,7 +3,7 @@ Migration: Initial Schema
 Version: 001
 Created: 2026-01-22
 
-Creates all core tables for Enliko Trading Platform.
+Creates all core tables for Enliko Platform.
 """
 
 

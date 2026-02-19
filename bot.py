@@ -1749,7 +1749,7 @@ async def on_disclaimer_cb(update: Update, ctx: ContextTypes.DEFAULT_TYPE):
             "• This is an educational platform\n"
             "• You are responsible for all trading decisions\n"
             "• Past performance does not guarantee future results\n\n"
-            "Welcome to Enliko Trading Tools!"
+            "Welcome to Enliko!"
         ))
         await q.edit_message_text(accepted_text, parse_mode="Markdown")
         
@@ -1765,7 +1765,7 @@ async def on_disclaimer_cb(update: Update, ctx: ContextTypes.DEFAULT_TYPE):
         logger.info(f"[{uid}] Declined legal disclaimer")
         declined_text = ctx.t.get("disclaimer_declined_msg", (
             "❌ *Disclaimer Declined*\n\n"
-            "You must accept the disclaimer to use Enliko Trading Tools.\n\n"
+            "You must accept the disclaimer to use Enliko.\n\n"
             "If you change your mind, use /start to begin again."
         ))
         await q.edit_message_text(declined_text, parse_mode="Markdown")
@@ -33110,7 +33110,7 @@ async def on_menu_main_cb(update: Update, ctx: ContextTypes.DEFAULT_TYPE):
     
     # Prepare the welcome text
     wave = t.get('wave', '👋')
-    title = t.get('title', 'Enliko Trading Bot')
+    title = t.get('title', 'Enliko')
     
     # Build main menu message
     welcome_text = f"{wave} <b>{title}</b>\n\n"

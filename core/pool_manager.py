@@ -1,5 +1,5 @@
 """
-Unified Connection Pool Manager for Enliko Trading Platform
+Unified Connection Pool Manager for Enliko Platform
 ============================================================
 Best practices implementation based on PostgreSQL community recommendations.
 

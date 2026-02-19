@@ -1,5 +1,5 @@
 """
-Redis Client for Enliko Trading Platform
+Redis Client for Enliko Platform
 =========================================
 Distributed caching, rate limiting, pub/sub for 10K+ users
 

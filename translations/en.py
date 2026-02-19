@@ -34,7 +34,7 @@ TEXTS = {
     # =====================================================
     
     'welcome': (
-        '� <b>Enliko Trading Terminal</b>\n\n'
+        '� <b>Enliko</b>\n\n'
         '⚡ <b>&lt; 100ms</b> execution\n'
         '🛡️ <b>Risk management</b> built-in\n'
         '� <b>24/7</b> market monitoring\n\n'
@@ -99,11 +99,11 @@ TEXTS = {
         '• This is an educational platform\n'
         '• You are responsible for all trading decisions\n'
         '• Past performance does not guarantee future results\n\n'
-        'Welcome to Enliko Trading Tools!'
+        'Welcome to Enliko!'
     ),
     'disclaimer_declined_msg': (
         '❌ *Disclaimer Declined*\n\n'
-        'You must accept the disclaimer to use Enliko Trading Tools.\n\n'
+        'You must accept the disclaimer to use Enliko.\n\n'
         'If you change your mind, use /start to begin again.'
     ),
     

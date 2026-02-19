@@ -309,8 +309,8 @@ def generate_user_guide_pdf(lang: str = "en") -> BytesIO:
 
 def _get_english_content():
     return {
-        "title": "Enliko Trading Bot - User Guide",
-        "intro": "Welcome to the Enliko Trading Bot! This comprehensive platform supports automated cryptocurrency trading on Bybit and HyperLiquid exchanges, featuring advanced AI analysis, ATR trailing stops, and Web3 wallet integration.",
+        "title": "Enliko Bot - User Guide",
+        "intro": "Welcome to the Enliko Bot! This comprehensive platform supports automated cryptocurrency trading on Bybit and HyperLiquid exchanges, featuring advanced AI analysis, ATR trailing stops, and Web3 wallet integration.",
         
         "quick_start_title": "Quick Start",
         "quick_start_steps": [
@@ -603,8 +603,8 @@ def _get_english_content():
 
 def _get_russian_content():
     return {
-        "title": "Enliko Trading Bot - Руководство",
-        "intro": "Добро пожаловать в Enliko Trading Bot! Комплексная платформа для автоматической торговли криптовалютами на биржах Bybit и HyperLiquid с AI-анализом, ATR trailing stop и интеграцией Web3 кошельков.",
+        "title": "Enliko Bot - Руководство",
+        "intro": "Добро пожаловать в Enliko Bot! Комплексная платформа для автоматической торговли криптовалютами на биржах Bybit и HyperLiquid с AI-анализом, ATR trailing stop и интеграцией Web3 кошельков.",
         
         "quick_start_title": "Быстрый старт",
         "quick_start_steps": [
@@ -897,8 +897,8 @@ def _get_russian_content():
 
 def _get_ukrainian_content():
     return {
-        "title": "Enliko Trading Bot - Посібник",
-        "intro": "Ласкаво просимо до Enliko Trading Bot! Комплексна платформа для автоматичної торгівлі криптовалютами на біржах Bybit та HyperLiquid з AI-аналізом, ATR trailing stop та інтеграцією Web3 гаманців.",
+        "title": "Enliko Bot - Посібник",
+        "intro": "Ласкаво просимо до Enliko Bot! Комплексна платформа для автоматичної торгівлі криптовалютами на біржах Bybit та HyperLiquid з AI-аналізом, ATR trailing stop та інтеграцією Web3 гаманців.",
         
         "quick_start_title": "Швидкий старт",
         "quick_start_steps": [

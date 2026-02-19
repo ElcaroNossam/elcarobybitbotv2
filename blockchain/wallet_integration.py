@@ -50,7 +50,7 @@ class WalletAuth:
         """
         timestamp = int(datetime.now().timestamp())
         
-        message = f"""Welcome to Enliko Trading Platform!
+        message = f"""Welcome to Enliko Platform!
 
 Sign this message to prove you own this wallet.
 

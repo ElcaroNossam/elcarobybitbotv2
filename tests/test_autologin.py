@@ -1,5 +1,5 @@
 """
-Auto-login Tests for Enliko Trading Bot
+Auto-login Tests for Enliko Bot
 Tests all auto-login scenarios to prevent regressions
 """
 

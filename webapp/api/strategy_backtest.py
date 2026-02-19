@@ -9,7 +9,7 @@ Key Features:
 
 **SECURITY:** All endpoints require JWT authentication
 
-(c) Enliko Trading Platform 2024
+(c) Enliko Platform 2024
 """
 
 from fastapi import APIRouter, HTTPException, Depends, Query, BackgroundTasks

@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 """
-Enliko Trading Tools — Albanian Translations (Shqip)
+Enliko — Albanian Translations (Shqip)
 Version: 4.0.0 | Updated: 28 January 2026
 LEGAL: Educational platform, not financial advice.
 """
@@ -37,7 +37,7 @@ TEXTS = {
     
     # Welcome - Updated with legal positioning
     'welcome': (
-        '📊 *Mirësevini në Enliko Trading Tools*\n\n'
+        '📊 *Mirësevini në Enliko*\n\n'
         '🎯 Platformë edukative:\n'
         '• Ndjekja dhe analiza e portofolit\n'
         '• Testimi i strategjive\n'
@@ -48,7 +48,7 @@ TEXTS = {
     ),
     
     'welcome_back': (
-        '📊 *Enliko Trading Tools*\n\n'
+        '📊 *Enliko*\n\n'
         '⚠️ _Platformë edukative. Nuk është këshillë financiare._'
     ),
     
@@ -1125,12 +1125,12 @@ Shpërblime ditore • Tërheqje e menjëhershme''',
         '• This is an educational platform\n'
         '• You are responsible for all trading decisions\n'
         '• Past performance does not guarantee future results\n\n'
-        'Welcome to Enliko Trading Tools!'
+        'Welcome to Enliko!'
     ),
     'disclaimer_decline_btn': '❌ I Decline',
     'disclaimer_declined_msg': (
         '❌ *Disclaimer Declined*\n\n'
-        'You must accept the disclaimer to use Enliko Trading Tools.\n\n'
+        'You must accept the disclaimer to use Enliko.\n\n'
         'If you change your mind, use /start to begin again.'
     ),
     
@@ -1235,7 +1235,7 @@ Shpërblime ditore • Tërheqje e menjëhershme''',
     
     'terms_title': (
         '📜 *Terms of Service*\n\n'
-        'By using Enliko Trading Tools, you agree:\n\n'
+        'By using Enliko, you agree:\n\n'
         '1. *Educational Purpose*\n'
         'This platform provides educational tools for learning about '
         'cryptocurrency markets. It is NOT financial advice.\n\n'

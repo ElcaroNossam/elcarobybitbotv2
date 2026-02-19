@@ -1,5 +1,5 @@
 """
-Async PostgreSQL Database Layer for Enliko Trading Platform
+Async PostgreSQL Database Layer for Enliko Platform
 ============================================================
 Designed for 10K+ concurrent users with connection pooling.
 

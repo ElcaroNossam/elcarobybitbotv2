@@ -216,7 +216,7 @@ NEW_KEYS = {
     "about_website": ("Website", "Веб-сайт"),
     "about_support": ("Support", "Поддержка"),
     "about_telegram": ("Telegram", "Telegram"),
-    "about_copyright": ("© 2026 Enliko Trading. All rights reserved.", "© 2026 Enliko Trading. Все права защищены."),
+    "about_copyright": ("© 2026 Enliko. All rights reserved.", "© 2026 Enliko. Все права защищены."),
     "about_title": ("About", "О приложении"),
     "apikey_demo_account": ("Demo Account", "Демо-аккаунт"),
     "apikey_demo_subtitle": ("Practice trading with testnet", "Тренировка на тестнете"),

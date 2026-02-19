@@ -2,7 +2,7 @@
 //  EnlikoWidgets.swift
 //  EnlikoTrading
 //
-//  📱 Home Screen Widgets for Enliko Trading
+//  📱 Home Screen Widgets for Enliko
 //  ==========================================
 //
 //  Widgets:

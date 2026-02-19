@@ -4,7 +4,7 @@ TEXTS = {
     'loader': '⏳ Cargando...',
     
     # Menú principal - Terminal de trading profesional
-    'welcome':                     '''🔥 <b>Enliko Trading Terminal</b>
+    'welcome':                     '''🔥 <b>Enliko</b>
 
 ⚡ <b>&lt; 100ms</b> ejecución
 🛡️ <b>Gestión de riesgos</b> integrada
@@ -1100,12 +1100,12 @@ Recompensas diarias • Unstaking instantáneo''',
         '• This is an educational platform\n'
         '• You are responsible for all trading decisions\n'
         '• Past performance does not guarantee future results\n\n'
-        'Welcome to Enliko Trading Tools!'
+        'Welcome to Enliko!'
     ),
     'disclaimer_decline_btn': '❌ I Decline',
     'disclaimer_declined_msg': (
         '❌ *Disclaimer Declined*\n\n'
-        'You must accept the disclaimer to use Enliko Trading Tools.\n\n'
+        'You must accept the disclaimer to use Enliko.\n\n'
         'If you change your mind, use /start to begin again.'
     ),
     
@@ -1233,7 +1233,7 @@ Recompensas diarias • Unstaking instantáneo''',
     
     'terms_title': (
         '📜 *Terms of Service*\n\n'
-        'By using Enliko Trading Tools, you agree:\n\n'
+        'By using Enliko, you agree:\n\n'
         '1. *Educational Purpose*\n'
         'This platform provides educational tools for learning about '
         'cryptocurrency markets. It is NOT financial advice.\n\n'
@@ -1254,7 +1254,7 @@ Recompensas diarias • Unstaking instantáneo''',
     ),
     
     'welcome_back': (
-        '📊 *Enliko Trading Tools*\n\n'
+        '📊 *Enliko*\n\n'
         '⚠️ _Educational platform. Not financial advice._\n\n'
         '👇 Select an option:'
     ),

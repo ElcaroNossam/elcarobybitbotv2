@@ -1,5 +1,5 @@
 """
-Backend Test Suite for Enliko Trading Bot
+Backend Test Suite for Enliko Bot
 
 Test categories:
 - Unit tests: Individual components

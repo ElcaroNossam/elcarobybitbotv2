@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 """
-Telegram 2FA Authentication Service for Enliko Trading Bot
+Telegram 2FA Authentication Service for Enliko Bot
 
 Provides:
 - Auto-login tokens for webapp access from bot
