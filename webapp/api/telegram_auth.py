@@ -363,7 +363,7 @@ async def get_telegram_widget_params():
     Returns bot username and callback URL for widget configuration.
     Used by WebApp to render Telegram Login button.
     """
-    bot_username = os.getenv("BOT_USERNAME", "EnlikoBot")
+    bot_username = os.getenv("BOT_USERNAME", "enliko_bot")
     callback_url = os.getenv("WEBAPP_URL", "https://enliko.com") + "/auth/telegram/callback"
     
     return {
@@ -614,7 +614,7 @@ async def complete_telegram_link(
     
     Flow:
     1. User clicks "Link Telegram" in iOS/Android app
-    2. Opens t.me/EnlikoBot?start=link_app
+    2. Opens t.me/enliko_bot?start=link_app
     3. Bot generates token and shows "Complete Linking" button
     4. User clicks button → arrives at /auth/telegram/complete-link?token=XXX
     5. This endpoint links Telegram to their email account
@@ -760,14 +760,14 @@ async def request_2fa_login(data: Request2FAByUsername):
     if not user:
         raise HTTPException(
             status_code=404, 
-            detail="User not found. Please start the bot first: t.me/EnlikoBot"
+            detail="User not found. Please start the bot first: t.me/enliko_bot"
         )
     
     telegram_id = user.get("telegram_id") or user.get("user_id")
     if not telegram_id or telegram_id <= 0:
         raise HTTPException(
             status_code=400,
-            detail="Could not find your Telegram ID. Please use the bot once: t.me/EnlikoBot"
+            detail="Could not find your Telegram ID. Please use the bot once: t.me/enliko_bot"
         )
     
     # Generate request_id

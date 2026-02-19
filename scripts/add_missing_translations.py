@@ -21,7 +21,7 @@ UKRAINIAN_KEYS = {
     "auth_skip_for_now": "Пропустити",
     "auth_telegram_description": "Зв'яжіть Telegram для швидкого входу",
     "auth_telegram_optional_hint": "Опціонально — для сповіщень через бот",
-    "auth_telegram_step1": "1. Відкрийте @EnlikoBot в Telegram",
+    "auth_telegram_step1": "1. Відкрийте @enliko_bot в Telegram",
     "auth_telegram_step2": "2. Натисніть /app_login",
     "auth_telegram_step3": "3. Натисніть посилання для входу",
     "auth_telegram_title": "Зв'язати Telegram",

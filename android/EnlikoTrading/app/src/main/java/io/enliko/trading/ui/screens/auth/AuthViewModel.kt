@@ -124,12 +124,12 @@ class AuthViewModel @Inject constructor(
                         startCountdown()
                     } else {
                         _uiState.value = AuthUiState(
-                            error = body?.message ?: "User not found. Make sure you use @EnlikoBot first."
+                            error = body?.message ?: "User not found. Make sure you use @enliko_bot first."
                         )
                     }
                 } else {
                     val errorMsg = when (response.code()) {
-                        404 -> "User not found. Start @EnlikoBot in Telegram first."
+                        404 -> "User not found. Start @enliko_bot in Telegram first."
                         429 -> "Too many requests. Please wait."
                         else -> "Request failed: ${response.code()}"
                     }

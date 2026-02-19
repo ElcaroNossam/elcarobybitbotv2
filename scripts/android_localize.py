@@ -126,8 +126,8 @@ NEW_PROPS = [
     ("linkEmailAccount", "Link Email Account", "Привязать Email", "Прив'язати Email"),
     ("loginViaTelegram", "Login via Telegram", "Войти через Telegram", "Увійти через Telegram"),
     ("enterTelegramUsername", "Enter your Telegram @username", "Введите @username в Telegram", "Введіть @username в Telegram"),
-    ("openEnlikoBotInTelegram", "Open @EnlikoBot in Telegram\\nand approve the login request", "Откройте @EnlikoBot в Telegram\\nи подтвердите вход", "Відкрийте @EnlikoBot в Telegram\\nта підтвердіть вхід"),
-    ("mustStartBotFirst", "You must have started @EnlikoBot first", "Сначала запустите @EnlikoBot", "Спочатку запустіть @EnlikoBot"),
+    ("openEnlikoBotInTelegram", "Open @enliko_bot in Telegram\\nand approve the login request", "Откройте @enliko_bot в Telegram\\nи подтвердите вход", "Відкрийте @enliko_bot в Telegram\\nта підтвердіть вхід"),
+    ("mustStartBotFirst", "You must have started @enliko_bot first", "Сначала запустите @enliko_bot", "Спочатку запустіть @enliko_bot"),
 
     # Market orders desc
     ("marketOrdersDesc", "Market orders execute immediately at current price. Limit orders are placed with an offset for better entry.", "Рыночные ордера исполняются мгновенно. Лимитные размещаются со смещением.", "Ринкові ордери виконуються миттєво. Лімітні розміщуються зі зміщенням."),
@@ -283,7 +283,7 @@ REPLACEMENTS = {
     '"Link Email Account"': 'strings.linkEmailAccount',
     '"Login via Telegram"': 'strings.loginViaTelegram',
     '"Enter your Telegram @username"': 'strings.enterTelegramUsername',
-    '"You must have started @EnlikoBot first"': 'strings.mustStartBotFirst',
+    '"You must have started @enliko_bot first"': 'strings.mustStartBotFirst',
 }
 
 # Additional replacements that use FeatureRow() pattern:

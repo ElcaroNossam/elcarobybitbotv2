@@ -1,5 +1,5 @@
 """
-Crypto Screener WebSocket API for EnlikoBot
+Crypto Screener WebSocket API for enliko_bot
 Real-time market data from multiple exchanges
 """
 from fastapi import APIRouter, WebSocket, WebSocketDisconnect, HTTPException

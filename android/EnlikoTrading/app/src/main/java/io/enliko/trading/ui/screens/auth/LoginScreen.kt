@@ -648,7 +648,7 @@ private fun TwoFAWaitingContent(
         Spacer(modifier = Modifier.height(12.dp))
         
         Text(
-            text = "Open @EnlikoBot in Telegram\nand approve the login request",
+            text = "Open @enliko_bot in Telegram\nand approve the login request",
             style = MaterialTheme.typography.bodyMedium,
             color = MaterialTheme.colorScheme.onSurfaceVariant,
             textAlign = TextAlign.Center,

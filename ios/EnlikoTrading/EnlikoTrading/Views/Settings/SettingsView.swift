@@ -396,7 +396,7 @@ struct SettingsView: View {
     // MARK: - Open Telegram to link account
     private func openTelegramToLink() {
         // Open Telegram bot to get login link
-        if let url = URL(string: "https://t.me/EnlikoBot?start=link_app") {
+        if let url = URL(string: "https://t.me/enliko_bot?start=link_app") {
             UIApplication.shared.open(url)
         }
     }

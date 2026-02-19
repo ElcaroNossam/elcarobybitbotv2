@@ -95,7 +95,7 @@ class SettingsViewModel @Inject constructor(
     fun openTelegramToLink() {
         // Open Telegram bot with deep link parameter
         val intent = Intent(Intent.ACTION_VIEW).apply {
-            data = Uri.parse("https://t.me/EnlikoBot?start=link_app")
+            data = Uri.parse("https://t.me/enliko_bot?start=link_app")
             flags = Intent.FLAG_ACTIVITY_NEW_TASK
         }
         context.startActivity(intent)

@@ -10,7 +10,7 @@
 # iOS Data Display Audit (Phase 12): 7 bugs fixed — optional models, orders fallback ✅ (Feb 12, 2026)
 # Full Trading Logic Audit (Phase 13): 2 bugs fixed — DCA Leg2 guard, PTP stale size ✅ (Feb 16, 2026)
 # iOS Build 116: Crash-safe PaymentService + localization fixes ✅ (Feb 19, 2026)
-# Telegram Bot Token: Updated to new bot @EnlikoBot ✅ (Feb 19, 2026)
+# Telegram Bot Token: Updated to new bot @enliko_bot ✅ (Feb 19, 2026)
 # HyperLiquid Auto-Discovery: FULL SUPPORT ✅ (Feb 7, 2026)
 # HyperLiquid SPOT TRADING: FULL INTEGRATION ✅ (Feb 10, 2026) - ALL bot.py functions
 # API Settings BLOCK UI: COMPLETE ✅ (Feb 8, 2026)
@@ -1350,7 +1350,7 @@ except Exception as e:
 # 🔧 RECENT FIXES (Январь-Февраль 2026)
 
 ### ✅ FIX: Telegram Bot Token Updated (Feb 19, 2026)
-- **Изменение:** Обновлён токен Telegram бота на нового бота @EnlikoBot
+- **Изменение:** Обновлён токен Telegram бота на нового бота @enliko_bot
 - **Новый Bot ID:** `8422437868`
 - **Env vars:** `TELEGRAM_TOKEN` + `TELEGRAM_BOT_TOKEN` оба установлены на сервере и локально
   - `bot.py` использует `TELEGRAM_TOKEN`
@@ -3886,7 +3886,7 @@ adb install app/build/outputs/apk/debug/app-debug.apk
 ```
 ┌──────────────────┐    ┌──────────────────┐    ┌──────────────────┐    ┌──────────────────┐
 │  Telegram Bot    │    │    WebApp        │    │    iOS App       │    │   Android App    │
-│   @EnlikoBot     │    │  enliko.com      │    │    SwiftUI       │    │  Jetpack Compose │
+│   @enliko_bot     │    │  enliko.com      │    │    SwiftUI       │    │  Jetpack Compose │
 └────────┬─────────┘    └────────┬─────────┘    └────────┬─────────┘    └────────┬─────────┘
          │                       │                       │                       │
          │    ┌──────────────────┴───────────────────────┴───────────────────────┘
