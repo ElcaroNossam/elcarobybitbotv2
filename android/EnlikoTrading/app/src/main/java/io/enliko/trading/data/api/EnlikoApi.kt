@@ -11,7 +11,10 @@ interface EnlikoApi {
     suspend fun login(@Body request: LoginRequest): Response<AuthResponse>
 
     @POST("/api/auth/email/register")
-    suspend fun register(@Body request: RegisterRequest): Response<AuthResponse>
+    suspend fun register(@Body request: RegisterRequest): Response<RegisterResponse>
+
+    @POST("/api/auth/email/verify")
+    suspend fun verify(@Body request: VerifyRequest): Response<AuthResponse>
 
     @GET("/api/users/me")
     suspend fun getCurrentUser(): Response<UserResponse>

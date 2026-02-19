@@ -103,8 +103,16 @@ fun LoginScreen(
             
             Spacer(modifier = Modifier.height(48.dp))
             
-            // Show 2FA waiting screen when active
-            if (uiState.isWaitingFor2FA && !isRegisterMode) {
+            // Show email verification screen when waiting for code
+            if (uiState.isWaitingForEmailVerification) {
+                EmailVerificationContent(
+                    email = uiState.pendingEmail ?: "",
+                    isLoading = uiState.isLoading,
+                    error = uiState.error,
+                    onVerify = { code -> viewModel.verifyEmail(code) },
+                    onCancel = { viewModel.cancelEmailVerification() }
+                )
+            } else if (uiState.isWaitingFor2FA && !isRegisterMode) {
                 TwoFAWaitingContent(
                     uiState = uiState,
                     onCancel = { viewModel.cancel2FA() }
@@ -614,7 +622,141 @@ private fun RegisterForm(
     }
 }
 
-// ==================== 2FA Waiting Screen ====================
+// ==================== Email Verification Screen ====================
+@Composable
+private fun EmailVerificationContent(
+    email: String,
+    isLoading: Boolean,
+    error: String?,
+    onVerify: (String) -> Unit,
+    onCancel: () -> Unit
+) {
+    var verificationCode by remember { mutableStateOf("") }
+    val focusManager = LocalFocusManager.current
+    val strings = LocalStrings.current
+    
+    Column(
+        modifier = Modifier.fillMaxWidth(),
+        horizontalAlignment = Alignment.CenterHorizontally
+    ) {
+        // Email icon
+        Icon(
+            imageVector = Icons.Default.Email,
+            contentDescription = null,
+            modifier = Modifier.size(64.dp),
+            tint = EnlikoPrimary
+        )
+        
+        Spacer(modifier = Modifier.height(24.dp))
+        
+        Text(
+            text = "Verify Your Email",
+            style = MaterialTheme.typography.titleLarge,
+            fontWeight = FontWeight.SemiBold,
+            color = MaterialTheme.colorScheme.onBackground,
+            textAlign = TextAlign.Center
+        )
+        
+        Spacer(modifier = Modifier.height(12.dp))
+        
+        Text(
+            text = "We've sent a 6-digit code to\n$email",
+            style = MaterialTheme.typography.bodyMedium,
+            color = MaterialTheme.colorScheme.onSurfaceVariant,
+            textAlign = TextAlign.Center,
+            lineHeight = 22.sp
+        )
+        
+        Spacer(modifier = Modifier.height(24.dp))
+        
+        // Verification code input
+        OutlinedTextField(
+            value = verificationCode,
+            onValueChange = { if (it.length <= 6 && it.all { c -> c.isDigit() }) verificationCode = it },
+            label = { Text("Verification Code") },
+            modifier = Modifier.fillMaxWidth(),
+            singleLine = true,
+            keyboardOptions = KeyboardOptions(
+                keyboardType = KeyboardType.Number,
+                imeAction = ImeAction.Done
+            ),
+            keyboardActions = KeyboardActions(
+                onDone = {
+                    focusManager.clearFocus()
+                    if (verificationCode.length == 6) onVerify(verificationCode)
+                }
+            ),
+            textStyle = LocalTextStyle.current.copy(
+                textAlign = TextAlign.Center,
+                letterSpacing = 8.sp,
+                fontSize = 24.sp
+            ),
+            shape = RoundedCornerShape(12.dp),
+            colors = OutlinedTextFieldDefaults.colors(
+                focusedBorderColor = EnlikoPrimary,
+                unfocusedBorderColor = MaterialTheme.colorScheme.outline
+            )
+        )
+        
+        // Error message
+        if (error != null) {
+            Spacer(modifier = Modifier.height(8.dp))
+            Text(
+                text = error,
+                style = MaterialTheme.typography.bodySmall,
+                color = MaterialTheme.colorScheme.error,
+                textAlign = TextAlign.Center
+            )
+        }
+        
+        Spacer(modifier = Modifier.height(24.dp))
+        
+        // Verify button
+        Button(
+            onClick = { onVerify(verificationCode) },
+            enabled = verificationCode.length == 6 && !isLoading,
+            modifier = Modifier
+                .fillMaxWidth()
+                .height(56.dp),
+            shape = RoundedCornerShape(12.dp),
+            colors = ButtonDefaults.buttonColors(
+                containerColor = EnlikoPrimary
+            )
+        ) {
+            if (isLoading) {
+                CircularProgressIndicator(
+                    modifier = Modifier.size(24.dp),
+                    color = Color.White,
+                    strokeWidth = 2.dp
+                )
+            } else {
+                Text(
+                    text = "Verify",
+                    style = MaterialTheme.typography.titleMedium,
+                    fontWeight = FontWeight.Bold
+                )
+            }
+        }
+        
+        Spacer(modifier = Modifier.height(16.dp))
+        
+        // Cancel button
+        OutlinedButton(
+            onClick = onCancel,
+            modifier = Modifier
+                .fillMaxWidth()
+                .height(48.dp),
+            shape = RoundedCornerShape(12.dp)
+        ) {
+            Text(
+                text = strings.cancel,
+                style = MaterialTheme.typography.titleMedium,
+                color = MaterialTheme.colorScheme.onSurfaceVariant
+            )
+        }
+    }
+}
+
 @Composable
 private fun TwoFAWaitingContent(
     uiState: AuthUiState,

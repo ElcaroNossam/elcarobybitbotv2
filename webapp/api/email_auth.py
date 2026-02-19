@@ -514,12 +514,14 @@ async def email_register(request: Request, data: EmailRegisterRequest, backgroun
     password_hash, password_salt = hash_password(data.password)
     
     # Store pending registration (Redis + fallback memory)
+    # Use name field directly, or fall back to first_name+last_name for iOS
+    display_name = data.name or (f"{data.first_name or ''} {data.last_name or ''}".strip()) or None
     await _set_verification_code(email, {
         'code': code,
         'expires': expires.isoformat(),
         'password_hash': password_hash,
         'password_salt': password_salt,
-        'name': data.display_name,  # Use display_name for iOS compatibility
+        'name': display_name,
         'telegram_username': data.telegram_username  # Optional TG username for account linking
     })
     

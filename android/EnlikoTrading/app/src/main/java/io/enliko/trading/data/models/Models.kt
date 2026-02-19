@@ -59,7 +59,21 @@ data class LoginRequest(
 data class RegisterRequest(
     val email: String,
     val password: String,
-    val username: String? = null
+    val name: String? = null,
+    @SerialName("telegram_username") val telegramUsername: String? = null
+)
+
+@Serializable
+data class RegisterResponse(
+    val success: Boolean,
+    val message: String? = null,
+    val email: String? = null
+)
+
+@Serializable
+data class VerifyRequest(
+    val email: String,
+    val code: String
 )
 
 @Serializable

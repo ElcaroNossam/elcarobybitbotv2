@@ -7,6 +7,7 @@ import io.enliko.trading.data.api.EnlikoApi
 import io.enliko.trading.data.models.LoginRequest
 import io.enliko.trading.data.models.RegisterRequest
 import io.enliko.trading.data.models.Request2FABody
+import io.enliko.trading.data.models.VerifyRequest
 import io.enliko.trading.data.repository.PreferencesRepository
 import io.enliko.trading.data.repository.SecurePreferencesRepository
 import kotlinx.coroutines.Job
@@ -24,6 +25,9 @@ data class AuthUiState(
     val isLoading: Boolean = false,
     val error: String? = null,
     val isSuccess: Boolean = false,
+    // Email verification state
+    val isWaitingForEmailVerification: Boolean = false,
+    val pendingEmail: String? = null,
     // 2FA state
     val isWaitingFor2FA: Boolean = false,
     val twoFARequestId: String? = null,
@@ -75,26 +79,71 @@ class AuthViewModel @Inject constructor(
         }
     }
 
-    fun register(email: String, password: String, username: String? = null) {
+    fun register(email: String, password: String, name: String? = null) {
         viewModelScope.launch {
             _uiState.value = AuthUiState(isLoading = true)
             try {
-                val response = api.register(RegisterRequest(email, password, username))
+                val response = api.register(RegisterRequest(email, password, name))
                 if (response.isSuccessful) {
-                    response.body()?.let { authResponse ->
-                        securePreferencesRepository.saveAuthToken(authResponse.token)
-                        securePreferencesRepository.saveUserId(authResponse.user.userId.toString())
-                        _uiState.value = AuthUiState(isSuccess = true)
+                    response.body()?.let { registerResponse ->
+                        if (registerResponse.success) {
+                            // Show verification code input
+                            _uiState.value = AuthUiState(
+                                isWaitingForEmailVerification = true,
+                                pendingEmail = email
+                            )
+                        } else {
+                            _uiState.value = AuthUiState(error = registerResponse.message ?: "Registration failed")
+                        }
                     } ?: run {
                         _uiState.value = AuthUiState(error = "Invalid response")
                     }
                 } else {
-                    _uiState.value = AuthUiState(error = "Registration failed: ${response.code()}")
+                    val errorBody = response.errorBody()?.string()
+                    val errorMsg = when {
+                        response.code() == 400 && errorBody?.contains("already registered") == true -> 
+                            "This email is already registered"
+                        response.code() == 422 -> "Password must be at least 8 characters with letters and numbers"
+                        else -> "Registration failed: ${response.code()}"
+                    }
+                    _uiState.value = AuthUiState(error = errorMsg)
                 }
             } catch (e: Exception) {
                 _uiState.value = AuthUiState(error = e.message ?: "Unknown error")
             }
         }
+    }
+
+    fun verifyEmail(code: String) {
+        val email = _uiState.value.pendingEmail ?: return
+        viewModelScope.launch {
+            _uiState.value = _uiState.value.copy(isLoading = true, error = null)
+            try {
+                val response = api.verify(VerifyRequest(email, code))
+                if (response.isSuccessful) {
+                    response.body()?.let { authResponse ->
+                        securePreferencesRepository.saveAuthToken(authResponse.token)
+                        securePreferencesRepository.saveUserId(authResponse.user.userId.toString())
+                        preferencesRepository.saveLanguage(authResponse.user.lang)
+                        _uiState.value = AuthUiState(isSuccess = true)
+                    } ?: run {
+                        _uiState.value = _uiState.value.copy(isLoading = false, error = "Invalid response")
+                    }
+                } else {
+                    val errorMsg = when (response.code()) {
+                        400 -> "Invalid or expired verification code"
+                        else -> "Verification failed: ${response.code()}"
+                    }
+                    _uiState.value = _uiState.value.copy(isLoading = false, error = errorMsg)
+                }
+            } catch (e: Exception) {
+                _uiState.value = _uiState.value.copy(isLoading = false, error = e.message ?: "Unknown error")
+            }
+        }
+    }
+
+    fun cancelEmailVerification() {
+        _uiState.value = AuthUiState()
     }
 
     // ==================== 2FA (Telegram Login) ====================
