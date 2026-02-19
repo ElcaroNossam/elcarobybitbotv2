@@ -1,6 +1,6 @@
 0x211a5a4bfb4d86b3ceeb9081410513cf9502058c7503e8ea7b7126b604714f9e# Enliko Trading Platform - AI Coding Guidelines
 # =============================================
-# Версия: 3.65.0 | Обновлено: 16 февраля 2026
+# Версия: 3.66.0 | Обновлено: 19 февраля 2026
 # BlackRock-Level Deep Audit: PASSED ✅ (Feb 7, 2026) - FULL RE-AUDIT
 # Deep Audit #1 (Phase 7): ~30 bugs fixed incl. CRITICAL DCA nonlocal ✅ (Feb 10, 2026)
 # Deep Audit #2 (Phase 8): 11 HLAdapter resource leak fixes ✅ (Feb 11, 2026)
@@ -9,6 +9,8 @@
 # iOS Sync Audit (Phase 11): 14 sync bugs fixed across 7 files ✅ (Feb 12, 2026)
 # iOS Data Display Audit (Phase 12): 7 bugs fixed — optional models, orders fallback ✅ (Feb 12, 2026)
 # Full Trading Logic Audit (Phase 13): 2 bugs fixed — DCA Leg2 guard, PTP stale size ✅ (Feb 16, 2026)
+# iOS Build 116: Crash-safe PaymentService + localization fixes ✅ (Feb 19, 2026)
+# Telegram Bot Token: Updated to new bot @EnlikoBot ✅ (Feb 19, 2026)
 # HyperLiquid Auto-Discovery: FULL SUPPORT ✅ (Feb 7, 2026)
 # HyperLiquid SPOT TRADING: FULL INTEGRATION ✅ (Feb 10, 2026) - ALL bot.py functions
 # API Settings BLOCK UI: COMPLETE ✅ (Feb 8, 2026)
@@ -1346,6 +1348,25 @@ except Exception as e:
 ---
 
 # 🔧 RECENT FIXES (Январь-Февраль 2026)
+
+### ✅ FIX: Telegram Bot Token Updated (Feb 19, 2026)
+- **Изменение:** Обновлён токен Telegram бота на нового бота @EnlikoBot
+- **Новый Bot ID:** `8422437868`
+- **Env vars:** `TELEGRAM_TOKEN` + `TELEGRAM_BOT_TOKEN` оба установлены на сервере и локально
+  - `bot.py` использует `TELEGRAM_TOKEN`
+  - `oxapay_service.py` и `check_alerts.py` используют `TELEGRAM_BOT_TOKEN`
+
+### ✅ FIX: iOS Build 116 - Crash-safe PaymentService + Localization (Feb 19, 2026)
+- **Проблема:** iOS приложение крашилось при открытии
+- **Причины найдены и исправлены:**
+  | # | Файл | Баг | Fix |
+  |---|------|-----|-----|
+  | 1 | PaymentService.swift | 9 Codable моделей с non-optional полями → JSON decode crash | Все поля сделаны optional + computed safe accessors |
+  | 2 | Models.swift | 3 force unwraps (`lastName!`, `demoApiKey!`, `realApiKey!`) | Заменены на nil coalescing `?? ""` |
+  | 3 | LocalizationManager.swift | Дублирующий ключ `spot_balance` в EN, 3 missing keys | Удалён дубль, добавлены `auth_code_hint`, `auth_email_invalid`, `auth_name_hint` |
+  | 4 | LocalizationManager.swift | Лишний ключ `alerts` в UK | Удалён |
+- **iOS Build:** 116 (TestFlight)
+- **Commit:** `d46f97b`
 
 ### ✅ HIGH: Full Trading Logic Audit - 2 Bugs Fixed (Feb 16, 2026) — Phase 13
 - **Аудит:** Полный аудит торговой логики для всех 6 стратегий + manual — signal flow, side_enabled, calc_qty, set_trading_stop, DCA, PTP, BE, ATR, HLAdapter, 4D multitenancy
@@ -4275,8 +4296,8 @@ xcodebuild -project EnlikoTrading.xcodeproj \
 
 ---
 
-*Last updated: 16 февраля 2026*
-*Version: 3.65.0*
+*Last updated: 19 февраля 2026*
+*Version: 3.66.0*
 *Database: PostgreSQL 14 (SQLite removed)*
 *WebApp API: All files migrated to PostgreSQL (marketplace, admin, backtest)*
 *Multitenancy: 4D isolation (user_id, strategy, side, exchange)*
@@ -4314,4 +4335,7 @@ xcodebuild -project EnlikoTrading.xcodeproj \
 *Bybit PTP Pattern: ALWAYS pass reduce_only=True when closing partial positions to prevent counter-position in hedge mode*
 *iOS Codable Pattern: ALL data fields MUST be optional with computed safe accessors (var pnlValue: Double { pnl ?? 0 })*
 *Full Trading Logic Audit (Phase 13): 2 bugs fixed — DCA Leg2 guard, PTP stale size (Feb 16, 2026) ✅*
+*iOS Build 116: Crash-safe PaymentService + localization fixes (Feb 19, 2026) ✅*
+*Telegram Bot: Token updated to bot ID 8422437868 (Feb 19, 2026) ✅*
+*Env Vars: TELEGRAM_TOKEN + TELEGRAM_BOT_TOKEN both set (bot.py uses first, oxapay_service uses second)*
 
