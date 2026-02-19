@@ -416,8 +416,20 @@
                     Login with Telegram
                 </span>
             </button>
+            
+            <!-- Telegram Login Widget (OAuth popup) -->
+            <div id="telegramWidgetContainer" style="display: flex; justify-content: center; margin-top: 16px;">
+                <script async src="https://telegram.org/js/telegram-widget.js?22"
+                    data-telegram-login="enliko_bot"
+                    data-size="large"
+                    data-radius="12"
+                    data-onauth="onTelegramAuth(user)"
+                    data-request-access="write">
+                </script>
+            </div>
+            
             <p class="form-hint" style="text-align: center; margin-top: 16px;">
-                Open this page from Telegram WebApp for automatic login
+                Use the widget above or open from Telegram bot for auto-login
             </p>
         </div>
         
@@ -483,6 +495,34 @@
         if (tg?.initData) {
             showMessage('Logging in via Telegram...', 'info');
             loginWithTelegram();
+        }
+        
+        // Telegram Login Widget callback (OAuth popup)
+        async function onTelegramAuth(user) {
+            showMessage('Logging in via Telegram...', 'info');
+            try {
+                const res = await fetch('/api/auth/telegram/login', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(user)
+                });
+                const data = await res.json();
+                if (res.ok && data.token) {
+                    localStorage.setItem('enliko_token', data.token);
+                    localStorage.setItem('enliko_user', JSON.stringify(data.user || user));
+                    if (data.user && data.user.user_id) {
+                        localStorage.setItem('enliko_user_id', data.user.user_id.toString());
+                    } else if (user.id) {
+                        localStorage.setItem('enliko_user_id', user.id.toString());
+                    }
+                    showMessage('Login successful! Redirecting...', 'success');
+                    setTimeout(() => window.location.href = '/dashboard', 500);
+                } else {
+                    showMessage(data.detail || 'Authentication failed', 'error');
+                }
+            } catch (e) {
+                showMessage('Connection error. Please try again.', 'error');
+            }
         }
         
         // Tab switching
