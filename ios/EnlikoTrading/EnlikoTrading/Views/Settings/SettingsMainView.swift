@@ -29,9 +29,6 @@ struct SettingsMainView: View {
                 // Quick Tools Grid
                 quickToolsSection
                 
-                // Other Settings
-                otherSettingsSection
-                
                 // Logout
                 logoutSection
             }
@@ -264,35 +261,6 @@ struct SettingsMainView: View {
         .cornerRadius(16)
     }
     
-    // MARK: - Other Settings
-    private var otherSettingsSection: some View {
-        VStack(spacing: 0) {
-            NavigationLink {
-                LanguageSettingsView()
-            } label: {
-                SettingsRowItem(icon: "globe", title: "language".localized, value: LocalizationManager.shared.currentLanguage.displayName)
-            }
-            
-            Divider().background(Color.enlikoBorder)
-            
-            NavigationLink {
-                NotificationSettingsView()
-            } label: {
-                SettingsRowItem(icon: "bell.fill", title: "notifications".localized, value: nil)
-            }
-            
-            Divider().background(Color.enlikoBorder)
-            
-            NavigationLink {
-                TradeHistoryView()
-            } label: {
-                SettingsRowItem(icon: "clock.arrow.circlepath", title: "trade_history".localized, value: nil)
-            }
-        }
-        .background(Color.enlikoSurface)
-        .cornerRadius(16)
-    }
-    
     // MARK: - Logout Section
     private var logoutSection: some View {
         Button {
@@ -379,35 +347,6 @@ struct QuickToolCard: View {
         .padding(12)
         .background(Color.enlikoBackground)
         .cornerRadius(12)
-    }
-}
-
-struct SettingsRowItem: View {
-    let icon: String
-    let title: String
-    let value: String?
-    
-    var body: some View {
-        HStack {
-            Image(systemName: icon)
-                .foregroundColor(.enlikoPrimary)
-                .frame(width: 24)
-            
-            Text(title)
-                .foregroundColor(.white)
-            
-            Spacer()
-            
-            if let value = value {
-                Text(value)
-                    .foregroundColor(.secondary)
-            }
-            
-            Image(systemName: "chevron.right")
-                .font(.caption)
-                .foregroundColor(.secondary)
-        }
-        .padding()
     }
 }
 

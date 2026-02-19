@@ -596,11 +596,325 @@ struct ToggleStrategyRequest: Codable {
     var account_type: String
 }
 
-// MARK: - Placeholder Views
+// MARK: - Global Settings View (Per-Exchange: Margin, Leverage, Order Type, Coins)
 struct GlobalSettingsView: View {
+    @EnvironmentObject var appState: AppState
+    @StateObject private var service = GlobalSettingsService.shared
+    @ObservedObject var localization = LocalizationManager.shared
+    
+    @State private var bybitMarginMode = "cross"
+    @State private var bybitLeverage = 10
+    @State private var bybitOrderType = "market"
+    @State private var bybitCoinsGroup = "ALL"
+    
+    @State private var hlMarginMode = "cross"
+    @State private var hlLeverage = 10
+    @State private var hlOrderType = "market"
+    @State private var hlCoinsGroup = "ALL"
+    
+    @State private var isSaving = false
+    @State private var showSaved = false
+    
+    let marginModes = ["cross", "isolated"]
+    let orderTypes = ["market", "limit"]
+    let coinsGroups = ["ALL", "TOP", "VOLATILE"]
+    
     var body: some View {
-        Text("Global Settings")
-            .navigationTitle("global_settings".localized)
+        ScrollView {
+            VStack(spacing: 20) {
+                // Bybit Section
+                exchangeSection(
+                    title: "Bybit",
+                    icon: "chart.bar.fill",
+                    color: .orange,
+                    marginMode: $bybitMarginMode,
+                    leverage: $bybitLeverage,
+                    orderType: $bybitOrderType,
+                    coinsGroup: $bybitCoinsGroup,
+                    exchange: "bybit"
+                )
+                
+                // HyperLiquid Section
+                exchangeSection(
+                    title: "HyperLiquid",
+                    icon: "bolt.fill",
+                    color: .cyan,
+                    marginMode: $hlMarginMode,
+                    leverage: $hlLeverage,
+                    orderType: $hlOrderType,
+                    coinsGroup: $hlCoinsGroup,
+                    exchange: "hyperliquid"
+                )
+            }
+            .padding()
+        }
+        .background(Color.enlikoBackground)
+        .navigationTitle("global_settings".localized)
+        .navigationBarTitleDisplayMode(.large)
+        .overlay {
+            if showSaved {
+                savedToast
+            }
+        }
+        .task {
+            await service.fetchGlobalSettings()
+            loadFromService()
+        }
+    }
+    
+    // MARK: - Exchange Section
+    private func exchangeSection(
+        title: String,
+        icon: String,
+        color: Color,
+        marginMode: Binding<String>,
+        leverage: Binding<Int>,
+        orderType: Binding<String>,
+        coinsGroup: Binding<String>,
+        exchange: String
+    ) -> some View {
+        VStack(spacing: 0) {
+            // Header
+            HStack(spacing: 12) {
+                Image(systemName: icon)
+                    .font(.title2)
+                    .foregroundColor(color)
+                Text(title)
+                    .font(.title3.bold())
+                    .foregroundColor(.white)
+                Spacer()
+            }
+            .padding()
+            .background(color.opacity(0.15))
+            
+            VStack(spacing: 16) {
+                // Margin Mode
+                settingRow(
+                    icon: "rectangle.split.2x1.fill",
+                    title: "margin_type".localized,
+                    content: {
+                        Picker("", selection: marginMode) {
+                            Text("Cross").tag("cross")
+                            Text("Isolated").tag("isolated")
+                        }
+                        .pickerStyle(.segmented)
+                        .frame(width: 180)
+                    },
+                    exchange: exchange,
+                    field: "margin_mode",
+                    value: marginMode.wrappedValue
+                )
+                
+                Divider().background(Color.enlikoBorder)
+                
+                // Leverage
+                settingRow(
+                    icon: "arrow.up.arrow.down",
+                    title: "leverage".localized,
+                    content: {
+                        HStack(spacing: 8) {
+                            Button {
+                                if leverage.wrappedValue > 1 {
+                                    leverage.wrappedValue -= 1
+                                    saveField(exchange: exchange, field: "leverage", value: leverage.wrappedValue)
+                                }
+                            } label: {
+                                Image(systemName: "minus.circle.fill")
+                                    .font(.title3)
+                                    .foregroundColor(.enlikoPrimary)
+                            }
+                            
+                            Text("\(leverage.wrappedValue)x")
+                                .font(.headline.bold().monospacedDigit())
+                                .foregroundColor(.white)
+                                .frame(width: 50)
+                            
+                            Button {
+                                if leverage.wrappedValue < 100 {
+                                    leverage.wrappedValue += 1
+                                    saveField(exchange: exchange, field: "leverage", value: leverage.wrappedValue)
+                                }
+                            } label: {
+                                Image(systemName: "plus.circle.fill")
+                                    .font(.title3)
+                                    .foregroundColor(.enlikoPrimary)
+                            }
+                        }
+                    },
+                    exchange: exchange,
+                    field: nil,
+                    value: ""
+                )
+                
+                // Quick leverage buttons
+                HStack(spacing: 8) {
+                    ForEach([1, 2, 5, 10, 20, 50], id: \.self) { lev in
+                        Button {
+                            leverage.wrappedValue = lev
+                            saveField(exchange: exchange, field: "leverage", value: lev)
+                        } label: {
+                            Text("\(lev)x")
+                                .font(.caption.bold())
+                                .foregroundColor(leverage.wrappedValue == lev ? .white : .secondary)
+                                .padding(.horizontal, 10)
+                                .padding(.vertical, 6)
+                                .background(leverage.wrappedValue == lev ? Color.enlikoPrimary : Color.enlikoBackground)
+                                .cornerRadius(8)
+                        }
+                    }
+                }
+                .padding(.horizontal, 16)
+                
+                Divider().background(Color.enlikoBorder)
+                
+                // Order Type
+                settingRow(
+                    icon: "arrow.triangle.swap",
+                    title: "order_type".localized,
+                    content: {
+                        Picker("", selection: orderType) {
+                            Text("Market").tag("market")
+                            Text("Limit").tag("limit")
+                        }
+                        .pickerStyle(.segmented)
+                        .frame(width: 180)
+                    },
+                    exchange: exchange,
+                    field: "order_type",
+                    value: orderType.wrappedValue
+                )
+                
+                Divider().background(Color.enlikoBorder)
+                
+                // Coins Group
+                settingRow(
+                    icon: "bitcoinsign.circle.fill",
+                    title: "coins_group".localized,
+                    content: {
+                        Picker("", selection: coinsGroup) {
+                            Text("ALL").tag("ALL")
+                            Text("TOP").tag("TOP")
+                            Text("VOLATILE").tag("VOLATILE")
+                        }
+                        .pickerStyle(.segmented)
+                        .frame(width: 220)
+                    },
+                    exchange: exchange,
+                    field: "coins_group",
+                    value: coinsGroup.wrappedValue
+                )
+            }
+            .padding()
+        }
+        .background(Color.enlikoSurface)
+        .cornerRadius(16)
+        .overlay(
+            RoundedRectangle(cornerRadius: 16)
+                .stroke(color.opacity(0.2), lineWidth: 1)
+        )
+    }
+    
+    // MARK: - Setting Row
+    private func settingRow<Content: View>(
+        icon: String,
+        title: String,
+        @ViewBuilder content: () -> Content,
+        exchange: String,
+        field: String?,
+        value: String
+    ) -> some View {
+        VStack(alignment: .leading, spacing: 8) {
+            HStack {
+                Image(systemName: icon)
+                    .foregroundColor(.enlikoPrimary)
+                    .frame(width: 24)
+                Text(title)
+                    .foregroundColor(.white)
+                Spacer()
+            }
+            content()
+                .onChange(of: value) { _, newValue in
+                    if let field = field {
+                        saveField(exchange: exchange, field: field, value: newValue)
+                    }
+                }
+        }
+    }
+    
+    // MARK: - Save Toast
+    private var savedToast: some View {
+        VStack {
+            Spacer()
+            HStack {
+                Image(systemName: "checkmark.circle.fill")
+                    .foregroundColor(.enlikoGreen)
+                Text("saved".localized)
+                    .foregroundColor(.white)
+                    .font(.subheadline.bold())
+            }
+            .padding(.horizontal, 24)
+            .padding(.vertical, 12)
+            .background(Color.enlikoSurface)
+            .cornerRadius(25)
+            .shadow(color: .black.opacity(0.3), radius: 10)
+            .padding(.bottom, 30)
+        }
+        .transition(.move(edge: .bottom).combined(with: .opacity))
+        .animation(.spring(), value: showSaved)
+    }
+    
+    // MARK: - Load from service
+    private func loadFromService() {
+        let s = service.globalSettings
+        bybitMarginMode = s.bybitMarginMode
+        bybitLeverage = s.bybitLeverage
+        bybitOrderType = s.bybitOrderType
+        bybitCoinsGroup = s.bybitCoinsGroup
+        hlMarginMode = s.hlMarginMode
+        hlLeverage = s.hlLeverage
+        hlOrderType = s.hlOrderType
+        hlCoinsGroup = s.hlCoinsGroup
+    }
+    
+    // MARK: - Save field
+    private func saveField(exchange: String, field: String, value: Any) {
+        guard !isSaving else { return }
+        isSaving = true
+        
+        Task {
+            var marginMode: String? = nil
+            var leverage: Int? = nil
+            var orderType: String? = nil
+            var coinsGroup: String? = nil
+            
+            switch field {
+            case "margin_mode": marginMode = value as? String
+            case "leverage": leverage = value as? Int
+            case "order_type": orderType = value as? String
+            case "coins_group": coinsGroup = value as? String
+            default: break
+            }
+            
+            let success = await service.updateExchangeSettings(
+                exchange: exchange,
+                marginMode: marginMode,
+                leverage: leverage,
+                orderType: orderType,
+                coinsGroup: coinsGroup
+            )
+            
+            isSaving = false
+            
+            if success {
+                withAnimation {
+                    showSaved = true
+                }
+                try? await Task.sleep(nanoseconds: 1_500_000_000)
+                withAnimation {
+                    showSaved = false
+                }
+            }
+        }
     }
 }
 
