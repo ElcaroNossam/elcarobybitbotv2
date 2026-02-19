@@ -952,6 +952,7 @@ TEXTS = {
     'subscribe_menu_info': '_Select your support level:_',
     
     'btn_premium': '💎 Pro',
+    'btn_support': '💬 Support',
     'btn_basic': '💚 Supporter',
     'btn_trial': '🆓 Explorer (Free)',
     'btn_enter_promo': '🎟 Invite Code',

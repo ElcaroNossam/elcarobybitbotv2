@@ -12007,7 +12007,12 @@ async def cmd_start(update: Update, ctx: ContextTypes.DEFAULT_TYPE):
 
     if not _is_allowed_user(uid):
         await _notify_admin_new_user(update, ctx)
-        await reply_with_keyboard(update, ctx, ctx.t['invite_only'])
+        # Show invite_only message WITH Support and License buttons
+        invite_kb = InlineKeyboardMarkup([
+            [InlineKeyboardButton(ctx.t.get("btn_premium", "💎 Pro Membership"), callback_data="sub:menu")],
+            [InlineKeyboardButton(ctx.t.get("btn_support", "💬 Support"), url="https://t.me/elcaronossam")],
+        ])
+        await update.message.reply_text(ctx.t['invite_only'], reply_markup=invite_kb, parse_mode="HTML")
         return
 
     cfg = get_user_config(uid) or {}
