@@ -981,7 +981,7 @@ if _USE_TTLCACHE:
 else:
     _daily_error_cache: dict = {}
 
-DAILY_ERROR_INTERVAL = 86400  # 24 hours
+DAILY_ERROR_INTERVAL = 3600  # 1 hour (was 24h, changed to hourly notifications)
 
 
 def _get_daily_error_key(user_id: int, error_type: str, account_type: str) -> tuple:
@@ -997,30 +997,23 @@ def _should_send_daily_error(user_id: int, error_type: str, account_type: str) -
     """
     key = _get_daily_error_key(user_id, error_type, account_type)
     now = time.time()
-    today_start = now - (now % 86400)  # Start of today (UTC)
-    
     entry = _daily_error_cache.get(key)
     
     if entry is None:
-        # First error of this type today - will be sent
-        _daily_error_cache[key] = {"last_sent": now, "missed_count": 1, "day_start": today_start}
+        # First error of this type - will be sent
+        _daily_error_cache[key] = {"last_sent": now, "missed_count": 1}
         return True, 1
     
-    # Check if it's a new day
-    if entry.get("day_start", 0) < today_start:
-        # New day - reset counter and send
-        _daily_error_cache[key] = {"last_sent": now, "missed_count": 1, "day_start": today_start}
-        return True, 1
-    
-    # Same day - increment counter
+    # Increment missed counter
     entry["missed_count"] = entry.get("missed_count", 0) + 1
     
-    # Check if already sent today (last_sent is set to now when first sent)
-    if entry.get("last_sent", 0) >= today_start:
-        # Already sent today - don't send again
+    # Check if enough time has passed since last notification
+    elapsed = now - entry.get("last_sent", 0)
+    if elapsed < DAILY_ERROR_INTERVAL:
+        # Too soon - don't send again
         return False, entry["missed_count"]
     
-    # Not sent today yet (shouldn't happen now, but just in case)
+    # Enough time passed - send notification and reset
     entry["last_sent"] = now
     return True, entry["missed_count"]
 
@@ -8225,39 +8218,30 @@ async def _place_order_impl(
             logger.info(f"{symbol}: retry with alt position mode {alt_mode}")
             res = await _bybit_request(user_id, "POST", "/v5/order/create", body=body, account_type=account_type)
 
-        # Ошибка кредитного плеча — пытаемся извлечь maxLeverage из ошибки и установить
+        # Ошибка кредитного плеча — извлекаем maxLeverage, но НИКОГДА не увеличиваем выше того что юзер просил
         elif "110013" in msg or "cannot set leverage" in msg:
             # Try to extract maxLeverage from error message: "gt maxLeverage [500]"
             import re
             match = re.search(r'maxLeverage\s*\[(\d+)\]', str(e))
-            target_lev = int(match.group(1)) if match else 10
-            
-            logger.info(f"{symbol}: leverage error → trying to set {target_lev}x")
-            lev_success = await set_leverage(user_id, symbol, leverage=target_lev, account_type=account_type)
-            
-            # If set_leverage failed (returned 0), try progressively lower values
-            if lev_success == 0:
-                for fallback in [5, 3, 2, 1]:
-                    logger.info(f"{symbol}: trying fallback leverage {fallback}x")
-                    if await set_leverage(user_id, symbol, leverage=fallback, account_type=account_type) > 0:
-                        break
+            if match:
+                max_exchange_lev = int(match.group(1))
+                # Use exchange max but NEVER exceed what was already set (user's setting)
+                cache_key_lev = (user_id, symbol, account_type or "auto")
+                current_lev = _leverage_cache.get(cache_key_lev, max_exchange_lev)
+                target_lev = min(current_lev, max_exchange_lev)
+                logger.info(f"{symbol}: leverage error → max allowed={max_exchange_lev}x, using {target_lev}x")
+                lev_success = await set_leverage(user_id, symbol, leverage=target_lev, account_type=account_type)
+            else:
+                # Can't extract max — don't override user's leverage, just skip this trade
+                logger.warning(f"[{user_id}] {symbol}: leverage error without maxLeverage info, skipping trade")
+                raise ValueError(f"LEVERAGE_ERROR: {str(e)[:200]}")
             
             res = await _bybit_request(user_id, "POST", "/v5/order/create", body=body, account_type=account_type)
 
-        # Ошибка 110090 - позиция превышает лимит, нужно снизить плечо до 45 или ниже
+        # Ошибка 110090 - позиция превышает лимит — НЕ увеличиваем плечо, пропускаем сделку
         elif "110090" in msg or "exceed the max" in msg:
-            logger.info(f"{symbol}: max position limit error → reduce leverage to 45x and retry")
-            await set_leverage(user_id, symbol, leverage=45, account_type=account_type)
-            try:
-                res = await _bybit_request(user_id, "POST", "/v5/order/create", body=body, account_type=account_type)
-            except RuntimeError as e2:
-                # Если всё ещё не работает - пробуем с 25x
-                if "110090" in str(e2).lower() or "exceed the max" in str(e2).lower():
-                    logger.info(f"{symbol}: still exceeds limit → reduce leverage to 25x and retry")
-                    await set_leverage(user_id, symbol, leverage=25, account_type=account_type)
-                    res = await _bybit_request(user_id, "POST", "/v5/order/create", body=body, account_type=account_type)
-                else:
-                    raise
+            logger.warning(f"[{user_id}] {symbol}: position exceeds max limit at current leverage, skipping trade")
+            raise ValueError(f"POSITION_LIMIT_EXCEEDED: {symbol} — not enough margin at current leverage")
 
         # Неверный TIF для рынка — поправим на IOC и ретраим
         elif "timeinforce" in msg and "market" in msg:
@@ -18952,9 +18936,21 @@ async def place_limit_order(
             logger.info(f"{symbol}: retry limit with alt position mode {alt_mode}")
             res = await _bybit_request(user_id, "POST", "/v5/order/create", body=order_body, account_type=account_type)
         elif "110013" in msg or "cannot set leverage" in msg.lower():
-            logger.info(f"Leverage error on {symbol}, setting leverage=10 and retrying limit order")
-            await set_leverage(user_id, symbol, leverage=10, account_type=account_type)
-            res = await _bybit_request(user_id, "POST", "/v5/order/create", body=order_body, account_type=account_type)
+            # Don't hardcode leverage — extract max from error, cap at user's setting
+            import re as _re_lev
+            lev_match = _re_lev.search(r'maxLeverage\s*\[(\d+)\]', msg)
+            if lev_match:
+                max_exchange_lev = int(lev_match.group(1))
+                # Cap at user's cached leverage — NEVER inflate above user's setting
+                cache_key_lev = (user_id, symbol, account_type or "auto")
+                user_lev = _leverage_cache.get(cache_key_lev, max_exchange_lev)
+                target_lev = min(user_lev, max_exchange_lev)
+                logger.info(f"Leverage error on {symbol}, max allowed={max_exchange_lev}x, using {target_lev}x")
+                await set_leverage(user_id, symbol, leverage=target_lev, account_type=account_type)
+                res = await _bybit_request(user_id, "POST", "/v5/order/create", body=order_body, account_type=account_type)
+            else:
+                logger.warning(f"Leverage error on {symbol} without maxLeverage info, skipping")
+                raise ValueError(f"LEVERAGE_ERROR: {msg[:200]}")
         else:
             raise
 
@@ -19483,7 +19479,7 @@ async def handle_trade_error(
         return True
     
     # Leverage errors - show immediately (not daily)
-    if "110013" in error_msg or "cannot set leverage" in error_msg.lower() or "maxleverage" in error_msg.lower():
+    if "110013" in error_msg or "cannot set leverage" in error_msg.lower() or "maxleverage" in error_msg.lower() or "LEVERAGE_ERROR" in error_msg:
         match = re.search(r'maxLeverage\s*\[(\d+)\]', error_msg)
         max_lev = match.group(1) if match else "?"
         try:
@@ -19499,12 +19495,13 @@ async def handle_trade_error(
         return True
     
     # Position limit exceeded - show immediately
-    if "110090" in error_msg or "position limit exceeded" in error_msg.lower():
+    if "110090" in error_msg or "position limit exceeded" in error_msg.lower() or "POSITION_LIMIT_EXCEEDED" in error_msg:
         try:
             await bot.send_message(
                 user_id,
                 t.get('position_limit_error',
-                    "🛑 Position limit exceeded for {symbol}. Reduce leverage or close some positions."
+                    "🛑 {symbol}: Not enough margin at your leverage. Trade skipped.\n"
+                    "💡 Deposit more funds or close some positions."
                 ).format(strategy=strategy or "Unknown", symbol=symbol or "?"),
                 parse_mode="HTML"
             )
