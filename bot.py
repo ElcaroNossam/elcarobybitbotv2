@@ -18877,6 +18877,17 @@ async def place_limit_order(
     qty: float,
     account_type: str = None,
 ):
+    # Check minimum notional value BEFORE sending order (Bybit requires 5 USDT)
+    MIN_NOTIONAL = 5.0
+    notional = qty * price
+    if notional < MIN_NOTIONAL:
+        old_qty = qty
+        qty = MIN_NOTIONAL / price * 1.05  # 5% buffer
+        logger.info(
+            f"[{user_id}] {symbol} limit order auto-bumped qty {old_qty:.4f} → {qty:.4f} "
+            f"to meet ${MIN_NOTIONAL} minimum (notional ${qty * price:.2f}) [{account_type}]"
+        )
+
     filt = await get_symbol_filters(user_id, symbol, account_type=account_type)
     tick_size = filt["tickSize"]
     min_qty   = filt["minQty"]
@@ -19506,8 +19517,8 @@ async def handle_trade_error(
         logger.warning(f"[{user_id}] Delisted/closed symbol {symbol or '?'}: skipping")
         return True
     
-    # Notional too low (equity too small for any trade) - daily notification
-    if "notional" in error_msg.lower() and "minimum" in error_msg.lower():
+    # Notional / minimum order value too low - daily notification
+    if ("notional" in error_msg.lower() and "minimum" in error_msg.lower()) or "110094" in error_msg or "minimum order value" in error_msg.lower():
         await notify_user_daily_error(
             bot, user_id, 
             DailyErrorType.NOTIONAL_TOO_LOW, 
