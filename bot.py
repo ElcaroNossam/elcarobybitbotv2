@@ -20613,9 +20613,9 @@ async def on_channel_post(update: Update, ctx: ContextTypes.DEFAULT_TYPE):
                 rsi_side_display = 'LONG' if side == 'Buy' else 'SHORT'
                 logger.info(f"[{uid}] 📊 Processing RSI_BB {rsi_side_display} trade for {symbol}")
                 strat_settings = db.get_strategy_settings(uid, "rsi_bb", ctx_exchange, ctx_account_type)
-                use_limit = strat_settings.get("order_type", "market") == "limit"
                 params = get_strategy_trade_params(uid, cfg, symbol, "rsi_bb", side=side,
                                                   exchange=ctx_exchange, account_type=ctx_account_type)
+                use_limit = params.get("order_type", "market") == "limit"
                 user_sl_pct, user_tp_pct = params["sl_pct"], params["tp_pct"]
                 risk_pct = params["percent"]
                 user_leverage = params.get("leverage")
@@ -20789,9 +20789,9 @@ async def on_channel_post(update: Update, ctx: ContextTypes.DEFAULT_TYPE):
                 side_display = 'LONG' if side == 'Buy' else 'SHORT'
                 logger.info(f"[{uid}] 🔮 Processing Scryptomera {side_display} trade for {symbol}")
                 strat_settings = db.get_strategy_settings(uid, "scryptomera", ctx_exchange, ctx_account_type)
-                use_limit = strat_settings.get("order_type", "market") == "limit"
                 params = get_strategy_trade_params(uid, cfg, symbol, "scryptomera", side=side,
                                                   exchange=ctx_exchange, account_type=ctx_account_type)
+                use_limit = params.get("order_type", "market") == "limit"
                 user_sl_pct = params["sl_pct"]
                 user_tp_pct = params["tp_pct"]
                 risk_pct = params["percent"]
@@ -20950,9 +20950,9 @@ async def on_channel_post(update: Update, ctx: ContextTypes.DEFAULT_TYPE):
                 scalper_side_display = 'LONG' if side == 'Buy' else 'SHORT'
                 logger.info(f"[{uid}] ⚡ Processing Scalper {scalper_side_display} trade for {symbol}")
                 strat_settings = db.get_strategy_settings(uid, "scalper", ctx_exchange, ctx_account_type)
-                use_limit = strat_settings.get("order_type", "market") == "limit"
                 params = get_strategy_trade_params(uid, cfg, symbol, "scalper", side=side,
                                                   exchange=ctx_exchange, account_type=ctx_account_type)
+                use_limit = params.get("order_type", "market") == "limit"
                 user_sl_pct = params["sl_pct"]
                 user_tp_pct = params["tp_pct"]
                 risk_pct = params["percent"]
@@ -21145,7 +21145,7 @@ async def on_channel_post(update: Update, ctx: ContextTypes.DEFAULT_TYPE):
                             logger.warning(f"[{uid}] Enliko: failed to set leverage: {e}")
 
                     # Use user's order_type setting (market/limit) — same as all other strategies
-                    use_limit = elcaro_strat_settings.get("order_type", "market") == "limit"
+                    use_limit = params.get("order_type", "market") == "limit"
                     
                     order_leverage = elcaro_leverage
                     
@@ -21341,7 +21341,7 @@ async def on_channel_post(update: Update, ctx: ContextTypes.DEFAULT_TYPE):
                             logger.warning(f"[{uid}] Fibonacci: failed to set leverage: {e}")
                     
                     # Use user's order_type setting (market/limit) — same as all other strategies
-                    use_limit = strat_settings.get("order_type", "market") == "limit"
+                    use_limit = params.get("order_type", "market") == "limit"
                     limit_entry_price = fibo_entry  # Default to mid-point
                     
                     if use_limit and fibo_entry_low and fibo_entry_high:
@@ -21503,9 +21503,9 @@ async def on_channel_post(update: Update, ctx: ContextTypes.DEFAULT_TYPE):
                 oi_side_display = 'LONG' if side == 'Buy' else 'SHORT'
                 logger.info(f"[{uid}] 📉 Processing OI {oi_side_display} trade for {symbol}")
                 strat_settings = db.get_strategy_settings(uid, "oi", ctx_exchange, ctx_account_type)
-                use_limit = strat_settings.get("order_type", "market") == "limit"
                 params = get_strategy_trade_params(uid, cfg, symbol, "oi", side=side,
                                                   exchange=ctx_exchange, account_type=ctx_account_type)
+                use_limit = params.get("order_type", "market") == "limit"
                 user_sl_pct = params["sl_pct"]
                 user_tp_pct = params["tp_pct"]
                 risk_pct = params["percent"]
