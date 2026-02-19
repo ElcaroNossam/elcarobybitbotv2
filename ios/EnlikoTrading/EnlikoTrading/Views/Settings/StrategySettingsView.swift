@@ -298,9 +298,6 @@ struct StrategySettingsView: View {
             // Main Parameters
             mainParametersCard
             
-            // Order Settings Card
-            orderSettingsCard
-            
             // ATR Section
             if selectedStrategy.supportsAtr {
                 atrSection
@@ -395,31 +392,6 @@ struct StrategySettingsView: View {
                 color: .enlikoRed
             )
             
-            LeverageSelector(value: currentSettings.leverage)
-        }
-        .padding()
-        .background(Color.enlikoCard)
-        .cornerRadius(16)
-    }
-    
-    // MARK: - Order Settings Card
-    private var orderSettingsCard: some View {
-        VStack(spacing: 16) {
-            SectionHeader(title: "order_settings".localized, icon: "doc.text.fill")
-            
-            // Order Type
-            HStack {
-                Text("order_type".localized)
-                    .foregroundColor(.enlikoTextSecondary)
-                Spacer()
-                Picker("", selection: currentSettings.orderType) {
-                    Text("Market").tag("market")
-                    Text("Limit").tag("limit")
-                }
-                .pickerStyle(.segmented)
-                .frame(width: 150)
-            }
-            
             // Max Positions
             HStack {
                 VStack(alignment: .leading, spacing: 2) {
@@ -433,86 +405,10 @@ struct StrategySettingsView: View {
                 Stepper("\(currentSettings.wrappedValue.maxPositions)", value: currentSettings.maxPositions, in: 0...20)
                     .frame(width: 120)
             }
-            
-            // Coins Group
-            HStack {
-                Text("coins_group".localized)
-                    .foregroundColor(.enlikoTextSecondary)
-                Spacer()
-                Menu {
-                    ForEach(["ALL", "TOP", "TOP100", "VOLATILE"], id: \.self) { group in
-                        Button(action: { currentSettings.wrappedValue.coinsGroup = group }) {
-                            HStack {
-                                Text(group)
-                                if currentSettings.wrappedValue.coinsGroup == group {
-                                    Image(systemName: "checkmark")
-                                }
-                            }
-                        }
-                    }
-                } label: {
-                    HStack {
-                        Text(currentSettings.wrappedValue.coinsGroup)
-                            .foregroundColor(.enlikoPrimary)
-                        Image(systemName: "chevron.down")
-                            .font(.caption)
-                            .foregroundColor(.enlikoTextMuted)
-                    }
-                    .padding(.horizontal, 12)
-                    .padding(.vertical, 8)
-                    .background(Color.enlikoSurface)
-                    .cornerRadius(8)
-                }
-            }
-            
-            // Direction Filter
-            HStack {
-                VStack(alignment: .leading, spacing: 2) {
-                    Text("direction".localized)
-                        .foregroundColor(.enlikoTextSecondary)
-                    Text("filter_signal_direction".localized)
-                        .font(.caption2)
-                        .foregroundColor(.enlikoTextMuted)
-                }
-                Spacer()
-                Menu {
-                    ForEach([("all", "↕️ All"), ("long", "📈 Long only"), ("short", "📉 Short only")], id: \.0) { value, label in
-                        Button(action: { currentSettings.wrappedValue.direction = value }) {
-                            HStack {
-                                Text(label)
-                                if currentSettings.wrappedValue.direction == value {
-                                    Image(systemName: "checkmark")
-                                }
-                            }
-                        }
-                    }
-                } label: {
-                    HStack {
-                        Text(directionDisplayName(currentSettings.wrappedValue.direction))
-                            .foregroundColor(.enlikoPrimary)
-                        Image(systemName: "chevron.down")
-                            .font(.caption)
-                            .foregroundColor(.enlikoTextMuted)
-                    }
-                    .padding(.horizontal, 12)
-                    .padding(.vertical, 8)
-                    .background(Color.enlikoSurface)
-                    .cornerRadius(8)
-                }
-            }
         }
         .padding()
         .background(Color.enlikoCard)
         .cornerRadius(16)
-    }
-    
-    // MARK: - Direction Display Name
-    private func directionDisplayName(_ direction: String) -> String {
-        switch direction {
-        case "long": return "📈 Long"
-        case "short": return "📉 Short"
-        default: return "↕️ All"
-        }
     }
     
     // MARK: - ATR Section
@@ -545,30 +441,6 @@ struct StrategySettingsView: View {
                     range: 0.1...5,
                     step: 0.05,
                     suffix: "%",
-                    color: .enlikoAccent
-                )
-                
-                AnimatedSettingsRow(
-                    label: "ATR Periods",
-                    value: Binding(
-                        get: { Double(currentSettings.wrappedValue.atrPeriods ?? 7) },
-                        set: { currentSettings.wrappedValue.atrPeriods = Int($0) }
-                    ),
-                    range: 3...50,
-                    step: 1,
-                    suffix: "",
-                    color: .enlikoAccent
-                )
-                
-                AnimatedSettingsRow(
-                    label: "ATR Multiplier SL",
-                    value: Binding(
-                        get: { currentSettings.wrappedValue.atrMultiplierSl ?? 0.5 },
-                        set: { currentSettings.wrappedValue.atrMultiplierSl = $0 }
-                    ),
-                    range: 0.1...5,
-                    step: 0.1,
-                    suffix: "x",
                     color: .enlikoAccent
                 )
             }
@@ -1089,44 +961,6 @@ struct AnimatedSettingsRow: View {
                     Image(systemName: "plus.circle.fill")
                         .font(.title2)
                         .foregroundColor(value < range.upperBound ? color : .enlikoTextMuted)
-                }
-            }
-        }
-    }
-}
-
-struct LeverageSelector: View {
-    @Binding var value: Int
-    let leverages = [1, 2, 3, 5, 10, 20, 25, 50, 75, 100, 125]
-    
-    var body: some View {
-        VStack(alignment: .leading, spacing: 10) {
-            HStack {
-                Text("leverage".localized)
-                    .foregroundColor(.enlikoTextSecondary)
-                Spacer()
-                Text("\(value)x")
-                    .font(.headline)
-                    .foregroundColor(.enlikoPrimary)
-            }
-            
-            ScrollView(.horizontal, showsIndicators: false) {
-                HStack(spacing: 8) {
-                    ForEach(leverages, id: \.self) { lev in
-                        Button(action: {
-                            withAnimation(.spring(response: 0.2)) {
-                                value = lev
-                            }
-                        }) {
-                            Text("\(lev)x")
-                                .font(.caption.weight(.medium))
-                                .padding(.horizontal, 12)
-                                .padding(.vertical, 8)
-                                .background(value == lev ? Color.enlikoPrimary : Color.enlikoSurface)
-                                .foregroundColor(value == lev ? .white : .enlikoTextSecondary)
-                                .cornerRadius(8)
-                        }
-                    }
                 }
             }
         }
