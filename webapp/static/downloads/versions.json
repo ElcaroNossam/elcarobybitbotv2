@@ -1,8 +1,8 @@
 {
   "latest": {
-    "version": "1.2.0",
-    "versionCode": 3,
-    "buildDate": "2026-02-18",
+    "version": "1.3.0",
+    "versionCode": 4,
+    "buildDate": "2026-02-19",
     "size": "23 MB",
     "minAndroid": "8.0",
     "fileName": "EnlikoTrading-latest.apk",
@@ -10,6 +10,19 @@
     "required": false
   },
   "changelog": [
+    {
+      "version": "1.3.0",
+      "versionCode": 4,
+      "date": "2026-02-19",
+      "type": "update",
+      "title": "Bot Username Update & Cross-Platform Parity",
+      "changes": [
+        "Updated Telegram bot username to @enliko_bot across all 15 languages",
+        "Updated all t.me deep links to use new bot username",
+        "Full cross-platform parity verification (iOS, Web, Bot, Android)",
+        "Updated Telegram auth integration for new bot"
+      ]
+    },
     {
       "version": "1.2.0",
       "versionCode": 3,
@@ -66,8 +79,8 @@
   "ios": {
     "available": true,
     "platform": "TestFlight",
-    "version": "1.1.0",
-    "build": 102,
+    "version": "1.3.0",
+    "build": 118,
     "testflightUrl": "https://testflight.apple.com/join/enliko"
   }
 }
