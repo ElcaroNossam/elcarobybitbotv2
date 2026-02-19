@@ -11932,6 +11932,14 @@ async def cmd_start(update: Update, ctx: ContextTypes.DEFAULT_TYPE):
     uid = update.effective_user.id
     user = update.effective_user
     
+    # CRITICAL: Save telegram_username for 2FA app login
+    # This must be done on /start so users can login via iOS/Android app
+    try:
+        db.update_user_info(uid, username=user.username, first_name=user.first_name)
+        logger.debug(f"[{uid}] Saved user info: @{user.username}, {user.first_name}")
+    except Exception as e:
+        logger.warning(f"[{uid}] Failed to save user info: {e}")
+    
     # Check for deep link parameter (e.g., /start link_app or /start app_login)
     args = ctx.args
     if args and len(args) > 0:
