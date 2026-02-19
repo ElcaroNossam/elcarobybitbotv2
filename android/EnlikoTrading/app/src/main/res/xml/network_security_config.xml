@@ -29,7 +29,7 @@
         </trust-anchors>
     </debug-overrides>
     
-    <!-- Production domain: enliko.com with Let's Encrypt SSL -->
+    <!-- Production domain: enliko.com with Cloudflare/Sectigo SSL -->
     <domain-config cleartextTrafficPermitted="false">
         <domain includeSubdomains="true">enliko.com</domain>
         <trust-anchors>
@@ -37,15 +37,18 @@
         </trust-anchors>
         <!-- 
             Certificate pinning for production
-            These are Let's Encrypt intermediate certificate pins
-            Pin 1: Let's Encrypt R3
-            Pin 2: Let's Encrypt E1 (backup)
+            Server uses Cloudflare with Sectigo certificates
+            Pin 1: Current leaf certificate (Sectigo DV R36)
+            Pin 2: Sectigo DV R36 intermediate (backup)
+            
+            NOTE: Cloudflare may rotate certificates. If pinning fails,
+            regenerate pins using the command in the comment above.
         -->
         <pin-set expiration="2027-01-01">
-            <!-- Let's Encrypt R3 -->
-            <pin digest="SHA-256">jQJTbIh0grw0/1TkHSumWb+Fs0Ggogr621gT3PvPKG0=</pin>
-            <!-- ISRG Root X1 backup pin -->
-            <pin digest="SHA-256">C5+lpZ7tcVwmwQIMcRtPbsQtWLABXhQzejna0wHFr8M=</pin>
+            <!-- Current enliko.com leaf certificate (Sectigo) -->
+            <pin digest="SHA-256">m3mtg0ra9UKFTxTAK+mqd6Jt42X+ikF6wyawnEKhMm8=</pin>
+            <!-- Sectigo USERTrust RSA Root CA (backup) -->
+            <pin digest="SHA-256">x4QzPSC810K5/cMjb05Qm4k3Bw5zBn4lTdO/nEW/Td4=</pin>
         </pin-set>
     </domain-config>
     

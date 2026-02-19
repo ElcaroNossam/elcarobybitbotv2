@@ -1,5 +1,6 @@
 package io.enliko.trading.ui.screens.auth
 
+import android.util.Log
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import dagger.hilt.android.lifecycle.HiltViewModel
@@ -80,22 +81,28 @@ class AuthViewModel @Inject constructor(
     }
 
     fun register(email: String, password: String, name: String? = null) {
+        Log.d("AuthVM", "register() called with email=$email, name=$name")
         viewModelScope.launch {
             _uiState.value = AuthUiState(isLoading = true)
             try {
+                Log.d("AuthVM", "Calling api.register()")
                 val response = api.register(RegisterRequest(email, password, name))
+                Log.d("AuthVM", "Register response: code=${response.code()}, isSuccessful=${response.isSuccessful}")
                 if (response.isSuccessful) {
                     response.body()?.let { registerResponse ->
+                        Log.d("AuthVM", "Register body: success=${registerResponse.success}, message=${registerResponse.message}")
                         if (registerResponse.success) {
                             // Show verification code input
                             _uiState.value = AuthUiState(
                                 isWaitingForEmailVerification = true,
                                 pendingEmail = email
                             )
+                            Log.d("AuthVM", "State updated: isWaitingForEmailVerification=true, pendingEmail=$email")
                         } else {
                             _uiState.value = AuthUiState(error = registerResponse.message ?: "Registration failed")
                         }
                     } ?: run {
+                        Log.e("AuthVM", "Register body is null")
                         _uiState.value = AuthUiState(error = "Invalid response")
                     }
                 } else {
@@ -115,26 +122,34 @@ class AuthViewModel @Inject constructor(
     }
 
     fun verifyEmail(code: String) {
+        Log.d("AuthVM", "verifyEmail() called with code=$code")
         val email = _uiState.value.pendingEmail
+        Log.d("AuthVM", "pendingEmail from state: $email")
         if (email.isNullOrBlank()) {
+            Log.e("AuthVM", "pendingEmail is null or blank!")
             _uiState.value = _uiState.value.copy(error = "No email to verify. Please register again.")
             return
         }
         viewModelScope.launch {
             _uiState.value = _uiState.value.copy(isLoading = true, error = null)
             try {
+                Log.d("AuthVM", "Calling api.verify(email=$email, code=$code)")
                 val response = api.verify(VerifyRequest(email, code))
+                Log.d("AuthVM", "Verify response: code=${response.code()}, isSuccessful=${response.isSuccessful}")
                 if (response.isSuccessful) {
                     response.body()?.let { authResponse ->
+                        Log.d("AuthVM", "Verify success! token=${authResponse.token?.take(10)}..., userId=${authResponse.user.userId}")
                         securePreferencesRepository.saveAuthToken(authResponse.token)
                         securePreferencesRepository.saveUserId(authResponse.user.userId.toString())
                         preferencesRepository.saveLanguage(authResponse.user.lang)
                         _uiState.value = AuthUiState(isSuccess = true)
                     } ?: run {
+                        Log.e("AuthVM", "Verify body is null")
                         _uiState.value = _uiState.value.copy(isLoading = false, error = "Empty response from server")
                     }
                 } else {
                     val errorBody = response.errorBody()?.string() ?: ""
+                    Log.e("AuthVM", "Verify failed: code=${response.code()}, body=$errorBody")
                     val errorMsg = when (response.code()) {
                         400 -> if (errorBody.contains("expired")) "Code expired. Please register again." 
                                else "Invalid verification code"
@@ -144,6 +159,7 @@ class AuthViewModel @Inject constructor(
                     _uiState.value = _uiState.value.copy(isLoading = false, error = errorMsg)
                 }
             } catch (e: Exception) {
+                Log.e("AuthVM", "Verify exception: ${e.javaClass.name}: ${e.message}", e)
                 val errorDetail = when {
                     e.message?.contains("JsonDecodingException") == true -> "Server response format error"
                     e.message?.contains("Unable to resolve") == true -> "No internet connection"
@@ -162,6 +178,7 @@ class AuthViewModel @Inject constructor(
     // ==================== 2FA (Telegram Login) ====================
 
     fun request2FALogin(username: String) {
+        Log.d("AuthVM", "request2FALogin() called with username=$username")
         val cleaned = username.trim().removePrefix("@")
         if (cleaned.isBlank()) {
             _uiState.value = _uiState.value.copy(error = "Enter your Telegram username")
@@ -171,9 +188,12 @@ class AuthViewModel @Inject constructor(
         viewModelScope.launch {
             _uiState.value = AuthUiState(isLoading = true)
             try {
+                Log.d("AuthVM", "Calling api.request2FA(username=$cleaned)")
                 val response = api.request2FA(Request2FABody(cleaned))
+                Log.d("AuthVM", "2FA response: code=${response.code()}, isSuccessful=${response.isSuccessful}")
                 if (response.isSuccessful) {
                     val body = response.body()
+                    Log.d("AuthVM", "2FA body: success=${body?.success}, requestId=${body?.requestId}, message=${body?.message}")
                     if (body?.success == true && body.requestId != null) {
                         _uiState.value = AuthUiState(
                             isWaitingFor2FA = true,
@@ -190,6 +210,8 @@ class AuthViewModel @Inject constructor(
                         )
                     }
                 } else {
+                    val errorBody = response.errorBody()?.string() ?: ""
+                    Log.e("AuthVM", "2FA failed: code=${response.code()}, body=$errorBody")
                     val errorMsg = when (response.code()) {
                         404 -> "User not found. Start @enliko_bot in Telegram first."
                         429 -> "Too many requests. Please wait."
@@ -198,6 +220,7 @@ class AuthViewModel @Inject constructor(
                     _uiState.value = AuthUiState(error = errorMsg)
                 }
             } catch (e: Exception) {
+                Log.e("AuthVM", "2FA exception: ${e.message}", e)
                 _uiState.value = AuthUiState(error = e.message ?: "Connection error")
             }
         }
