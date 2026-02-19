@@ -10,6 +10,8 @@
     <title>Strategy Backtester - Enliko</title>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <link rel="stylesheet" href="/static/css/mobile.css">
+    <!-- Bottom Navigation -->
+    <link rel="stylesheet" href="/static/css/bottom-nav.css">
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <style>
         :root {
@@ -3890,7 +3892,32 @@
     </script>
     <script src="/static/js/backtest-advanced.js"></script>
     
+    <!-- Bottom Navigation -->
+    <nav class="bottom-nav" id="bottomNav">
+        <a href="/dashboard" class="bottom-nav-item" data-nav="home">
+            <i class="fas fa-home"></i>
+            <span>Home</span>
+        </a>
+        <a href="/screener" class="bottom-nav-item">
+            <i class="fas fa-search"></i>
+            <span>Screener</span>
+        </a>
+        <a href="/terminal" class="bottom-nav-item center-action">
+            <i class="fas fa-chart-line"></i>
+            <span>Terminal</span>
+        </a>
+        <a href="/marketplace" class="bottom-nav-item">
+            <i class="fas fa-store"></i>
+            <span>Market</span>
+        </a>
+        <a href="/settings" class="bottom-nav-item">
+            <i class="fas fa-cog"></i>
+            <span>Settings</span>
+        </a>
+    </nav>
+
     <!-- Mobile Navigation & Utilities -->
     <script src="/static/js/mobile-navigation.js"></script>
+    <script src="/static/js/bottom-nav.js"></script>
 </body>
 </html>

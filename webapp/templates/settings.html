@@ -20,6 +20,9 @@
     <!-- Mobile Responsive CSS -->
     <link rel="stylesheet" href="/static/css/mobile.css">
     
+    <!-- Bottom Navigation -->
+    <link rel="stylesheet" href="/static/css/bottom-nav.css">
+    
     <style>
         :root {
             --bg-primary: #050505;
@@ -2229,7 +2232,32 @@
         }
     </script>
     
+    <!-- Bottom Navigation -->
+    <nav class="bottom-nav" id="bottomNav">
+        <a href="/dashboard" class="bottom-nav-item" data-nav="home">
+            <i class="fas fa-home"></i>
+            <span>Home</span>
+        </a>
+        <a href="/screener" class="bottom-nav-item">
+            <i class="fas fa-search"></i>
+            <span>Screener</span>
+        </a>
+        <a href="/terminal" class="bottom-nav-item center-action">
+            <i class="fas fa-chart-line"></i>
+            <span>Terminal</span>
+        </a>
+        <a href="/marketplace" class="bottom-nav-item">
+            <i class="fas fa-store"></i>
+            <span>Market</span>
+        </a>
+        <a href="/settings" class="bottom-nav-item">
+            <i class="fas fa-cog"></i>
+            <span>Settings</span>
+        </a>
+    </nav>
+
     <!-- Mobile Navigation & Utilities -->
     <script src="/static/js/mobile-navigation.js"></script>
+    <script src="/static/js/bottom-nav.js"></script>
 </body>
 </html>

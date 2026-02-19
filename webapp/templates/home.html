@@ -16,7 +16,11 @@
     <title>Enliko | AI-Powered Crypto Platform</title>
     
     <!-- Favicon -->
+    <link rel="icon" type="image/svg+xml" href="/static/images/favicon.svg">
     <link rel="icon" type="image/png" href="/static/images/favicon.png">
+    
+    <!-- Bottom Navigation -->
+    <link rel="stylesheet" href="/static/css/bottom-nav.css">
     
     <!-- Fonts -->
     <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -1055,9 +1059,16 @@
                 <a href="https://t.me/enliko_bot" class="btn btn-ghost" target="_blank">
                     <i class="fab fa-telegram"></i>
                 </a>
-                <a href="/terminal" class="btn btn-primary">
+                <a href="/terminal" class="btn btn-primary no-auth-only">
                     <i class="fas fa-rocket"></i>
                     Launch Terminal
+                </a>
+                <a href="/dashboard" class="btn btn-primary auth-only" style="display:none">
+                    <i class="fas fa-chart-pie"></i>
+                    Dashboard
+                </a>
+                <a href="#" class="btn btn-ghost auth-logout-btn" style="display:none" onclick="logout(); return false;">
+                    <i class="fas fa-sign-out-alt"></i>
                 </a>
             </div>
         </div>
@@ -1693,5 +1704,30 @@
             setInterval(fetchGoldChart, 120000);
         });
     </script>
+
+    <!-- Bottom Navigation -->
+    <nav class="bottom-nav" id="bottomNav">
+        <a href="/dashboard" class="bottom-nav-item" data-nav="home">
+            <i class="fas fa-home"></i>
+            <span>Home</span>
+        </a>
+        <a href="/screener" class="bottom-nav-item">
+            <i class="fas fa-search"></i>
+            <span>Screener</span>
+        </a>
+        <a href="/terminal" class="bottom-nav-item center-action">
+            <i class="fas fa-chart-line"></i>
+            <span>Terminal</span>
+        </a>
+        <a href="/marketplace" class="bottom-nav-item">
+            <i class="fas fa-store"></i>
+            <span>Market</span>
+        </a>
+        <a href="/settings" class="bottom-nav-item">
+            <i class="fas fa-cog"></i>
+            <span>Settings</span>
+        </a>
+    </nav>
+    <script src="/static/js/bottom-nav.js"></script>
 </body>
 </html>
