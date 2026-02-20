@@ -266,6 +266,13 @@ fun LoginScreen(
             }
             
             Spacer(modifier = Modifier.height(60.dp))
+            
+            // Version info for debugging
+            Text(
+                text = "v${io.enliko.trading.BuildConfig.VERSION_NAME} (${io.enliko.trading.BuildConfig.VERSION_CODE})",
+                style = MaterialTheme.typography.bodySmall,
+                color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.5f)
+            )
         }
     }
 }
