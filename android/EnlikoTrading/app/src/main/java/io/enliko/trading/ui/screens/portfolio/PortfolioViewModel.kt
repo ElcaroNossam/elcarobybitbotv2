@@ -176,7 +176,7 @@ class PortfolioViewModel @Inject constructor(
                     }
                 }
             } catch (e: Exception) {
-                // Silent fail for summary, main data already loaded
+                android.util.Log.e("PortfolioVM", "Failed to load portfolio summary", e)
             }
         }
     }
@@ -189,7 +189,7 @@ class PortfolioViewModel @Inject constructor(
                     _uiState.update { it.copy(spotPortfolio = spot) }
                 }
             } catch (e: Exception) {
-                // Silent fail
+                android.util.Log.e("PortfolioVM", "Failed to load spot portfolio", e)
             }
         }
     }
@@ -202,7 +202,7 @@ class PortfolioViewModel @Inject constructor(
                     _uiState.update { it.copy(futuresPortfolio = futures) }
                 }
             } catch (e: Exception) {
-                // Silent fail
+                android.util.Log.e("PortfolioVM", "Failed to load futures portfolio", e)
             }
         }
     }

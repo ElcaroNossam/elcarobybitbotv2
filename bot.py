@@ -23159,17 +23159,20 @@ async def monitor_positions_loop(app: Application):
                                         logger.error(f"{sym}: DCA −{dca_pct_2}% failed for {uid}: {e}", exc_info=True)
 
                             # === BREAK-EVEN (BE) LOGIC ===
-                            # Move SL to entry price when profit reaches be_trigger_pct
+                            # Move SL to entry price + small profit offset when profit reaches be_trigger_pct
                             # This runs BEFORE ATR trailing and fixed SL logic
+                            # BE_OFFSET = 0.15% - locks in a small profit instead of exact breakeven
+                            BE_OFFSET_PCT = 0.15  # Lock in 0.15% profit when moving to BE
                             if be_enabled and move_pct >= be_trigger_pct and not _be_triggered.get(key, False):
-                                # Position is in profit by at least be_trigger_pct - move SL to break-even
-                                be_sl = entry  # Break-even = entry price
+                                # Position is in profit by at least be_trigger_pct - move SL to break-even+offset
+                                # For Buy: SL above entry (locks profit), For Sell: SL below entry (locks profit)
+                                be_sl = entry * (1 + BE_OFFSET_PCT / 100) if side == "Buy" else entry * (1 - BE_OFFSET_PCT / 100)
                                 
-                                # Check if current SL is worse than entry (not yet at break-even)
+                                # Check if current SL is worse than BE SL (not yet at break-even)
                                 should_move_to_be = (
                                     current_sl is None or
-                                    (side == "Buy" and current_sl < entry) or
-                                    (side == "Sell" and current_sl > entry)
+                                    (side == "Buy" and current_sl < be_sl) or
+                                    (side == "Sell" and current_sl > be_sl)
                                 )
                                 
                                 if should_move_to_be:
@@ -23189,13 +23192,13 @@ async def monitor_positions_loop(app: Application):
                                         # Update SL in database so it persists across bot restarts
                                         db.update_position_sltp(uid, sym, sl_price=be_sl_quantized, account_type=pos_account_type, exchange=current_exchange, respect_manual_override=False)
                                         
-                                        logger.info(f"[BE-ACTIVATED] {sym} uid={uid} - SL moved to break-even @ {be_sl_quantized:.6f} (was {current_sl}, move_pct={move_pct:.2f}%)")
+                                        logger.info(f"[BE-ACTIVATED] {sym} uid={uid} - SL moved to BE+0.15% @ {be_sl_quantized:.6f} (entry={entry:.6f}, was {current_sl}, move_pct={move_pct:.2f}%)")
                                         
                                         # Notify user
                                         try:
                                             await safe_send_notification(
                                                 bot, uid,
-                                                t.get('be_moved_to_entry', "🔄 Break-Even: {symbol} SL → entry @ {price}").format(
+                                                t.get('be_moved_to_entry', "🔄 Break-Even: {symbol} SL → +0.15% @ {price}").format(
                                                     symbol=sym,
                                                     price=be_sl_quantized
                                                 )
@@ -23208,9 +23211,9 @@ async def monitor_positions_loop(app: Application):
                                     except Exception as e:
                                         logger.error(f"[{uid}] {sym}: BE failed: {e}", exc_info=True)
                                 else:
-                                    # SL already at or better than entry
+                                    # SL already at or better than BE level
                                     _be_triggered[key] = True
-                                    logger.debug(f"[BE-ALREADY] {sym} uid={uid} - SL already at/better than entry (sl={current_sl}, entry={entry})")
+                                    logger.debug(f"[BE-ALREADY] {sym} uid={uid} - SL already at/better than BE+0.15% (sl={current_sl}, be_sl={be_sl:.6f})")
 
                             # ═══════════════════════════════════════════════════════════════════
                             # PARTIAL TAKE PROFIT (СРЕЗ МАРЖИ) LOGIC

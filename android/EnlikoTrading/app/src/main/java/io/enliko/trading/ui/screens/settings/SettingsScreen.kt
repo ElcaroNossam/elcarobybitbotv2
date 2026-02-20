@@ -82,7 +82,7 @@ fun SettingsScreen(
                     icon = Icons.Default.Language,
                     title = strings.language,
                     subtitle = AppLanguage.fromCode(uiState.language).let { "${it.flag} ${it.displayName}" },
-                    onClick = onNavigateToLanguage
+                    onClick = { showLanguageDialog = true }
                 )
             }
             

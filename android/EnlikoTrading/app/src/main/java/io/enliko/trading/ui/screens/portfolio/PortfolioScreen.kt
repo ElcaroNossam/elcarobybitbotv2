@@ -106,6 +106,7 @@ fun PortfolioScreen(
                                 TotalBalanceCard(
                                     summary = uiState.portfolioSummary,
                                     balance = uiState.balance,
+                                    stats = uiState.stats,
                                     strings = strings
                                 )
                             }
@@ -303,6 +304,7 @@ private fun PeriodFilterRow(
 private fun TotalBalanceCard(
     summary: PortfolioSummary?,
     balance: BalanceData?,
+    stats: TradeStatsData?,
     strings: io.enliko.trading.util.Strings
 ) {
     val strings = LocalStrings.current
@@ -314,7 +316,8 @@ private fun TotalBalanceCard(
     }
     
     val totalUsd = summary?.totalUsd ?: balance?.totalEquity ?: 0.0
-    val pnlPeriod = summary?.pnlPeriod ?: 0.0
+    // Fallback chain: portfolioSummary → balance.weekPnl → stats.totalPnl → 0
+    val pnlPeriod = summary?.pnlPeriod ?: balance?.weekPnl ?: stats?.totalPnl ?: 0.0
     val pnlPeriodPct = summary?.pnlPeriodPct ?: 0.0
     val isProfitable = pnlPeriod >= 0
     
