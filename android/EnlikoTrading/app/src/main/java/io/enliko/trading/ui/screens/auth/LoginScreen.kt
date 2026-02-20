@@ -1,5 +1,6 @@
 package io.enliko.trading.ui.screens.auth
 
+import android.util.Log
 import androidx.compose.animation.*
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
@@ -57,6 +58,11 @@ fun LoginScreen(
     // 2FA state
     var telegramUsername by remember { mutableStateOf("") }
     var selectedTab by remember { mutableIntStateOf(0) } // 0 = Telegram, 1 = Email
+    
+    // Log screen display
+    LaunchedEffect(Unit) {
+        Log.d("LoginScreen", "LoginScreen displayed, isRegisterMode=$isRegisterMode")
+    }
     
     LaunchedEffect(uiState.isSuccess) {
         if (uiState.isSuccess) {
@@ -336,7 +342,10 @@ private fun TelegramLoginContent(
         Spacer(modifier = Modifier.height(24.dp))
         
         Button(
-            onClick = onLogin,
+            onClick = {
+                Log.d("LoginScreen", "Login button clicked! username='$telegramUsername'")
+                onLogin()
+            },
             modifier = Modifier
                 .fillMaxWidth()
                 .height(56.dp),

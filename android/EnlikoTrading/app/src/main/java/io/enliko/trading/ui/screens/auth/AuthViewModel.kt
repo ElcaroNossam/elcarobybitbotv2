@@ -220,8 +220,16 @@ class AuthViewModel @Inject constructor(
                     _uiState.value = AuthUiState(error = errorMsg)
                 }
             } catch (e: Exception) {
-                Log.e("AuthVM", "2FA exception: ${e.message}", e)
-                _uiState.value = AuthUiState(error = e.message ?: "Connection error")
+                Log.e("AuthVM", "2FA exception type: ${e::class.java.simpleName}")
+                Log.e("AuthVM", "2FA exception message: ${e.message}", e)
+                Log.e("AuthVM", "2FA exception cause: ${e.cause?.message ?: "no cause"}")
+                val errorMessage = when {
+                    e.message?.contains("Unable to resolve host") == true -> "No internet connection"
+                    e.message?.contains("Pin verification failed") == true -> "SSL certificate error. Try again."
+                    e.message?.contains("timeout") == true -> "Connection timeout"
+                    else -> e.message ?: "Connection error"
+                }
+                _uiState.value = AuthUiState(error = errorMessage)
             }
         }
     }
