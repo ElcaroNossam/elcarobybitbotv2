@@ -1,6 +1,6 @@
 0x211a5a4bfb4d86b3ceeb9081410513cf9502058c7503e8ea7b7126b604714f9e# Enliko Trading Platform - AI Coding Guidelines
 # =============================================
-# Версия: 3.66.0 | Обновлено: 19 февраля 2026
+# Версия: 3.67.0 | Обновлено: 20 февраля 2026
 # BlackRock-Level Deep Audit: PASSED ✅ (Feb 7, 2026) - FULL RE-AUDIT
 # Deep Audit #1 (Phase 7): ~30 bugs fixed incl. CRITICAL DCA nonlocal ✅ (Feb 10, 2026)
 # Deep Audit #2 (Phase 8): 11 HLAdapter resource leak fixes ✅ (Feb 11, 2026)
@@ -11,6 +11,9 @@
 # Full Trading Logic Audit (Phase 13): 2 bugs fixed — DCA Leg2 guard, PTP stale size ✅ (Feb 16, 2026)
 # iOS Build 116: Crash-safe PaymentService + localization fixes ✅ (Feb 19, 2026)
 # Telegram Bot Token: Updated to new bot @enliko_bot ✅ (Feb 19, 2026)
+# PRE-LAUNCH AUDIT (Phase 14): Android 2FA fix, SSL compatibility ✅ (Feb 20, 2026)
+# Android v2.0.1: Fixed 2FA Telegram login + SSL trust-all-certs for Debug ✅ (Feb 20, 2026)
+# iOS Build 122: TestFlight ready ✅ (Feb 20, 2026)
 # HyperLiquid Auto-Discovery: FULL SUPPORT ✅ (Feb 7, 2026)
 # HyperLiquid SPOT TRADING: FULL INTEGRATION ✅ (Feb 10, 2026) - ALL bot.py functions
 # API Settings BLOCK UI: COMPLETE ✅ (Feb 8, 2026)
@@ -92,12 +95,14 @@
 | Метрика | Значение |
 |---------|----------|
 | **Python файлов** | 325+ |
-| **Строк кода bot.py** | 32,368 |
+| **Строк кода bot.py** | 33,521 |
 | **Стратегий** | 7 (6 авто + 1 manual) |
 | **Языков локализации** | 15 |
-| **Ключей перевода** | 1,540+ |
+| **Ключей перевода** | 831+ |
 | **API endpoints** | 127+ |
 | **Миграций БД** | 24 |
+| **iOS Build** | 122 (TestFlight) |
+| **Android Version** | 2.0.1 (build 11) |
 | **Тестов** | 750+ |
 | **iOS Swift файлов** | 40+ |
 | **Android Kotlin файлов** | 30+ |
@@ -1380,6 +1385,25 @@ except Exception as e:
 ---
 
 # 🔧 RECENT FIXES (Январь-Февраль 2026)
+
+### ✅ PRE-LAUNCH AUDIT (Phase 14): Full Cross-Platform Audit (Feb 20, 2026)
+- **Scope:** Final audit of all 4 modules before production launch
+- **Results:**
+  | Module | Status | Details |
+  |--------|--------|---------|
+  | **Android** | ✅ BUILD SUCCESSFUL | v2.0.1 (build 11), 0 errors |
+  | **iOS** | ✅ BUILD SUCCESSFUL | Build 122, 20 warnings (non-critical) |
+  | **Backend** | ✅ NO ERRORS | bot.py, db.py, hl_adapter.py compiled |
+  | **Server** | ✅ HEALTHY | No errors in last 100 log lines |
+  | **API** | ✅ WORKING | /health, /auth/telegram, /payments/plans |
+  | **Translations** | ✅ 831 keys | EN/RU synced |
+- **Android 2FA Fix:**
+  - Fixed status check: `"denied"` → `"rejected"` (server returns "rejected")
+  - Added SSL trust-all-certs for Debug builds (fixes certificate errors)
+  - Added comprehensive logging in `AuthViewModel.kt`
+- **Files changed:** `AuthViewModel.kt`, `NetworkModule.kt`, `build.gradle.kts`
+- **Commits:** `fba7168`, `c7b6c5c`, `b06aa02`
+- **Download:** https://enliko.com/static/downloads/EnlikoTrading-v2.0.1-debug.apk
 
 ### ✅ FIX: Telegram Bot Token Updated (Feb 19, 2026)
 - **Изменение:** Обновлён токен Telegram бота на нового бота @enliko_bot
@@ -4370,4 +4394,8 @@ xcodebuild -project EnlikoTrading.xcodeproj \
 *iOS Build 116: Crash-safe PaymentService + localization fixes (Feb 19, 2026) ✅*
 *Telegram Bot: Token updated to bot ID 8422437868 (Feb 19, 2026) ✅*
 *Env Vars: TELEGRAM_TOKEN + TELEGRAM_BOT_TOKEN both set (bot.py uses first, oxapay_service uses second)*
+*PRE-LAUNCH AUDIT (Phase 14): Full cross-platform audit - Android 2FA fix, SSL compat (Feb 20, 2026) ✅*
+*Android v2.0.1: Fixed "denied" → "rejected" status check, trust-all-certs SSL for Debug builds*
+*iOS Build 122: TestFlight ready for launch (Feb 20, 2026) ✅*
+*Download: https://enliko.com/static/downloads/EnlikoTrading-v2.0.1-debug.apk*
 
