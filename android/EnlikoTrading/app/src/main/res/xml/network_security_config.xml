@@ -2,54 +2,33 @@
 <!--
     Network Security Configuration for Enliko Trading App
     
-    SECURITY FEATURES:
-    1. Certificate Pinning - Prevents MITM attacks
-    2. Cleartext traffic disabled - All HTTP blocked
-    3. TLS 1.2+ required
-    
-    NOTE: Update pin hashes when server certificates are rotated!
-    Current pins are SHA-256 of the server's public key.
-    
-    To generate pin:
-    echo | openssl s_client -servername enliko.com -connect enliko.com:443 2>/dev/null | openssl x509 -pubkey -noout | openssl pkey -pubin -outform der | openssl dgst -sha256 -binary | openssl enc -base64
+    SECURITY: TLS only, no cleartext traffic
+    Certificate pinning DISABLED for compatibility
 -->
 <network-security-config>
     
-    <!-- Base config: no cleartext allowed -->
+    <!-- Base config: no cleartext allowed, use system certificates -->
     <base-config cleartextTrafficPermitted="false">
         <trust-anchors>
             <certificates src="system" />
         </trust-anchors>
     </base-config>
     
-    <!-- Debug config: allow cleartext for local development -->
+    <!-- Debug config: allow user certificates for debugging -->
     <debug-overrides>
         <trust-anchors>
             <certificates src="user" />
+            <certificates src="system" />
         </trust-anchors>
     </debug-overrides>
     
-    <!-- Production domain: enliko.com with Cloudflare/Sectigo SSL -->
+    <!-- Production domain: enliko.com - NO PINNING for Cloudflare compatibility -->
     <domain-config cleartextTrafficPermitted="false">
         <domain includeSubdomains="true">enliko.com</domain>
         <trust-anchors>
             <certificates src="system" />
         </trust-anchors>
-        <!-- 
-            Certificate pinning for production
-            Server uses Cloudflare with Sectigo certificates
-            Pin 1: Current leaf certificate (Sectigo DV R36)
-            Pin 2: Sectigo DV R36 intermediate (backup)
-            
-            NOTE: Cloudflare may rotate certificates. If pinning fails,
-            regenerate pins using the command in the comment above.
-        -->
-        <pin-set expiration="2027-01-01">
-            <!-- Current enliko.com leaf certificate (Sectigo) -->
-            <pin digest="SHA-256">m3mtg0ra9UKFTxTAK+mqd6Jt42X+ikF6wyawnEKhMm8=</pin>
-            <!-- Sectigo USERTrust RSA Root CA (backup) -->
-            <pin digest="SHA-256">x4QzPSC810K5/cMjb05Qm4k3Bw5zBn4lTdO/nEW/Td4=</pin>
-        </pin-set>
+        <!-- Certificate pinning disabled - Cloudflare rotates certificates frequently -->
     </domain-config>
     
     <!-- Allow cleartext only for localhost in debug (Android emulator) -->
