@@ -23,6 +23,7 @@ import io.enliko.trading.data.models.ScreenerCoin
 import java.text.NumberFormat
 import java.util.Locale
 import io.enliko.trading.util.LocalStrings
+import io.enliko.trading.util.Strings
 
 /**
  * ScreenerScreen - Matching iOS ScreenerView.swift
@@ -41,7 +42,8 @@ enum class ScreenerSortBy {
 fun ScreenerScreen(
     onBack: () -> Unit = {},
     showBackButton: Boolean = false,
-    onCoinClick: (String) -> Unit = {}
+    onCoinClick: (String) -> Unit = {},
+    strings: Strings = LocalStrings.current
 ) {
     var isRefreshing by remember { mutableStateOf(false) }
     var searchQuery by remember { mutableStateOf("") }
@@ -91,11 +93,11 @@ fun ScreenerScreen(
     Scaffold(
         topBar = {
             TopAppBar(
-                title = { Text("Crypto Screener") },
+                title = { Text(strings.screener) },
                 navigationIcon = {
                     if (showBackButton) {
                         IconButton(onClick = onBack) {
-                            Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Back")
+                            Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = strings.back)
                         }
                     }
                 },
@@ -127,14 +129,14 @@ fun ScreenerScreen(
                     OutlinedTextField(
                         value = searchQuery,
                         onValueChange = { searchQuery = it },
-                        placeholder = { Text("Search coins...") },
+                        placeholder = { Text(strings.searchCoins) },
                         leadingIcon = {
                             Icon(Icons.Default.Search, contentDescription = null)
                         },
                         trailingIcon = {
                             if (searchQuery.isNotEmpty()) {
                                 IconButton(onClick = { searchQuery = "" }) {
-                                    Icon(Icons.Default.Clear, contentDescription = "Clear")
+                                    Icon(Icons.Default.Clear, contentDescription = strings.clear)
                                 }
                             }
                         },
@@ -159,7 +161,7 @@ fun ScreenerScreen(
                             FilterChip(
                                 selected = selectedFilter == "all",
                                 onClick = { selectedFilter = "all" },
-                                label = { Text("All") },
+                                label = { Text(strings.all) },
                                 colors = FilterChipDefaults.filterChipColors(
                                     selectedContainerColor = EnlikoPrimary,
                                     selectedLabelColor = Color.White
@@ -170,7 +172,7 @@ fun ScreenerScreen(
                             FilterChip(
                                 selected = selectedFilter == "gainers",
                                 onClick = { selectedFilter = "gainers" },
-                                label = { Text("📈 Gainers") },
+                                label = { Text("📈 " + strings.gainers) },
                                 colors = FilterChipDefaults.filterChipColors(
                                     selectedContainerColor = EnlikoGreen,
                                     selectedLabelColor = Color.White
@@ -181,7 +183,7 @@ fun ScreenerScreen(
                             FilterChip(
                                 selected = selectedFilter == "losers",
                                 onClick = { selectedFilter = "losers" },
-                                label = { Text("📉 Losers") },
+                                label = { Text("📉 " + strings.losers) },
                                 colors = FilterChipDefaults.filterChipColors(
                                     selectedContainerColor = EnlikoRed,
                                     selectedLabelColor = Color.White
@@ -192,7 +194,7 @@ fun ScreenerScreen(
                             FilterChip(
                                 selected = showDerivatives,
                                 onClick = { showDerivatives = !showDerivatives },
-                                label = { Text("🔮 Derivatives") }
+                                label = { Text("🔮 " + strings.derivatives) }
                             )
                         }
                     }

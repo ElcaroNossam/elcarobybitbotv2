@@ -41,10 +41,10 @@ fun RiskSettingsScreen(
     Scaffold(
         topBar = {
             TopAppBar(
-                title = { Text("Risk Settings") },
+                title = { Text(strings.riskSettings) },
                 navigationIcon = {
                     IconButton(onClick = onBack) {
-                        Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Back")
+                        Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = strings.back)
                     }
                 },
                 colors = TopAppBarDefaults.topAppBarColors(

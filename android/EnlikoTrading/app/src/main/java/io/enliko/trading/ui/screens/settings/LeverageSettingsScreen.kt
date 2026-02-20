@@ -34,10 +34,10 @@ fun LeverageSettingsScreen(
     Scaffold(
         topBar = {
             TopAppBar(
-                title = { Text("Leverage Settings") },
+                title = { Text(strings.leverageSettings) },
                 navigationIcon = {
                     IconButton(onClick = onBack) {
-                        Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Back")
+                        Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = strings.back)
                     }
                 },
                 colors = TopAppBarDefaults.topAppBarColors(

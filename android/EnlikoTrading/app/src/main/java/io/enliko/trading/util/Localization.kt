@@ -157,6 +157,7 @@ interface Strings {
     val testnet: String
     val mainnet: String
     val apiKeys: String
+    val clear: String
     val notifications: String
     val theme: String
     val darkTheme: String
@@ -392,6 +393,40 @@ interface Strings {
     val total: String
     val coin: String
 
+    // Settings Screens - Feb 2026
+    val saveApiKeys: String
+    val testConnection: String
+    val apiKeyLabel: String
+    val apiSecretLabel: String
+    val walletAddressLabel: String
+    val privateKeyLabel: String
+    val enterPrivateKey: String
+    val riskSettings: String
+    val saveRiskSettings: String
+    val leverageSettings: String
+    val saveLeverageSettings: String
+    val tradingSettingsTitle: String
+    val saveSettingsBtn: String
+    val exchangeSettings: String
+    val saveExchangeSettings: String
+    
+    // Screener Filters
+    val gainers: String
+    val losers: String
+    val derivatives: String
+    
+    // Copy Trading
+    val profile: String
+    val copyPercentage: String
+    val percentageOfTraderPosition: String
+    val maxPositionsLabel: String
+    val startCopying: String
+    
+    // Auth - Additional
+    val authCodeHint: String
+    val authEmailInvalid: String
+    val authNameHint: String
+
     /**
      * Operator to access strings by key for dynamic lookup
      * Falls back to key if not found
@@ -486,6 +521,7 @@ interface Strings {
         override val testnet = "Testnet"
         override val mainnet = "Mainnet"
         override val apiKeys = "API Keys"
+        override val clear = "Clear"
         override val notifications = "Notifications"
         override val theme = "Theme"
         override val darkTheme = "Dark"
@@ -712,6 +748,34 @@ interface Strings {
         override val qty = "Qty"
         override val total = "Total"
         override val coin = "Coin"
+        
+        // Settings Screens - Feb 2026
+        override val saveApiKeys = "Save API Keys"
+        override val testConnection = "Test Connection"
+        override val apiKeyLabel = "API Key"
+        override val apiSecretLabel = "API Secret"
+        override val walletAddressLabel = "Wallet Address"
+        override val privateKeyLabel = "Private Key"
+        override val enterPrivateKey = "Enter your private key"
+        override val riskSettings = "Risk Settings"
+        override val saveRiskSettings = "Save Risk Settings"
+        override val leverageSettings = "Leverage Settings"
+        override val saveLeverageSettings = "Save Leverage Settings"
+        override val tradingSettingsTitle = "Trading Settings"
+        override val saveSettingsBtn = "Save Settings"
+        override val exchangeSettings = "Exchange Settings"
+        override val saveExchangeSettings = "Save Exchange Settings"
+        override val gainers = "Gainers"
+        override val losers = "Losers"
+        override val derivatives = "Derivatives"
+        override val profile = "Profile"
+        override val copyPercentage = "Copy Percentage (%)"
+        override val percentageOfTraderPosition = "Percentage of trader's position size"
+        override val maxPositionsLabel = "Max Positions"
+        override val startCopying = "Start Copying"
+        override val authCodeHint = "Enter 6-digit code from email"
+        override val authEmailInvalid = "Invalid email format"
+        override val authNameHint = "Enter your full name"
     }
     
     object Russian : Strings {
@@ -784,6 +848,7 @@ interface Strings {
         override val testnet = "Тестнет"
         override val mainnet = "Мейннет"
         override val apiKeys = "API ключи"
+        override val clear = "Очистить"
         override val notifications = "Уведомления"
         override val theme = "Тема"
         override val darkTheme = "Тёмная"
@@ -1009,6 +1074,34 @@ interface Strings {
         override val qty = "Кол-во"
         override val total = "Итого"
         override val coin = "Монета"
+        
+        // Settings Screens - Feb 2026
+        override val saveApiKeys = "Сохранить API ключи"
+        override val testConnection = "Тест соединения"
+        override val apiKeyLabel = "API ключ"
+        override val apiSecretLabel = "API секрет"
+        override val walletAddressLabel = "Адрес кошелька"
+        override val privateKeyLabel = "Приватный ключ"
+        override val enterPrivateKey = "Введите приватный ключ"
+        override val riskSettings = "Настройки риска"
+        override val saveRiskSettings = "Сохранить риски"
+        override val leverageSettings = "Настройки плеча"
+        override val saveLeverageSettings = "Сохранить плечо"
+        override val tradingSettingsTitle = "Настройки торговли"
+        override val saveSettingsBtn = "Сохранить"
+        override val exchangeSettings = "Настройки биржи"
+        override val saveExchangeSettings = "Сохранить биржу"
+        override val gainers = "Растущие"
+        override val losers = "Падающие"
+        override val derivatives = "Деривативы"
+        override val profile = "Профиль"
+        override val copyPercentage = "Процент копирования (%)"
+        override val percentageOfTraderPosition = "Процент от размера позиции трейдера"
+        override val maxPositionsLabel = "Макс. позиций"
+        override val startCopying = "Начать копирование"
+        override val authCodeHint = "Введите 6-значный код из email"
+        override val authEmailInvalid = "Неверный формат email"
+        override val authNameHint = "Введите ваше полное имя"
     }
     
     object Ukrainian : Strings {
@@ -1081,6 +1174,7 @@ interface Strings {
         override val testnet = "Тестнет"
         override val mainnet = "Мейннет"
         override val apiKeys = "API ключі"
+        override val clear = "Очистити"
         override val notifications = "Сповіщення"
         override val theme = "Тема"
         override val darkTheme = "Темна"
@@ -1306,6 +1400,34 @@ interface Strings {
         override val qty = "Кільк."
         override val total = "Всього"
         override val coin = "Монета"
+        
+        // Settings Screens - Feb 2026
+        override val saveApiKeys = "Зберегти API ключі"
+        override val testConnection = "Тест з'єднання"
+        override val apiKeyLabel = "API ключ"
+        override val apiSecretLabel = "API секрет"
+        override val walletAddressLabel = "Адреса гаманця"
+        override val privateKeyLabel = "Приватний ключ"
+        override val enterPrivateKey = "Введіть приватний ключ"
+        override val riskSettings = "Налаштування ризику"
+        override val saveRiskSettings = "Зберегти ризики"
+        override val leverageSettings = "Налаштування плеча"
+        override val saveLeverageSettings = "Зберегти плече"
+        override val tradingSettingsTitle = "Налаштування торгівлі"
+        override val saveSettingsBtn = "Зберегти"
+        override val exchangeSettings = "Налаштування біржі"
+        override val saveExchangeSettings = "Зберегти біржу"
+        override val gainers = "Зростаючі"
+        override val losers = "Падаючі"
+        override val derivatives = "Деривативи"
+        override val profile = "Профіль"
+        override val copyPercentage = "Процент копіювання (%)"
+        override val percentageOfTraderPosition = "Процент від розміру позиції трейдера"
+        override val maxPositionsLabel = "Макс. позицій"
+        override val startCopying = "Почати копіювання"
+        override val authCodeHint = "Введіть 6-значний код з email"
+        override val authEmailInvalid = "Невірний формат email"
+        override val authNameHint = "Введіть ваше повне ім'я"
     }
     
     object German : Strings {
@@ -1378,6 +1500,7 @@ interface Strings {
         override val testnet = "Testnet"
         override val mainnet = "Mainnet"
         override val apiKeys = "API-Schlüssel"
+        override val clear = "Löschen"
         override val notifications = "Benachrichtigungen"
         override val theme = "Theme"
         override val darkTheme = "Dunkel"
@@ -1604,6 +1727,34 @@ interface Strings {
         override val qty = "Qty"
         override val total = "Total"
         override val coin = "Coin"
+        
+        // Settings Screens - Feb 2026
+        override val saveApiKeys = "API-Schlüssel speichern"
+        override val testConnection = "Verbindung testen"
+        override val apiKeyLabel = "API-Schlüssel"
+        override val apiSecretLabel = "API-Geheimnis"
+        override val walletAddressLabel = "Wallet-Adresse"
+        override val privateKeyLabel = "Privater Schlüssel"
+        override val enterPrivateKey = "Privaten Schlüssel eingeben"
+        override val riskSettings = "Risikoeinstellungen"
+        override val saveRiskSettings = "Risiko speichern"
+        override val leverageSettings = "Hebeleinstellungen"
+        override val saveLeverageSettings = "Hebel speichern"
+        override val tradingSettingsTitle = "Handelseinstellungen"
+        override val saveSettingsBtn = "Speichern"
+        override val exchangeSettings = "Börseneinstellungen"
+        override val saveExchangeSettings = "Börse speichern"
+        override val gainers = "Gewinner"
+        override val losers = "Verlierer"
+        override val derivatives = "Derivate"
+        override val profile = "Profil"
+        override val copyPercentage = "Kopierprozentsatz (%)"
+        override val percentageOfTraderPosition = "Prozent der Händlerposition"
+        override val maxPositionsLabel = "Max. Positionen"
+        override val startCopying = "Kopieren starten"
+        override val authCodeHint = "6-stelligen Code aus E-Mail eingeben"
+        override val authEmailInvalid = "Ungültiges E-Mail-Format"
+        override val authNameHint = "Vollständigen Namen eingeben"
     }
     
     object Spanish : Strings {
@@ -1676,6 +1827,7 @@ interface Strings {
         override val testnet = "Testnet"
         override val mainnet = "Mainnet"
         override val apiKeys = "API Keys"
+        override val clear = "Borrar"
         override val notifications = "Notificaciones"
         override val theme = "Tema"
         override val darkTheme = "Oscuro"
@@ -1899,6 +2051,34 @@ interface Strings {
         override val qty = "Qty"
         override val total = "Total"
         override val coin = "Coin"
+        
+        // Settings Screens - Feb 2026
+        override val saveApiKeys = "Guardar claves API"
+        override val testConnection = "Probar conexión"
+        override val apiKeyLabel = "Clave API"
+        override val apiSecretLabel = "Secreto API"
+        override val walletAddressLabel = "Dirección de wallet"
+        override val privateKeyLabel = "Clave privada"
+        override val enterPrivateKey = "Ingresa tu clave privada"
+        override val riskSettings = "Ajustes de riesgo"
+        override val saveRiskSettings = "Guardar riesgo"
+        override val leverageSettings = "Ajustes de apalancamiento"
+        override val saveLeverageSettings = "Guardar apalancamiento"
+        override val tradingSettingsTitle = "Ajustes de trading"
+        override val saveSettingsBtn = "Guardar"
+        override val exchangeSettings = "Ajustes de exchange"
+        override val saveExchangeSettings = "Guardar exchange"
+        override val gainers = "Ganadores"
+        override val losers = "Perdedores"
+        override val derivatives = "Derivados"
+        override val profile = "Perfil"
+        override val copyPercentage = "Porcentaje de copia (%)"
+        override val percentageOfTraderPosition = "Porcentaje del tamaño de posición del trader"
+        override val maxPositionsLabel = "Máx. posiciones"
+        override val startCopying = "Comenzar a copiar"
+        override val authCodeHint = "Ingresa código de 6 dígitos del email"
+        override val authEmailInvalid = "Formato de email inválido"
+        override val authNameHint = "Ingresa tu nombre completo"
     }
     
     object French : Strings {
@@ -1971,6 +2151,7 @@ interface Strings {
         override val testnet = "Testnet"
         override val mainnet = "Mainnet"
         override val apiKeys = "Clés API"
+        override val clear = "Effacer"
         override val notifications = "Notifications"
         override val theme = "Thème"
         override val darkTheme = "Sombre"
@@ -2194,6 +2375,34 @@ interface Strings {
         override val qty = "Qty"
         override val total = "Total"
         override val coin = "Coin"
+        
+        // Settings Screens - Feb 2026
+        override val saveApiKeys = "Enregistrer les clés API"
+        override val testConnection = "Tester la connexion"
+        override val apiKeyLabel = "Clé API"
+        override val apiSecretLabel = "Secret API"
+        override val walletAddressLabel = "Adresse du portefeuille"
+        override val privateKeyLabel = "Clé privée"
+        override val enterPrivateKey = "Entrez votre clé privée"
+        override val riskSettings = "Paramètres de risque"
+        override val saveRiskSettings = "Enregistrer le risque"
+        override val leverageSettings = "Paramètres de levier"
+        override val saveLeverageSettings = "Enregistrer le levier"
+        override val tradingSettingsTitle = "Paramètres de trading"
+        override val saveSettingsBtn = "Enregistrer"
+        override val exchangeSettings = "Paramètres d'exchange"
+        override val saveExchangeSettings = "Enregistrer l'exchange"
+        override val gainers = "Gagnants"
+        override val losers = "Perdants"
+        override val derivatives = "Dérivés"
+        override val profile = "Profil"
+        override val copyPercentage = "Pourcentage de copie (%)"
+        override val percentageOfTraderPosition = "Pourcentage de la taille de position du trader"
+        override val maxPositionsLabel = "Max. positions"
+        override val startCopying = "Commencer à copier"
+        override val authCodeHint = "Entrez le code à 6 chiffres de l'email"
+        override val authEmailInvalid = "Format d'email invalide"
+        override val authNameHint = "Entrez votre nom complet"
     }
     
     object Italian : Strings {
@@ -2266,6 +2475,7 @@ interface Strings {
         override val testnet = "Testnet"
         override val mainnet = "Mainnet"
         override val apiKeys = "Chiavi API"
+        override val clear = "Cancella"
         override val notifications = "Notifiche"
         override val theme = "Tema"
         override val darkTheme = "Scuro"
@@ -2489,6 +2699,34 @@ interface Strings {
         override val qty = "Qty"
         override val total = "Total"
         override val coin = "Coin"
+        
+        // Settings Screens - Feb 2026
+        override val saveApiKeys = "Salva chiavi API"
+        override val testConnection = "Test connessione"
+        override val apiKeyLabel = "Chiave API"
+        override val apiSecretLabel = "Segreto API"
+        override val walletAddressLabel = "Indirizzo portafoglio"
+        override val privateKeyLabel = "Chiave privata"
+        override val enterPrivateKey = "Inserisci la chiave privata"
+        override val riskSettings = "Impostazioni rischio"
+        override val saveRiskSettings = "Salva rischio"
+        override val leverageSettings = "Impostazioni leva"
+        override val saveLeverageSettings = "Salva leva"
+        override val tradingSettingsTitle = "Impostazioni trading"
+        override val saveSettingsBtn = "Salva"
+        override val exchangeSettings = "Impostazioni exchange"
+        override val saveExchangeSettings = "Salva exchange"
+        override val gainers = "Vincitori"
+        override val losers = "Perdenti"
+        override val derivatives = "Derivati"
+        override val profile = "Profilo"
+        override val copyPercentage = "Percentuale copia (%)"
+        override val percentageOfTraderPosition = "Percentuale della dimensione posizione del trader"
+        override val maxPositionsLabel = "Max. posizioni"
+        override val startCopying = "Inizia a copiare"
+        override val authCodeHint = "Inserisci codice a 6 cifre dall'email"
+        override val authEmailInvalid = "Formato email non valido"
+        override val authNameHint = "Inserisci il tuo nome completo"
     }
     
     object Japanese : Strings {
@@ -2561,6 +2799,7 @@ interface Strings {
         override val testnet = "テストネット"
         override val mainnet = "メインネット"
         override val apiKeys = "APIキー"
+        override val clear = "クリア"
         override val notifications = "通知"
         override val theme = "テーマ"
         override val darkTheme = "ダーク"
@@ -2784,6 +3023,34 @@ interface Strings {
         override val qty = "Qty"
         override val total = "Total"
         override val coin = "Coin"
+        
+        // Settings Screens - Feb 2026
+        override val saveApiKeys = "APIキーを保存"
+        override val testConnection = "接続テスト"
+        override val apiKeyLabel = "APIキー"
+        override val apiSecretLabel = "APIシークレット"
+        override val walletAddressLabel = "ウォレットアドレス"
+        override val privateKeyLabel = "秘密鍵"
+        override val enterPrivateKey = "秘密鍵を入力"
+        override val riskSettings = "リスク設定"
+        override val saveRiskSettings = "リスクを保存"
+        override val leverageSettings = "レバレッジ設定"
+        override val saveLeverageSettings = "レバレッジを保存"
+        override val tradingSettingsTitle = "取引設定"
+        override val saveSettingsBtn = "保存"
+        override val exchangeSettings = "取引所設定"
+        override val saveExchangeSettings = "取引所を保存"
+        override val gainers = "上昇銘柄"
+        override val losers = "下落銘柄"
+        override val derivatives = "デリバティブ"
+        override val profile = "プロフィール"
+        override val copyPercentage = "コピー率 (%)"
+        override val percentageOfTraderPosition = "トレーダーのポジションサイズの割合"
+        override val maxPositionsLabel = "最大ポジション"
+        override val startCopying = "コピー開始"
+        override val authCodeHint = "メールの6桁コードを入力"
+        override val authEmailInvalid = "無効なメール形式"
+        override val authNameHint = "フルネームを入力"
     }
     
     object Chinese : Strings {
@@ -2856,6 +3123,7 @@ interface Strings {
         override val testnet = "测试网"
         override val mainnet = "主网"
         override val apiKeys = "API密钥"
+        override val clear = "清除"
         override val notifications = "通知"
         override val theme = "主题"
         override val darkTheme = "深色"
@@ -3079,6 +3347,34 @@ interface Strings {
         override val qty = "Qty"
         override val total = "Total"
         override val coin = "Coin"
+        
+        // Settings Screens - Feb 2026
+        override val saveApiKeys = "保存API密钥"
+        override val testConnection = "测试连接"
+        override val apiKeyLabel = "API密钥"
+        override val apiSecretLabel = "API秘密"
+        override val walletAddressLabel = "钱包地址"
+        override val privateKeyLabel = "私钥"
+        override val enterPrivateKey = "输入私钥"
+        override val riskSettings = "风险设置"
+        override val saveRiskSettings = "保存风险"
+        override val leverageSettings = "杠杆设置"
+        override val saveLeverageSettings = "保存杠杆"
+        override val tradingSettingsTitle = "交易设置"
+        override val saveSettingsBtn = "保存"
+        override val exchangeSettings = "交易所设置"
+        override val saveExchangeSettings = "保存交易所"
+        override val gainers = "上涨"
+        override val losers = "下跌"
+        override val derivatives = "衍生品"
+        override val profile = "个人资料"
+        override val copyPercentage = "复制比例 (%)"
+        override val percentageOfTraderPosition = "交易员仓位大小的百分比"
+        override val maxPositionsLabel = "最大仓位"
+        override val startCopying = "开始复制"
+        override val authCodeHint = "输入邮件中的6位验证码"
+        override val authEmailInvalid = "邮箱格式无效"
+        override val authNameHint = "输入您的全名"
     }
     
     object Arabic : Strings {
@@ -3151,6 +3447,7 @@ interface Strings {
         override val testnet = "شبكة الاختبار"
         override val mainnet = "الشبكة الرئيسية"
         override val apiKeys = "مفاتيح API"
+        override val clear = "مسح"
         override val notifications = "الإشعارات"
         override val theme = "المظهر"
         override val darkTheme = "داكن"
@@ -3374,6 +3671,34 @@ interface Strings {
         override val qty = "Qty"
         override val total = "Total"
         override val coin = "Coin"
+        
+        // Settings Screens - Feb 2026
+        override val saveApiKeys = "حفظ مفاتيح API"
+        override val testConnection = "اختبار الاتصال"
+        override val apiKeyLabel = "مفتاح API"
+        override val apiSecretLabel = "سر API"
+        override val walletAddressLabel = "عنوان المحفظة"
+        override val privateKeyLabel = "المفتاح الخاص"
+        override val enterPrivateKey = "أدخل المفتاح الخاص"
+        override val riskSettings = "إعدادات المخاطر"
+        override val saveRiskSettings = "حفظ المخاطر"
+        override val leverageSettings = "إعدادات الرافعة"
+        override val saveLeverageSettings = "حفظ الرافعة"
+        override val tradingSettingsTitle = "إعدادات التداول"
+        override val saveSettingsBtn = "حفظ"
+        override val exchangeSettings = "إعدادات البورصة"
+        override val saveExchangeSettings = "حفظ البورصة"
+        override val gainers = "الرابحون"
+        override val losers = "الخاسرون"
+        override val derivatives = "المشتقات"
+        override val profile = "الملف الشخصي"
+        override val copyPercentage = "نسبة النسخ (%)"
+        override val percentageOfTraderPosition = "نسبة من حجم مركز المتداول"
+        override val maxPositionsLabel = "أقصى عدد مراكز"
+        override val startCopying = "بدء النسخ"
+        override val authCodeHint = "أدخل الرمز المكون من 6 أرقام"
+        override val authEmailInvalid = "تنسيق بريد إلكتروني غير صالح"
+        override val authNameHint = "أدخل اسمك الكامل"
     }
     
     object Hebrew : Strings {
@@ -3446,6 +3771,7 @@ interface Strings {
         override val testnet = "טסטנט"
         override val mainnet = "מיינט"
         override val apiKeys = "מפתחות API"
+        override val clear = "נקה"
         override val notifications = "התראות"
         override val theme = "ערכת נושא"
         override val darkTheme = "כהה"
@@ -3669,6 +3995,34 @@ interface Strings {
         override val qty = "Qty"
         override val total = "Total"
         override val coin = "Coin"
+        
+        // Settings Screens - Feb 2026
+        override val saveApiKeys = "שמור מפתחות API"
+        override val testConnection = "בדוק חיבור"
+        override val apiKeyLabel = "מפתח API"
+        override val apiSecretLabel = "סוד API"
+        override val walletAddressLabel = "כתובת ארנק"
+        override val privateKeyLabel = "מפתח פרטי"
+        override val enterPrivateKey = "הכנס מפתח פרטי"
+        override val riskSettings = "הגדרות סיכון"
+        override val saveRiskSettings = "שמור סיכון"
+        override val leverageSettings = "הגדרות מינוף"
+        override val saveLeverageSettings = "שמור מינוף"
+        override val tradingSettingsTitle = "הגדרות מסחר"
+        override val saveSettingsBtn = "שמור"
+        override val exchangeSettings = "הגדרות בורסה"
+        override val saveExchangeSettings = "שמור בורסה"
+        override val gainers = "עולים"
+        override val losers = "יורדים"
+        override val derivatives = "נגזרים"
+        override val profile = "פרופיל"
+        override val copyPercentage = "אחוז העתקה (%)"
+        override val percentageOfTraderPosition = "אחוז מגודל פוזיציה של הסוחר"
+        override val maxPositionsLabel = "מקסימום פוזיציות"
+        override val startCopying = "התחל להעתיק"
+        override val authCodeHint = "הכנס קוד בן 6 ספרות מהאימייל"
+        override val authEmailInvalid = "פורמט אימייל לא תקין"
+        override val authNameHint = "הכנס שמך המלא"
     }
     
     object Polish : Strings {
@@ -3741,6 +4095,7 @@ interface Strings {
         override val testnet = "Testnet"
         override val mainnet = "Mainnet"
         override val apiKeys = "Klucze API"
+        override val clear = "Wyczyść"
         override val notifications = "Powiadomienia"
         override val theme = "Motyw"
         override val darkTheme = "Ciemny"
@@ -3964,6 +4319,34 @@ interface Strings {
         override val qty = "Qty"
         override val total = "Total"
         override val coin = "Coin"
+        
+        // Settings Screens - Feb 2026
+        override val saveApiKeys = "Zapisz klucze API"
+        override val testConnection = "Test po\u0142\u0105czenia"
+        override val apiKeyLabel = "Klucz API"
+        override val apiSecretLabel = "Sekret API"
+        override val walletAddressLabel = "Adres portfela"
+        override val privateKeyLabel = "Klucz prywatny"
+        override val enterPrivateKey = "Wprowad\u017a klucz prywatny"
+        override val riskSettings = "Ustawienia ryzyka"
+        override val saveRiskSettings = "Zapisz ryzyko"
+        override val leverageSettings = "Ustawienia d\u017awigni"
+        override val saveLeverageSettings = "Zapisz d\u017awigni\u0119"
+        override val tradingSettingsTitle = "Ustawienia handlu"
+        override val saveSettingsBtn = "Zapisz"
+        override val exchangeSettings = "Ustawienia gie\u0142dy"
+        override val saveExchangeSettings = "Zapisz gie\u0142d\u0119"
+        override val gainers = "Rosn\u0105ce"
+        override val losers = "Spadaj\u0105ce"
+        override val derivatives = "Derywaty"
+        override val profile = "Profil"
+        override val copyPercentage = "Procent kopiowania (%)"
+        override val percentageOfTraderPosition = "Procent wielko\u015bci pozycji tradera"
+        override val maxPositionsLabel = "Maks. pozycji"
+        override val startCopying = "Rozpocznij kopiowanie"
+        override val authCodeHint = "Wprowad\u017a 6-cyfrowy kod z emaila"
+        override val authEmailInvalid = "Nieprawid\u0142owy format email"
+        override val authNameHint = "Wprowad\u017a pe\u0142ne imi\u0119"
     }
     
     object Czech : Strings {
@@ -4036,6 +4419,7 @@ interface Strings {
         override val testnet = "Testnet"
         override val mainnet = "Mainnet"
         override val apiKeys = "API klíče"
+        override val clear = "Smazat"
         override val notifications = "Oznámení"
         override val theme = "Téma"
         override val darkTheme = "Tmavé"
@@ -4259,6 +4643,34 @@ interface Strings {
         override val qty = "Qty"
         override val total = "Total"
         override val coin = "Coin"
+        
+        // Settings Screens - Feb 2026
+        override val saveApiKeys = "Ulo\u017eit API kl\u00ed\u010de"
+        override val testConnection = "Test p\u0159ipojen\u00ed"
+        override val apiKeyLabel = "API kl\u00ed\u010d"
+        override val apiSecretLabel = "API tajemstv\u00ed"
+        override val walletAddressLabel = "Adresa pen\u011b\u017eenky"
+        override val privateKeyLabel = "Soukrom\u00fd kl\u00ed\u010d"
+        override val enterPrivateKey = "Zadejte soukrom\u00fd kl\u00ed\u010d"
+        override val riskSettings = "Nastaven\u00ed rizika"
+        override val saveRiskSettings = "Ulo\u017eit riziko"
+        override val leverageSettings = "Nastaven\u00ed p\u00e1ky"
+        override val saveLeverageSettings = "Ulo\u017eit p\u00e1ku"
+        override val tradingSettingsTitle = "Nastaven\u00ed obchodov\u00e1n\u00ed"
+        override val saveSettingsBtn = "Ulo\u017eit"
+        override val exchangeSettings = "Nastaven\u00ed burzy"
+        override val saveExchangeSettings = "Ulo\u017eit burzu"
+        override val gainers = "Rostouc\u00ed"
+        override val losers = "Klesaj\u00edc\u00ed"
+        override val derivatives = "Deriv\u00e1ty"
+        override val profile = "Profil"
+        override val copyPercentage = "Procento kop\u00edrov\u00e1n\u00ed (%)"
+        override val percentageOfTraderPosition = "Procento velikosti pozice tradera"
+        override val maxPositionsLabel = "Max. pozic"
+        override val startCopying = "Za\u010d\u00edt kop\u00edrovat"
+        override val authCodeHint = "Zadejte 6m\u00edstn\u00fd k\u00f3d z emailu"
+        override val authEmailInvalid = "Neplatn\u00fd form\u00e1t emailu"
+        override val authNameHint = "Zadejte cel\u00e9 jm\u00e9no"
     }
     
     object Lithuanian : Strings {
@@ -4331,6 +4743,7 @@ interface Strings {
         override val testnet = "Testnet"
         override val mainnet = "Mainnet"
         override val apiKeys = "API raktai"
+        override val clear = "Išvalyti"
         override val notifications = "Pranešimai"
         override val theme = "Tema"
         override val darkTheme = "Tamsi"
@@ -4554,6 +4967,34 @@ interface Strings {
         override val qty = "Qty"
         override val total = "Total"
         override val coin = "Coin"
+        
+        // Settings Screens - Feb 2026
+        override val saveApiKeys = "I\u0161saugoti API raktus"
+        override val testConnection = "Tikrinti ry\u0161\u012f"
+        override val apiKeyLabel = "API raktas"
+        override val apiSecretLabel = "API paslaptis"
+        override val walletAddressLabel = "Pinigin\u0117s adresas"
+        override val privateKeyLabel = "Privatus raktas"
+        override val enterPrivateKey = "\u012eveskite privat\u0173 rakt\u0105"
+        override val riskSettings = "Rizikos nustatymai"
+        override val saveRiskSettings = "I\u0161saugoti rizik\u0105"
+        override val leverageSettings = "Sverto nustatymai"
+        override val saveLeverageSettings = "I\u0161saugoti svert\u0105"
+        override val tradingSettingsTitle = "Prekybos nustatymai"
+        override val saveSettingsBtn = "I\u0161saugoti"
+        override val exchangeSettings = "Bir\u017eos nustatymai"
+        override val saveExchangeSettings = "I\u0161saugoti bir\u017e\u0105"
+        override val gainers = "Augantys"
+        override val losers = "Krintantys"
+        override val derivatives = "I\u0161vestiniai"
+        override val profile = "Profilis"
+        override val copyPercentage = "Kopijavimo procentas (%)"
+        override val percentageOfTraderPosition = "Prekiautojo pozicijos dyd\u017eio procentas"
+        override val maxPositionsLabel = "Maks. pozicij\u0173"
+        override val startCopying = "Prad\u0117ti kopijuoti"
+        override val authCodeHint = "\u012eveskite 6 skaitmen\u0173 kod\u0105 i\u0161 el. pa\u0161to"
+        override val authEmailInvalid = "Neteisingas el. pa\u0161to formatas"
+        override val authNameHint = "\u012eveskite piln\u0105 vard\u0105"
     }
     
     object Albanian : Strings {
@@ -4626,6 +5067,7 @@ interface Strings {
         override val testnet = "Testnet"
         override val mainnet = "Mainnet"
         override val apiKeys = "Çelësat API"
+        override val clear = "Pastro"
         override val notifications = "Njoftimet"
         override val theme = "Tema"
         override val darkTheme = "E errët"
@@ -4849,6 +5291,34 @@ interface Strings {
         override val qty = "Qty"
         override val total = "Total"
         override val coin = "Coin"
+        
+        // Settings Screens - Feb 2026
+        override val saveApiKeys = "Ruaj \u00e7el\u00ebsat API"
+        override val testConnection = "Testo lidhjen"
+        override val apiKeyLabel = "\u00c7el\u00ebsi API"
+        override val apiSecretLabel = "Sekreti API"
+        override val walletAddressLabel = "Adresa e portofol-it"
+        override val privateKeyLabel = "\u00c7el\u00ebsi privat"
+        override val enterPrivateKey = "Fut \u00e7el\u00ebsin privat"
+        override val riskSettings = "Cil\u00ebsimet e rrezikut"
+        override val saveRiskSettings = "Ruaj rrezikun"
+        override val leverageSettings = "Cil\u00ebsimet e lev\u00ebs"
+        override val saveLeverageSettings = "Ruaj lev\u00ebn"
+        override val tradingSettingsTitle = "Cil\u00ebsimet e tregtis\u00eb"
+        override val saveSettingsBtn = "Ruaj"
+        override val exchangeSettings = "Cil\u00ebsimet e burs\u00ebs"
+        override val saveExchangeSettings = "Ruaj burs\u00ebn"
+        override val gainers = "Fituesit"
+        override val losers = "Humb\u00ebsit"
+        override val derivatives = "Derivat\u00ebt"
+        override val profile = "Profili"
+        override val copyPercentage = "P\u00ebrqindja e kopjimit (%)"
+        override val percentageOfTraderPosition = "P\u00ebrqindja e madh\u00ebsis\u00eb s\u00eb pozicionit t\u00eb trader-it"
+        override val maxPositionsLabel = "Maks. pozicione"
+        override val startCopying = "Fillo kopjimin"
+        override val authCodeHint = "Fut kodin 6-shifror nga emaili"
+        override val authEmailInvalid = "Formati i emailit i pavlefsh\u00ebm"
+        override val authNameHint = "Fut emrin e plot\u00eb"
     }
 }
 

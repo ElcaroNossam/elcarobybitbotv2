@@ -53,10 +53,10 @@ fun ApiKeysScreen(
     Scaffold(
         topBar = {
             TopAppBar(
-                title = { Text("API Keys") },
+                title = { Text(strings.apiKeys) },
                 navigationIcon = {
                     IconButton(onClick = onBack) {
-                        Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Back")
+                        Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = strings.back)
                     }
                 },
                 colors = TopAppBarDefaults.topAppBarColors(
@@ -357,7 +357,7 @@ fun ApiKeysScreen(
                             strokeWidth = 2.dp
                         )
                     } else {
-                        Text("Save API Keys", fontWeight = FontWeight.SemiBold)
+                        Text(strings.saveApiKeys, fontWeight = FontWeight.SemiBold)
                     }
                 }
                 
@@ -386,7 +386,7 @@ fun ApiKeysScreen(
                             modifier = Modifier.size(20.dp)
                         )
                         Spacer(modifier = Modifier.width(8.dp))
-                        Text("Test Connection")
+                        Text(strings.testConnection)
                     }
                 }
                 

@@ -24,6 +24,8 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import io.enliko.trading.ui.theme.*
 import io.enliko.trading.util.AppLanguage
+import io.enliko.trading.util.LocalStrings
+import io.enliko.trading.util.Strings
 
 /**
  * LanguageSettingsScreen - Matching iOS LanguageSettingsView.swift
@@ -35,15 +37,16 @@ import io.enliko.trading.util.AppLanguage
 fun LanguageSettingsScreen(
     currentLanguage: AppLanguage,
     onLanguageSelect: (AppLanguage) -> Unit,
-    onBack: () -> Unit
+    onBack: () -> Unit,
+    strings: Strings = LocalStrings.current
 ) {
     Scaffold(
         topBar = {
             TopAppBar(
-                title = { Text("Language") },
+                title = { Text(strings.language) },
                 navigationIcon = {
                     IconButton(onClick = onBack) {
-                        Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Back")
+                        Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = strings.back)
                     }
                 },
                 colors = TopAppBarDefaults.topAppBarColors(

@@ -59,10 +59,10 @@ fun TradingSettingsScreen(
     Scaffold(
         topBar = {
             TopAppBar(
-                title = { Text("Trading Settings") },
+                title = { Text(strings.tradingSettingsTitle) },
                 navigationIcon = {
                     IconButton(onClick = onBack) {
-                        Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Back")
+                        Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = strings.back)
                     }
                 },
                 colors = TopAppBarDefaults.topAppBarColors(

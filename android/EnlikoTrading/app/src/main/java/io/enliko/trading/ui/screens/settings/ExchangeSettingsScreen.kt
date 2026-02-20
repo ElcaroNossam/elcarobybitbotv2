@@ -40,10 +40,10 @@ fun ExchangeSettingsScreen(
     Scaffold(
         topBar = {
             TopAppBar(
-                title = { Text("Exchange Settings") },
+                title = { Text(strings.exchangeSettings) },
                 navigationIcon = {
                     IconButton(onClick = onBack) {
-                        Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Back")
+                        Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = strings.back)
                     }
                 },
                 colors = TopAppBarDefaults.topAppBarColors(
