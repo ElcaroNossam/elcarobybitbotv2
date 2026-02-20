@@ -1370,6 +1370,9 @@ class LocalizationManager: ObservableObject {
         "auth_login_button": "Войти",
         "auth_register_button": "Зарегистрироваться",
         "auth_register_subtitle": "Создать новый аккаунт",
+        "auth_email_invalid": "Введите корректный email",
+        "auth_name_hint": "Необязательно, для персонализации",
+        "auth_code_hint": "Проверьте email для получения кода",
         
         // Debug
         "debug_dev_mode": "Режим разработки",
