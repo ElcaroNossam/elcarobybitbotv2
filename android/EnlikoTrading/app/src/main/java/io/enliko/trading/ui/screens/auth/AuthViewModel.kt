@@ -223,11 +223,18 @@ class AuthViewModel @Inject constructor(
                 Log.e("AuthVM", "2FA exception type: ${e::class.java.simpleName}")
                 Log.e("AuthVM", "2FA exception message: ${e.message}", e)
                 Log.e("AuthVM", "2FA exception cause: ${e.cause?.message ?: "no cause"}")
+                Log.e("AuthVM", "2FA full stacktrace:", e)
                 val errorMessage = when {
-                    e.message?.contains("Unable to resolve host") == true -> "No internet connection"
-                    e.message?.contains("Pin verification failed") == true -> "SSL certificate error. Try again."
-                    e.message?.contains("timeout") == true -> "Connection timeout"
-                    else -> e.message ?: "Connection error"
+                    e.message?.contains("Unable to resolve host") == true -> "No internet connection. Check WiFi/Data."
+                    e.message?.contains("Pin verification failed") == true -> "SSL error. Update app or check date/time."
+                    e.message?.contains("SSL") == true -> "SSL connection error. Check date/time settings."
+                    e.message?.contains("CLEARTEXT") == true -> "Network security error."
+                    e.message?.contains("timeout") == true -> "Connection timeout. Try again."
+                    e.message?.contains("Connection refused") == true -> "Server unavailable. Try again later."
+                    e.message?.contains("Network is unreachable") == true -> "No network. Enable WiFi or mobile data."
+                    e.message?.contains("Certificate") == true -> "Certificate error. Update app."
+                    e::class.java.simpleName.contains("SSL") -> "SSL error: ${e::class.java.simpleName}"
+                    else -> "Error: ${e.message ?: e::class.java.simpleName}"
                 }
                 _uiState.value = AuthUiState(error = errorMessage)
             }

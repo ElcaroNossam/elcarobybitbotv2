@@ -17,14 +17,21 @@ import io.enliko.trading.data.websocket.WebSocketService
 import io.enliko.trading.services.ActivityService
 import io.enliko.trading.services.SpotService
 import kotlinx.serialization.json.Json
+import okhttp3.ConnectionSpec
 import okhttp3.Interceptor
 import okhttp3.MediaType.Companion.toMediaType
 import okhttp3.OkHttpClient
+import okhttp3.TlsVersion
 import okhttp3.logging.HttpLoggingInterceptor
 import retrofit2.Retrofit
 import retrofit2.converter.kotlinx.serialization.asConverterFactory
+import java.security.SecureRandom
+import java.security.cert.X509Certificate
 import java.util.concurrent.TimeUnit
 import javax.inject.Singleton
+import javax.net.ssl.SSLContext
+import javax.net.ssl.TrustManager
+import javax.net.ssl.X509TrustManager
 
 @Module
 @InstallIn(SingletonComponent::class)
@@ -73,14 +80,40 @@ object NetworkModule {
             }
         }
 
-        return OkHttpClient.Builder()
+        // Modern TLS configuration for better compatibility
+        val modernTls = ConnectionSpec.Builder(ConnectionSpec.MODERN_TLS)
+            .tlsVersions(TlsVersion.TLS_1_2, TlsVersion.TLS_1_3)
+            .build()
+
+        val builder = OkHttpClient.Builder()
             .addInterceptor(authInterceptor)
             .addInterceptor(loggingInterceptor)
+            .connectionSpecs(listOf(modernTls, ConnectionSpec.CLEARTEXT))
             .connectTimeout(30, TimeUnit.SECONDS)
             .readTimeout(30, TimeUnit.SECONDS)
             .writeTimeout(30, TimeUnit.SECONDS)
             .retryOnConnectionFailure(true)
-            .build()
+
+        // For DEBUG builds only: trust all certificates to bypass SSL issues
+        // This helps diagnose SSL problems on devices with outdated CA stores
+        if (BuildConfig.DEBUG) {
+            try {
+                val trustAllCerts = arrayOf<TrustManager>(object : X509TrustManager {
+                    override fun checkClientTrusted(chain: Array<X509Certificate>, authType: String) {}
+                    override fun checkServerTrusted(chain: Array<X509Certificate>, authType: String) {}
+                    override fun getAcceptedIssuers(): Array<X509Certificate> = arrayOf()
+                })
+                val sslContext = SSLContext.getInstance("TLS")
+                sslContext.init(null, trustAllCerts, SecureRandom())
+                builder.sslSocketFactory(sslContext.socketFactory, trustAllCerts[0] as X509TrustManager)
+                builder.hostnameVerifier { _, _ -> true }
+            } catch (e: Exception) {
+                // If SSL bypass fails, continue with default SSL
+                android.util.Log.w("NetworkModule", "Failed to configure debug SSL: ${e.message}")
+            }
+        }
+
+        return builder.build()
     }
 
     @Provides
