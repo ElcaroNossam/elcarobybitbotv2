@@ -597,12 +597,29 @@ data class HyperLiquidApiKeysInfo(
 )
 
 @kotlinx.serialization.Serializable
-data class ApiKeysStatusResponse(
-    @kotlinx.serialization.SerialName("bybit_demo") val bybitDemo: Boolean = false,
-    @kotlinx.serialization.SerialName("bybit_real") val bybitReal: Boolean = false,
-    @kotlinx.serialization.SerialName("hl_testnet") val hlTestnet: Boolean = false,
-    @kotlinx.serialization.SerialName("hl_mainnet") val hlMainnet: Boolean = false
+data class ApiKeyStatus(
+    @kotlinx.serialization.SerialName("has_key") val hasKey: Boolean = false,
+    @kotlinx.serialization.SerialName("is_valid") val isValid: Boolean? = null
 )
+
+@kotlinx.serialization.Serializable
+data class ApiKeysStatusResponse(
+    @kotlinx.serialization.SerialName("bybit_demo") val bybitDemo: ApiKeyStatus? = null,
+    @kotlinx.serialization.SerialName("bybit_real") val bybitReal: ApiKeyStatus? = null,
+    @kotlinx.serialization.SerialName("hl_testnet") val hlTestnet: ApiKeyStatus? = null,
+    @kotlinx.serialization.SerialName("hl_mainnet") val hlMainnet: ApiKeyStatus? = null
+) {
+    // Helper getters for backward compatibility
+    val bybitDemoConfigured: Boolean get() = bybitDemo?.hasKey == true
+    val bybitRealConfigured: Boolean get() = bybitReal?.hasKey == true
+    val hlTestnetConfigured: Boolean get() = hlTestnet?.hasKey == true
+    val hlMainnetConfigured: Boolean get() = hlMainnet?.hasKey == true
+    
+    val bybitDemoValid: Boolean get() = bybitDemo?.isValid == true
+    val bybitRealValid: Boolean get() = bybitReal?.isValid == true
+    val hlTestnetValid: Boolean get() = hlTestnet?.isValid == true
+    val hlMainnetValid: Boolean get() = hlMainnet?.isValid == true
+}
 
 @kotlinx.serialization.Serializable
 data class SaveBybitApiKeysRequest(

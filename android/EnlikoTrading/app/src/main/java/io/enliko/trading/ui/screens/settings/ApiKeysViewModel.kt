@@ -152,20 +152,23 @@ class ApiKeysViewModel @Inject constructor(
                 val response = api.getApiKeysStatus()
                 if (response.isSuccessful) {
                     val status = response.body()
+                    android.util.Log.d("ApiKeysVM", "API Keys status loaded: bybitDemo=${status?.bybitDemoConfigured}, bybitReal=${status?.bybitRealConfigured}, hlTestnet=${status?.hlTestnetConfigured}, hlMainnet=${status?.hlMainnetConfigured}")
                     _uiState.update { 
                         it.copy(
                             isLoading = false,
-                            bybitDemoConfigured = status?.bybitDemo ?: false,
-                            bybitRealConfigured = status?.bybitReal ?: false,
-                            hlTestnetConfigured = status?.hlTestnet ?: false,
-                            hlMainnetConfigured = status?.hlMainnet ?: false
+                            bybitDemoConfigured = status?.bybitDemoConfigured ?: false,
+                            bybitRealConfigured = status?.bybitRealConfigured ?: false,
+                            hlTestnetConfigured = status?.hlTestnetConfigured ?: false,
+                            hlMainnetConfigured = status?.hlMainnetConfigured ?: false
                         )
                     }
                 } else {
+                    android.util.Log.e("ApiKeysVM", "Failed to load API keys status: ${response.code()}")
                     _uiState.update { it.copy(isLoading = false) }
                 }
             } catch (e: Exception) {
                 AppLogger.error("Failed to load API keys status: ${e.message}")
+                android.util.Log.e("ApiKeysVM", "Exception loading API keys status", e)
                 _uiState.update { it.copy(isLoading = false) }
             }
         }
