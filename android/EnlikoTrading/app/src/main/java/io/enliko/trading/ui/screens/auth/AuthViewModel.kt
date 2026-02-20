@@ -227,44 +227,61 @@ class AuthViewModel @Inject constructor(
     }
 
     private fun startPolling(requestId: String) {
+        Log.d("AuthVM", "startPolling() called with requestId=$requestId")
         pollingJob?.cancel()
         pollingJob = viewModelScope.launch {
+            var pollCount = 0
             while (true) {
                 delay(2500)
+                pollCount++
+                Log.d("AuthVM", "Polling check-2fa #$pollCount for requestId=$requestId")
                 try {
                     val response = api.check2FA(requestId)
+                    Log.d("AuthVM", "check2FA response: code=${response.code()}, isSuccessful=${response.isSuccessful}")
                     if (response.isSuccessful) {
-                        val body = response.body() ?: continue
+                        val body = response.body()
+                        Log.d("AuthVM", "check2FA body: status=${body?.status}, token=${body?.token?.take(10) ?: "null"}, user=${body?.user != null}, message=${body?.message}")
+                        if (body == null) {
+                            Log.w("AuthVM", "check2FA body is null, continuing...")
+                            continue
+                        }
                         when (body.status) {
                             "approved" -> {
+                                Log.d("AuthVM", "2FA APPROVED! Processing login...")
                                 stopPolling()
                                 val token = body.token
                                 val user = body.user
+                                Log.d("AuthVM", "Token: ${token?.take(15) ?: "NULL"}, User: ${user?.userId ?: "NULL"}")
                                 if (token != null && user != null) {
+                                    Log.d("AuthVM", "Saving token and user data...")
                                     securePreferencesRepository.saveAuthToken(token)
                                     securePreferencesRepository.saveUserId(user.userId.toString())
                                     body.refreshToken?.let {
                                         securePreferencesRepository.saveRefreshToken(it)
                                     }
                                     preferencesRepository.saveLanguage(user.lang)
+                                    Log.d("AuthVM", "Login successful! Setting isSuccess=true")
                                     _uiState.value = AuthUiState(
                                         isSuccess = true,
                                         twoFAStatus = "approved"
                                     )
                                 } else {
+                                    Log.e("AuthVM", "2FA approved but token=$token, user=$user")
                                     _uiState.value = AuthUiState(error = "Approved but no token received")
                                 }
                                 return@launch
                             }
-                            "denied" -> {
+                            "rejected" -> {
+                                Log.d("AuthVM", "2FA REJECTED by user")
                                 stopPolling()
                                 _uiState.value = AuthUiState(
-                                    twoFAStatus = "denied",
-                                    error = "Login denied in Telegram"
+                                    twoFAStatus = "rejected",
+                                    error = "Login rejected in Telegram"
                                 )
                                 return@launch
                             }
                             "expired" -> {
+                                Log.d("AuthVM", "2FA EXPIRED")
                                 stopPolling()
                                 _uiState.value = AuthUiState(
                                     twoFAStatus = "expired",
@@ -272,10 +289,18 @@ class AuthViewModel @Inject constructor(
                                 )
                                 return@launch
                             }
-                            // "pending" → continue polling
+                            "pending" -> {
+                                Log.d("AuthVM", "2FA still pending...")
+                            }
+                            else -> {
+                                Log.w("AuthVM", "Unknown 2FA status: ${body.status}")
+                            }
                         }
+                    } else {
+                        Log.w("AuthVM", "check2FA failed: code=${response.code()}, error=${response.errorBody()?.string()?.take(100)}")
                     }
-                } catch (_: Exception) {
+                } catch (e: Exception) {
+                    Log.e("AuthVM", "Polling exception: ${e.javaClass.simpleName}: ${e.message}")
                     // Network error during poll — continue trying
                 }
             }
