@@ -9,16 +9,69 @@ import Foundation
 import Combine
 
 // MARK: - WebSocket Message Types
+
+// Market data wrapper from server: {"type": "market_data", "data": [...]}
+struct MarketDataMessage: Codable {
+    let type: String
+    let exchange: String?
+    let data: [TickerData]
+    let timestamp: String?
+    let count: Int?
+}
+
+// Individual ticker data inside market_data.data array
+struct TickerData: Codable, Identifiable {
+    var id: String { symbol }
+    
+    let symbol: String
+    private let _price: Double?
+    private let _change24h: Double?
+    private let _volume24h: Double?
+    private let _high24h: Double?
+    private let _low24h: Double?
+    let markPrice: Double?
+    let openInterest: Double?
+    let fundingRate: Double?
+    
+    var price: Double { _price ?? 0 }
+    var change24h: Double { _change24h ?? 0 }
+    var volume24h: Double { _volume24h ?? 0 }
+    var high24h: Double { _high24h ?? 0 }
+    var low24h: Double { _low24h ?? 0 }
+    
+    // Compatibility with MarketView
+    var priceChangePercent: Double { change24h }
+    
+    enum CodingKeys: String, CodingKey {
+        case symbol
+        case _price = "price"
+        case _change24h = "change_24h"
+        case _volume24h = "volume_24h"
+        case _high24h = "high_24h"
+        case _low24h = "low_24h"
+        case markPrice = "mark_price"
+        case openInterest = "open_interest"
+        case fundingRate = "funding_rate"
+    }
+}
+
+// Legacy format - keep for backwards compatibility
 struct WSTickerMessage: Codable, Identifiable {
     var id: String { symbol }
     
-    let type: String
+    let type: String?
     let symbol: String
-    let price: Double
-    let change24h: Double
-    let volume24h: Double
-    let high24h: Double
-    let low24h: Double
+    private var _price: Double?
+    private var _change24h: Double?
+    private var _volume24h: Double?
+    private var _high24h: Double?
+    private var _low24h: Double?
+    
+    var price: Double { _price ?? 0 }
+    var change24h: Double { _change24h ?? 0 }
+    var volume24h: Double { _volume24h ?? 0 }
+    var high24h: Double { _high24h ?? 0 }
+    var low24h: Double { _low24h ?? 0 }
     
     // Compatibility with MarketView
     var priceChangePercent: Double { change24h }
@@ -26,11 +79,22 @@ struct WSTickerMessage: Codable, Identifiable {
     enum CodingKeys: String, CodingKey {
         case type
         case symbol
-        case price
-        case change24h = "change_24h"
-        case volume24h = "volume_24h"
-        case high24h = "high_24h"
-        case low24h = "low_24h"
+        case _price = "price"
+        case _change24h = "change_24h"
+        case _volume24h = "volume_24h"
+        case _high24h = "high_24h"
+        case _low24h = "low_24h"
+    }
+    
+    // Initialize from TickerData (market_data wrapper format)
+    init(from ticker: TickerData) {
+        self.type = "ticker"
+        self.symbol = ticker.symbol
+        self._price = ticker.price
+        self._change24h = ticker.change24h
+        self._volume24h = ticker.volume24h
+        self._high24h = ticker.high24h
+        self._low24h = ticker.low24h
     }
 }
 
@@ -395,6 +459,19 @@ class WebSocketService: NSObject, ObservableObject {
     
     private func handleMessage(_ text: String) {
         guard let data = text.data(using: .utf8) else { return }
+        
+        // Try to decode as market_data wrapper first (new format from server)
+        if let marketData = try? JSONDecoder().decode(MarketDataMessage.self, from: data),
+           marketData.type == "market_data" {
+            DispatchQueue.main.async {
+                for ticker in marketData.data {
+                    let wsTickerMessage = WSTickerMessage(from: ticker)
+                    self.tickers[ticker.symbol] = wsTickerMessage
+                    self.lastTicker = wsTickerMessage
+                }
+            }
+            return
+        }
         
         // Try to decode as sync message first (settings sync) - for backwards compatibility
         if let sync = try? JSONDecoder().decode(WSSyncMessage.self, from: data),
