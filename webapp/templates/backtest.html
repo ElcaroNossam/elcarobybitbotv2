@@ -20,6 +20,7 @@
     <!-- Bottom Navigation -->
     <link rel="stylesheet" href="/static/css/bottom-nav.css">
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chartjs-adapter-date-fns/dist/chartjs-adapter-date-fns.bundle.min.js"></script>
     <style>
         :root {
             /* Unified Enliko Design System */
@@ -414,6 +415,121 @@
             margin-bottom: 25px;
         }
         
+        /* Chart Section */
+        .chart-section {
+            background: var(--bg-secondary);
+            border-radius: 16px;
+            padding: 20px;
+            margin-bottom: 20px;
+            border: 1px solid var(--border-color);
+        }
+        
+        .chart-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 15px;
+        }
+        
+        .chart-header h3 {
+            color: var(--text-primary);
+            font-size: 16px;
+            font-weight: 600;
+            margin: 0;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+        
+        .chart-controls {
+            display: flex;
+            gap: 8px;
+        }
+        
+        .chart-controls .btn-sm {
+            padding: 6px 12px;
+            font-size: 12px;
+            background: var(--bg-tertiary);
+            border: 1px solid var(--border-color);
+            border-radius: 6px;
+            color: var(--text-secondary);
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+        
+        .chart-controls .btn-sm:hover {
+            background: var(--bg-quaternary);
+            color: var(--text-primary);
+        }
+        
+        .chart-controls .btn-sm.active {
+            background: var(--accent-primary);
+            color: white;
+            border-color: var(--accent-primary);
+        }
+        
+        .trade-legend {
+            display: flex;
+            gap: 20px;
+            justify-content: center;
+            padding: 12px;
+            background: var(--bg-tertiary);
+            border-radius: 8px;
+            margin-top: 15px;
+        }
+        
+        .legend-item {
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            font-size: 12px;
+            color: var(--text-secondary);
+        }
+        
+        .price-chart-container {
+            position: relative;
+        }
+        
+        /* Trade markers on chart */
+        .trade-marker {
+            position: absolute;
+            width: 20px;
+            height: 20px;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 10px;
+            color: white;
+            cursor: pointer;
+            transition: transform 0.2s;
+            z-index: 10;
+        }
+        
+        .trade-marker:hover {
+            transform: scale(1.3);
+        }
+        
+        .trade-marker.long-entry {
+            background: linear-gradient(135deg, #22c55e, #16a34a);
+            box-shadow: 0 2px 8px rgba(34, 197, 94, 0.4);
+        }
+        
+        .trade-marker.short-entry {
+            background: linear-gradient(135deg, #ef4444, #dc2626);
+            box-shadow: 0 2px 8px rgba(239, 68, 68, 0.4);
+        }
+        
+        .trade-marker.exit-tp {
+            background: linear-gradient(135deg, #f59e0b, #d97706);
+            box-shadow: 0 2px 8px rgba(245, 158, 11, 0.4);
+        }
+        
+        .trade-marker.exit-sl {
+            background: linear-gradient(135deg, #dc2626, #991b1b);
+            box-shadow: 0 2px 8px rgba(220, 38, 38, 0.4);
+        }
+
         /* Trades Table */
         .trades-table {
             width: 100%;
@@ -1510,8 +1626,49 @@
                 <!-- Overview Tab -->
                 <div id="overviewTab">
                     <div class="stats-grid" id="statsGrid"></div>
-                    <div class="chart-container">
-                        <canvas id="equityChart"></canvas>
+                    
+                    <!-- Price Chart with Trade Markers -->
+                    <div class="chart-section">
+                        <div class="chart-header">
+                            <h3><i class="fas fa-chart-candlestick"></i> Price Chart with Trades</h3>
+                            <div class="chart-controls">
+                                <button class="btn btn-sm" onclick="togglePriceIndicators()" title="Toggle Indicators">
+                                    <i class="fas fa-layer-group"></i> Indicators
+                                </button>
+                                <button class="btn btn-sm" onclick="toggleTradeMarkers()" title="Toggle Trade Markers">
+                                    <i class="fas fa-map-marker-alt"></i> Trades
+                                </button>
+                            </div>
+                        </div>
+                        <div class="chart-container price-chart-container" style="height: 400px;">
+                            <canvas id="priceChart"></canvas>
+                        </div>
+                        <div class="trade-legend">
+                            <span class="legend-item"><i class="fas fa-arrow-up" style="color: #22c55e;"></i> Long Entry</span>
+                            <span class="legend-item"><i class="fas fa-arrow-down" style="color: #ef4444;"></i> Short Entry</span>
+                            <span class="legend-item"><i class="fas fa-times-circle" style="color: #f59e0b;"></i> Exit (TP)</span>
+                            <span class="legend-item"><i class="fas fa-times-circle" style="color: #dc2626;"></i> Exit (SL)</span>
+                        </div>
+                    </div>
+                    
+                    <!-- Equity Curve -->
+                    <div class="chart-section">
+                        <div class="chart-header">
+                            <h3><i class="fas fa-chart-line"></i> Equity Curve & Drawdown</h3>
+                        </div>
+                        <div class="chart-container">
+                            <canvas id="equityChart"></canvas>
+                        </div>
+                    </div>
+                    
+                    <!-- Drawdown Chart -->
+                    <div class="chart-section">
+                        <div class="chart-header">
+                            <h3><i class="fas fa-chart-area"></i> Drawdown Analysis</h3>
+                        </div>
+                        <div class="chart-container" style="height: 200px;">
+                            <canvas id="drawdownChart"></canvas>
+                        </div>
                     </div>
                 </div>
                 
@@ -1767,9 +1924,14 @@
         let selectedStrategies = new Set();
         let equityChart = null;
         let mcChart = null;
+        let priceChart = null;
+        let drawdownChart = null;
         let settingsWs = null;
         let currentExchange = 'bybit';
         let currentAccountType = 'demo';
+        let showIndicators = true;
+        let showTradeMarkers = true;
+        let currentChartData = null;
         
         // Load strategies on page load
         document.addEventListener('DOMContentLoaded', () => {
@@ -2527,6 +2689,53 @@
             // Draw equity chart
             drawEquityChart(results);
             
+            // Draw price chart with trade markers
+            if (firstResult.trades && firstResult.trades.length > 0) {
+                // Convert trades to marker format
+                const tradeMarkers = [];
+                firstResult.trades.forEach(trade => {
+                    // Entry marker
+                    tradeMarkers.push({
+                        type: 'entry',
+                        direction: trade.direction.toLowerCase(),
+                        time: trade.entry_time,
+                        price: trade.entry_price,
+                        pnl: null
+                    });
+                    // Exit marker
+                    tradeMarkers.push({
+                        type: 'exit',
+                        direction: trade.direction.toLowerCase(),
+                        time: trade.exit_time,
+                        price: trade.exit_price,
+                        reason: trade.reason,
+                        pnl: trade.pnl
+                    });
+                });
+                
+                // Get config for chart data fetch
+                const config = getConfig();
+                
+                // Fetch OHLCV data and draw price chart
+                fetchAndDrawChartData(config.symbol, config.timeframe, config.days).then(() => {
+                    if (currentChartData) {
+                        currentChartData.trade_markers = tradeMarkers;
+                        drawPriceChart(currentChartData.ohlcv, tradeMarkers, currentChartData.indicators);
+                    }
+                });
+            }
+            
+            // Draw drawdown chart
+            if (firstResult.equity_curve && firstResult.equity_curve.length > 0) {
+                let peak = firstResult.equity_curve[0]?.equity || 10000;
+                const drawdownData = firstResult.equity_curve.map(point => {
+                    if (point.equity > peak) peak = point.equity;
+                    const drawdown = ((point.equity - peak) / peak) * 100;
+                    return { time: point.time, drawdown };
+                });
+                drawDrawdownChart(drawdownData);
+            }
+            
             // Populate trades table
             const tbody = document.getElementById('tradesTableBody');
             tbody.innerHTML = '';
@@ -2817,6 +3026,324 @@
                     }
                 }
             });
+        }
+        
+        // ============================================================
+        // PRICE CHART WITH TRADE MARKERS
+        // ============================================================
+        
+        function drawPriceChart(ohlcv, trades, indicators) {
+            const ctx = document.getElementById('priceChart');
+            if (!ctx) return;
+            
+            if (priceChart) priceChart.destroy();
+            
+            // Prepare candlestick data
+            const candleData = ohlcv.map(c => ({
+                x: new Date(c.time),
+                o: c.open,
+                h: c.high,
+                l: c.low,
+                c: c.close
+            }));
+            
+            // Create datasets
+            const datasets = [];
+            
+            // Main candlestick/line chart (using line since Chart.js candlestick requires plugin)
+            datasets.push({
+                label: 'Price',
+                data: ohlcv.map(c => ({ x: new Date(c.time), y: c.close })),
+                borderColor: '#8b5cf6',
+                backgroundColor: 'rgba(139, 92, 246, 0.1)',
+                borderWidth: 2,
+                tension: 0,
+                fill: true,
+                pointRadius: 0,
+                yAxisID: 'y'
+            });
+            
+            // Add indicators if enabled
+            if (showIndicators && indicators) {
+                if (indicators.ema_20) {
+                    datasets.push({
+                        label: 'EMA 20',
+                        data: indicators.ema_20.map((v, i) => ({ x: new Date(ohlcv[i]?.time), y: v })).filter(d => d.y != null),
+                        borderColor: '#f59e0b',
+                        borderWidth: 1.5,
+                        tension: 0.1,
+                        pointRadius: 0,
+                        yAxisID: 'y'
+                    });
+                }
+                if (indicators.sma_50) {
+                    datasets.push({
+                        label: 'SMA 50',
+                        data: indicators.sma_50.map((v, i) => ({ x: new Date(ohlcv[i]?.time), y: v })).filter(d => d.y != null),
+                        borderColor: '#06b6d4',
+                        borderWidth: 1.5,
+                        tension: 0.1,
+                        pointRadius: 0,
+                        yAxisID: 'y'
+                    });
+                }
+                if (indicators.bb_upper && indicators.bb_lower) {
+                    datasets.push({
+                        label: 'BB Upper',
+                        data: indicators.bb_upper.map((v, i) => ({ x: new Date(ohlcv[i]?.time), y: v })).filter(d => d.y != null),
+                        borderColor: 'rgba(100, 100, 100, 0.5)',
+                        borderWidth: 1,
+                        borderDash: [5, 5],
+                        tension: 0.1,
+                        pointRadius: 0,
+                        fill: false,
+                        yAxisID: 'y'
+                    });
+                    datasets.push({
+                        label: 'BB Lower',
+                        data: indicators.bb_lower.map((v, i) => ({ x: new Date(ohlcv[i]?.time), y: v })).filter(d => d.y != null),
+                        borderColor: 'rgba(100, 100, 100, 0.5)',
+                        borderWidth: 1,
+                        borderDash: [5, 5],
+                        tension: 0.1,
+                        pointRadius: 0,
+                        fill: '-1',
+                        backgroundColor: 'rgba(100, 100, 100, 0.05)',
+                        yAxisID: 'y'
+                    });
+                }
+            }
+            
+            // Add trade markers if enabled
+            if (showTradeMarkers && trades && trades.length > 0) {
+                // Entry points
+                const longEntries = trades.filter(t => t.type === 'entry' && t.direction === 'long');
+                const shortEntries = trades.filter(t => t.type === 'entry' && t.direction === 'short');
+                const tpExits = trades.filter(t => t.type === 'exit' && t.reason?.includes('TP'));
+                const slExits = trades.filter(t => t.type === 'exit' && t.reason?.includes('SL'));
+                const otherExits = trades.filter(t => t.type === 'exit' && !t.reason?.includes('TP') && !t.reason?.includes('SL'));
+                
+                if (longEntries.length > 0) {
+                    datasets.push({
+                        label: 'Long Entry',
+                        data: longEntries.map(t => ({ x: new Date(t.time), y: t.price })),
+                        backgroundColor: '#22c55e',
+                        borderColor: '#16a34a',
+                        borderWidth: 2,
+                        pointRadius: 8,
+                        pointStyle: 'triangle',
+                        showLine: false,
+                        yAxisID: 'y'
+                    });
+                }
+                
+                if (shortEntries.length > 0) {
+                    datasets.push({
+                        label: 'Short Entry',
+                        data: shortEntries.map(t => ({ x: new Date(t.time), y: t.price })),
+                        backgroundColor: '#ef4444',
+                        borderColor: '#dc2626',
+                        borderWidth: 2,
+                        pointRadius: 8,
+                        pointStyle: 'triangle',
+                        rotation: 180,
+                        showLine: false,
+                        yAxisID: 'y'
+                    });
+                }
+                
+                if (tpExits.length > 0) {
+                    datasets.push({
+                        label: 'Exit (TP)',
+                        data: tpExits.map(t => ({ x: new Date(t.time), y: t.price })),
+                        backgroundColor: '#f59e0b',
+                        borderColor: '#d97706',
+                        borderWidth: 2,
+                        pointRadius: 6,
+                        pointStyle: 'circle',
+                        showLine: false,
+                        yAxisID: 'y'
+                    });
+                }
+                
+                if (slExits.length > 0) {
+                    datasets.push({
+                        label: 'Exit (SL)',
+                        data: slExits.map(t => ({ x: new Date(t.time), y: t.price })),
+                        backgroundColor: '#dc2626',
+                        borderColor: '#991b1b',
+                        borderWidth: 2,
+                        pointRadius: 6,
+                        pointStyle: 'crossRot',
+                        showLine: false,
+                        yAxisID: 'y'
+                    });
+                }
+                
+                if (otherExits.length > 0) {
+                    datasets.push({
+                        label: 'Exit',
+                        data: otherExits.map(t => ({ x: new Date(t.time), y: t.price })),
+                        backgroundColor: '#6b7280',
+                        borderColor: '#4b5563',
+                        borderWidth: 2,
+                        pointRadius: 6,
+                        pointStyle: 'rect',
+                        showLine: false,
+                        yAxisID: 'y'
+                    });
+                }
+            }
+            
+            priceChart = new Chart(ctx, {
+                type: 'line',
+                data: { datasets },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    interaction: {
+                        intersect: false,
+                        mode: 'index'
+                    },
+                    plugins: {
+                        legend: { 
+                            position: 'top',
+                            labels: { 
+                                color: '#a0a0b0',
+                                usePointStyle: true,
+                                pointStyle: 'circle'
+                            }
+                        },
+                        tooltip: {
+                            backgroundColor: 'rgb(30, 41, 59)',
+                            titleColor: 'rgb(203, 213, 225)',
+                            bodyColor: 'rgb(148, 163, 184)',
+                            borderColor: 'rgb(51, 65, 85)',
+                            borderWidth: 1,
+                            callbacks: {
+                                label: function(context) {
+                                    let label = context.dataset.label || '';
+                                    if (label) label += ': ';
+                                    if (context.parsed.y !== null) {
+                                        label += '$' + context.parsed.y.toFixed(2);
+                                    }
+                                    return label;
+                                }
+                            }
+                        }
+                    },
+                    scales: {
+                        x: {
+                            type: 'time',
+                            time: {
+                                unit: 'day',
+                                displayFormats: { day: 'MMM d' }
+                            },
+                            ticks: { color: '#606070', maxTicksLimit: 10 },
+                            grid: { color: 'rgba(255,255,255,0.05)' }
+                        },
+                        y: {
+                            position: 'right',
+                            ticks: { 
+                                color: '#606070',
+                                callback: v => '$' + v.toFixed(0)
+                            },
+                            grid: { color: 'rgba(255,255,255,0.05)' }
+                        }
+                    }
+                }
+            });
+        }
+        
+        function drawDrawdownChart(drawdownData) {
+            const ctx = document.getElementById('drawdownChart');
+            if (!ctx) return;
+            
+            if (drawdownChart) drawdownChart.destroy();
+            
+            drawdownChart = new Chart(ctx, {
+                type: 'line',
+                data: {
+                    datasets: [{
+                        label: 'Drawdown %',
+                        data: drawdownData.map(d => ({ x: new Date(d.time), y: d.drawdown })),
+                        borderColor: '#ef4444',
+                        backgroundColor: 'rgba(239, 68, 68, 0.2)',
+                        borderWidth: 2,
+                        fill: true,
+                        tension: 0.1,
+                        pointRadius: 0
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: {
+                        legend: { display: false }
+                    },
+                    scales: {
+                        x: {
+                            type: 'time',
+                            time: { unit: 'day' },
+                            ticks: { color: '#606070', maxTicksLimit: 10 },
+                            grid: { color: 'rgba(255,255,255,0.05)' }
+                        },
+                        y: {
+                            ticks: { 
+                                color: '#606070',
+                                callback: v => v.toFixed(1) + '%'
+                            },
+                            grid: { color: 'rgba(255,255,255,0.05)' },
+                            reverse: true,
+                            min: undefined,
+                            max: 0
+                        }
+                    }
+                }
+            });
+        }
+        
+        function togglePriceIndicators() {
+            showIndicators = !showIndicators;
+            const btn = event.target.closest('.btn-sm');
+            btn.classList.toggle('active', showIndicators);
+            
+            if (currentChartData) {
+                drawPriceChart(
+                    currentChartData.ohlcv,
+                    currentChartData.trade_markers,
+                    showIndicators ? currentChartData.indicators : null
+                );
+            }
+        }
+        
+        function toggleTradeMarkers() {
+            showTradeMarkers = !showTradeMarkers;
+            const btn = event.target.closest('.btn-sm');
+            btn.classList.toggle('active', showTradeMarkers);
+            
+            if (currentChartData) {
+                drawPriceChart(
+                    currentChartData.ohlcv,
+                    showTradeMarkers ? currentChartData.trade_markers : [],
+                    currentChartData.indicators
+                );
+            }
+        }
+        
+        // Enhanced displayResults to fetch chart data
+        async function fetchAndDrawChartData(symbol, timeframe, days) {
+            try {
+                const res = await fetch(`/api/backtest/chart-data?symbol=${symbol}&timeframe=${timeframe}&days=${days}`);
+                const data = await res.json();
+                
+                if (data.success) {
+                    currentChartData = data;
+                    drawPriceChart(data.ohlcv, [], data.indicators);
+                }
+            } catch (e) {
+                console.error('Failed to fetch chart data:', e);
+            }
         }
         
         function showTab(tabName) {

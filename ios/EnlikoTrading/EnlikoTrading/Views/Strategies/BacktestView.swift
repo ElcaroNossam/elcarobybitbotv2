@@ -32,14 +32,23 @@ struct BacktestView: View {
     
     private let strategies = [
         ("oi", "OI Strategy"),
+        ("rsibboi", "RSI + BB + OI"),
         ("scryptomera", "Scryptomera"),
         ("scalper", "Scalper"),
         ("elcaro", "Elcaro"),
         ("fibonacci", "Fibonacci"),
-        ("rsi_bb", "RSI + BB")
+        ("rsi_bb", "RSI + BB"),
+        ("wyckoff", "Wyckoff"),
+        ("mean_reversion", "Mean Reversion"),
+        ("trend_following", "Trend Following"),
+        ("breakout", "Breakout"),
+        ("momentum", "Momentum"),
+        ("volatility_breakout", "Volatility Breakout"),
+        ("dca", "DCA"),
+        ("grid", "Grid")
     ]
-    private let timeframes = ["5m", "15m", "1h", "4h", "1d"]
-    private let symbols = ["BTCUSDT", "ETHUSDT", "SOLUSDT", "BNBUSDT", "XRPUSDT", "DOGEUSDT"]
+    private let timeframes = ["1m", "5m", "15m", "1h", "4h", "1d"]
+    private let symbols = ["BTCUSDT", "ETHUSDT", "SOLUSDT", "BNBUSDT", "XRPUSDT", "DOGEUSDT", "ADAUSDT", "AVAXUSDT", "DOTUSDT", "LINKUSDT", "MATICUSDT", "LTCUSDT", "ATOMUSDT", "NEARUSDT", "APTUSDT"]
     private let dataSources = [
         ("binance", "Binance"),
         ("bybit", "Bybit"),
@@ -134,7 +143,9 @@ struct BacktestView: View {
                         Text(symbol).tag(symbol)
                     }
                 }
-                .pickerStyle(.segmented)
+                .pickerStyle(.menu)
+                .tint(.enlikoPrimary)
+                .frame(maxWidth: .infinity, alignment: .leading)
             }
             
             // Timeframe Picker

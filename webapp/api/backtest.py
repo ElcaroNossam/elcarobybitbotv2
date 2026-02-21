@@ -694,81 +694,246 @@ async def list_strategies():
 
 @router.get("/indicators")
 async def list_indicators():
-    """List available technical indicators for custom strategies"""
+    """List all available technical indicators for custom strategies"""
     return {
+        "categories": [
+            {"id": "trend", "name": "Trend Indicators", "icon": "📈"},
+            {"id": "momentum", "name": "Momentum Indicators", "icon": "⚡"},
+            {"id": "volatility", "name": "Volatility Indicators", "icon": "📊"},
+            {"id": "volume", "name": "Volume Indicators", "icon": "📶"},
+            {"id": "support_resistance", "name": "Support/Resistance", "icon": "🎯"},
+            {"id": "advanced", "name": "Advanced", "icon": "🔬"}
+        ],
         "indicators": [
-            {
-                "id": "rsi",
-                "name": "RSI",
-                "description": "Relative Strength Index - momentum oscillator",
-                "params": {"period": {"default": 14, "min": 2, "max": 50}},
-                "signals": ["oversold", "overbought", "divergence"]
-            },
-            {
-                "id": "macd",
-                "name": "MACD",
-                "description": "Moving Average Convergence Divergence",
-                "params": {"fast": {"default": 12}, "slow": {"default": 26}, "signal": {"default": 9}},
-                "signals": ["crossover", "histogram"]
-            },
-            {
-                "id": "bb",
-                "name": "Bollinger Bands",
-                "description": "Volatility bands around moving average",
-                "params": {"period": {"default": 20}, "std": {"default": 2.0}},
-                "signals": ["squeeze", "breakout", "bounce"]
-            },
-            {
-                "id": "ema",
-                "name": "EMA",
-                "description": "Exponential Moving Average",
-                "params": {"period": {"default": 20, "min": 2, "max": 200}},
-                "signals": ["crossover", "trend"]
-            },
-            {
-                "id": "sma",
-                "name": "SMA",
-                "description": "Simple Moving Average",
-                "params": {"period": {"default": 20, "min": 2, "max": 200}},
-                "signals": ["crossover", "trend"]
-            },
-            {
-                "id": "atr",
-                "name": "ATR",
-                "description": "Average True Range - volatility indicator",
-                "params": {"period": {"default": 14, "min": 2, "max": 50}},
-                "signals": ["volatility_spike"]
-            },
-            {
-                "id": "supertrend",
-                "name": "SuperTrend",
-                "description": "Trend-following indicator based on ATR",
-                "params": {"period": {"default": 10}, "multiplier": {"default": 3.0}},
-                "signals": ["trend_flip", "trend_confirmation"]
-            },
-            {
-                "id": "vwap",
-                "name": "VWAP",
-                "description": "Volume Weighted Average Price",
-                "params": {},
-                "signals": ["cross_above", "cross_below", "deviation"]
-            },
-            {
-                "id": "obv",
-                "name": "OBV",
-                "description": "On-Balance Volume - volume momentum",
-                "params": {"period": {"default": 20}},
-                "signals": ["divergence", "confirmation"]
-            },
-            {
-                "id": "volume_sma",
-                "name": "Volume SMA",
-                "description": "Volume Simple Moving Average for spike detection",
-                "params": {"period": {"default": 20}},
-                "signals": ["volume_spike"]
-            }
-        ]
+            # === TREND INDICATORS ===
+            {"id": "sma", "name": "SMA", "category": "trend", "description": "Simple Moving Average", 
+             "params": {"period": {"default": 20, "min": 2, "max": 500}}, "signals": ["crossover", "trend", "support", "resistance"]},
+            {"id": "ema", "name": "EMA", "category": "trend", "description": "Exponential Moving Average",
+             "params": {"period": {"default": 20, "min": 2, "max": 500}}, "signals": ["crossover", "trend"]},
+            {"id": "wma", "name": "WMA", "category": "trend", "description": "Weighted Moving Average",
+             "params": {"period": {"default": 20, "min": 2, "max": 200}}, "signals": ["crossover", "trend"]},
+            {"id": "dema", "name": "DEMA", "category": "trend", "description": "Double Exponential Moving Average",
+             "params": {"period": {"default": 20, "min": 2, "max": 200}}, "signals": ["crossover", "trend"]},
+            {"id": "tema", "name": "TEMA", "category": "trend", "description": "Triple Exponential Moving Average",
+             "params": {"period": {"default": 20, "min": 2, "max": 200}}, "signals": ["crossover", "trend"]},
+            {"id": "supertrend", "name": "SuperTrend", "category": "trend", "description": "Trend-following indicator based on ATR",
+             "params": {"period": {"default": 10, "min": 5, "max": 50}, "multiplier": {"default": 3.0, "min": 1.0, "max": 10.0}}, "signals": ["trend_flip", "trend_confirmation"]},
+            {"id": "ichimoku", "name": "Ichimoku Cloud", "category": "trend", "description": "Japanese cloud chart indicator",
+             "params": {"tenkan": {"default": 9}, "kijun": {"default": 26}, "senkou_b": {"default": 52}}, 
+             "signals": ["cloud_breakout", "tk_cross", "kumo_twist", "chikou_cross"]},
+            {"id": "adx", "name": "ADX", "category": "trend", "description": "Average Directional Index - trend strength",
+             "params": {"period": {"default": 14, "min": 5, "max": 50}}, "signals": ["strong_trend", "weak_trend", "di_crossover"]},
+            {"id": "parabolic_sar", "name": "Parabolic SAR", "category": "trend", "description": "Stop and Reverse indicator",
+             "params": {"af_step": {"default": 0.02}, "af_max": {"default": 0.2}}, "signals": ["reversal", "trailing_stop"]},
+            {"id": "vortex", "name": "Vortex", "category": "trend", "description": "Vortex Indicator for trend direction",
+             "params": {"period": {"default": 14}}, "signals": ["vi_crossover", "trend_change"]},
+            {"id": "aroon", "name": "Aroon", "category": "trend", "description": "Aroon Up/Down indicator",
+             "params": {"period": {"default": 25}}, "signals": ["aroon_crossover", "extreme"]},
+            # === MOMENTUM INDICATORS ===
+            {"id": "rsi", "name": "RSI", "category": "momentum", "description": "Relative Strength Index",
+             "params": {"period": {"default": 14, "min": 2, "max": 50}}, "signals": ["oversold", "overbought", "divergence", "centerline_cross"]},
+            {"id": "stoch_rsi", "name": "Stochastic RSI", "category": "momentum", "description": "Stochastic applied to RSI",
+             "params": {"period": {"default": 14}, "k_period": {"default": 3}, "d_period": {"default": 3}}, "signals": ["oversold", "overbought", "crossover"]},
+            {"id": "stochastic", "name": "Stochastic", "category": "momentum", "description": "Stochastic Oscillator %K/%D",
+             "params": {"k_period": {"default": 14}, "d_period": {"default": 3}, "slowing": {"default": 3}}, "signals": ["oversold", "overbought", "crossover", "divergence"]},
+            {"id": "macd", "name": "MACD", "category": "momentum", "description": "Moving Average Convergence Divergence",
+             "params": {"fast": {"default": 12}, "slow": {"default": 26}, "signal": {"default": 9}}, "signals": ["signal_crossover", "zero_crossover", "histogram", "divergence"]},
+            {"id": "cci", "name": "CCI", "category": "momentum", "description": "Commodity Channel Index",
+             "params": {"period": {"default": 20, "min": 5, "max": 100}}, "signals": ["overbought", "oversold", "zero_cross", "divergence"]},
+            {"id": "williams_r", "name": "Williams %R", "category": "momentum", "description": "Williams Percent Range",
+             "params": {"period": {"default": 14, "min": 5, "max": 50}}, "signals": ["overbought", "oversold", "failure_swing"]},
+            {"id": "roc", "name": "ROC", "category": "momentum", "description": "Rate of Change",
+             "params": {"period": {"default": 12, "min": 1, "max": 100}}, "signals": ["zero_cross", "divergence"]},
+            {"id": "momentum", "name": "Momentum", "category": "momentum", "description": "Price Momentum indicator",
+             "params": {"period": {"default": 10, "min": 1, "max": 100}}, "signals": ["zero_cross", "divergence"]},
+            {"id": "tsi", "name": "TSI", "category": "momentum", "description": "True Strength Index",
+             "params": {"long_period": {"default": 25}, "short_period": {"default": 13}}, "signals": ["signal_cross", "zero_cross"]},
+            {"id": "ultimate", "name": "Ultimate Oscillator", "category": "momentum", "description": "Multi-timeframe momentum",
+             "params": {"period1": {"default": 7}, "period2": {"default": 14}, "period3": {"default": 28}}, "signals": ["divergence", "overbought", "oversold"]},
+            {"id": "ao", "name": "Awesome Oscillator", "category": "momentum", "description": "Bill Williams Awesome Oscillator",
+             "params": {"fast": {"default": 5}, "slow": {"default": 34}}, "signals": ["zero_cross", "twin_peaks", "saucer"]},
+            # === VOLATILITY INDICATORS ===
+            {"id": "bb", "name": "Bollinger Bands", "category": "volatility", "description": "Volatility bands around SMA",
+             "params": {"period": {"default": 20, "min": 5, "max": 100}, "std": {"default": 2.0, "min": 0.5, "max": 5.0}}, "signals": ["squeeze", "breakout", "bounce", "bandwidth"]},
+            {"id": "keltner", "name": "Keltner Channels", "category": "volatility", "description": "ATR-based volatility bands",
+             "params": {"ema_period": {"default": 20}, "atr_period": {"default": 10}, "multiplier": {"default": 2.0}}, "signals": ["breakout", "squeeze"]},
+            {"id": "atr", "name": "ATR", "category": "volatility", "description": "Average True Range",
+             "params": {"period": {"default": 14, "min": 2, "max": 50}}, "signals": ["volatility_spike", "volatility_low"]},
+            {"id": "atr_percent", "name": "ATR%", "category": "volatility", "description": "ATR as percentage of price",
+             "params": {"period": {"default": 14}}, "signals": ["high_volatility", "low_volatility"]},
+            {"id": "donchian", "name": "Donchian Channels", "category": "volatility", "description": "Highest high / Lowest low channels",
+             "params": {"period": {"default": 20, "min": 5, "max": 100}}, "signals": ["breakout", "breakdown", "squeeze"]},
+            {"id": "chaikin_volatility", "name": "Chaikin Volatility", "category": "volatility", "description": "Rate of change of ATR",
+             "params": {"ema_period": {"default": 10}, "roc_period": {"default": 10}}, "signals": ["expansion", "contraction"]},
+            {"id": "historic_vol", "name": "Historical Volatility", "category": "volatility", "description": "Standard deviation of returns",
+             "params": {"period": {"default": 20}}, "signals": ["high_vol", "low_vol"]},
+            # === VOLUME INDICATORS ===
+            {"id": "obv", "name": "OBV", "category": "volume", "description": "On-Balance Volume",
+             "params": {}, "signals": ["divergence", "confirmation", "breakout"]},
+            {"id": "vwap", "name": "VWAP", "category": "volume", "description": "Volume Weighted Average Price",
+             "params": {}, "signals": ["cross_above", "cross_below", "deviation"]},
+            {"id": "volume_sma", "name": "Volume SMA", "category": "volume", "description": "Volume Simple Moving Average",
+             "params": {"period": {"default": 20}}, "signals": ["volume_spike", "volume_dry"]},
+            {"id": "mfi", "name": "MFI", "category": "volume", "description": "Money Flow Index - volume-weighted RSI",
+             "params": {"period": {"default": 14, "min": 5, "max": 50}}, "signals": ["overbought", "oversold", "divergence"]},
+            {"id": "ad", "name": "A/D Line", "category": "volume", "description": "Accumulation/Distribution Line",
+             "params": {}, "signals": ["divergence", "confirmation"]},
+            {"id": "cmf", "name": "CMF", "category": "volume", "description": "Chaikin Money Flow",
+             "params": {"period": {"default": 20}}, "signals": ["buying_pressure", "selling_pressure"]},
+            {"id": "eom", "name": "EoM", "category": "volume", "description": "Ease of Movement",
+             "params": {"period": {"default": 14}}, "signals": ["positive", "negative", "divergence"]},
+            {"id": "force_index", "name": "Force Index", "category": "volume", "description": "Elder Force Index",
+             "params": {"period": {"default": 13}}, "signals": ["bullish", "bearish", "divergence"]},
+            {"id": "vpt", "name": "VPT", "category": "volume", "description": "Volume Price Trend",
+             "params": {}, "signals": ["divergence", "confirmation"]},
+            {"id": "nvi", "name": "NVI", "category": "volume", "description": "Negative Volume Index",
+             "params": {"period": {"default": 255}}, "signals": ["above_ema", "below_ema"]},
+            {"id": "pvi", "name": "PVI", "category": "volume", "description": "Positive Volume Index",
+             "params": {"period": {"default": 255}}, "signals": ["above_ema", "below_ema"]},
+            # === SUPPORT/RESISTANCE ===
+            {"id": "pivot_points", "name": "Pivot Points", "category": "support_resistance", "description": "Classic pivot support/resistance",
+             "params": {"type": {"default": "standard", "options": ["standard", "fibonacci", "woodie", "camarilla", "demark"]}}, "signals": ["support_test", "resistance_test", "breakout"]},
+            {"id": "fibonacci", "name": "Fibonacci Retracement", "category": "support_resistance", "description": "Fib levels from swing points",
+             "params": {"lookback": {"default": 50}}, "signals": ["retracement_23.6", "retracement_38.2", "retracement_50", "retracement_61.8"]},
+            {"id": "fib_extensions", "name": "Fibonacci Extensions", "category": "support_resistance", "description": "Fib extension targets",
+             "params": {"lookback": {"default": 50}}, "signals": ["extension_127.2", "extension_161.8", "extension_200"]},
+            {"id": "support_resistance", "name": "S/R Levels", "category": "support_resistance", "description": "Automatic support/resistance detection",
+             "params": {"lookback": {"default": 100}, "strength": {"default": 3}}, "signals": ["at_support", "at_resistance", "break_support", "break_resistance"]},
+            {"id": "zigzag", "name": "ZigZag", "category": "support_resistance", "description": "ZigZag swing detection",
+             "params": {"deviation": {"default": 5.0}}, "signals": ["swing_high", "swing_low"]},
+            # === ADVANCED ===
+            {"id": "oi", "name": "Open Interest", "category": "advanced", "description": "Open Interest analysis",
+             "params": {"change_threshold": {"default": 5.0}}, "signals": ["oi_rising", "oi_falling", "oi_divergence"]},
+            {"id": "funding_rate", "name": "Funding Rate", "category": "advanced", "description": "Perpetual funding rate",
+             "params": {"threshold": {"default": 0.01}}, "signals": ["high_funding", "low_funding", "funding_flip"]},
+            {"id": "liquidations", "name": "Liquidation Levels", "category": "advanced", "description": "Estimated liquidation clusters",
+             "params": {"leverage_range": {"default": [5, 100]}}, "signals": ["near_liq_cluster"]},
+            {"id": "order_flow", "name": "Order Flow", "category": "advanced", "description": "CVD and delta analysis",
+             "params": {}, "signals": ["cvd_divergence", "absorption", "exhaustion"]},
+            {"id": "market_profile", "name": "Market Profile", "category": "advanced", "description": "Volume profile analysis",
+             "params": {"row_size": {"default": 24}}, "signals": ["poc_test", "value_area_high", "value_area_low"]},
+            {"id": "wyckoff", "name": "Wyckoff Analysis", "category": "advanced", "description": "Wyckoff accumulation/distribution",
+             "params": {}, "signals": ["accumulation", "distribution", "spring", "upthrust"]},
+            {"id": "elliott_wave", "name": "Elliott Wave", "category": "advanced", "description": "Elliott Wave pattern detection",
+             "params": {"min_wave_pct": {"default": 2.0}}, "signals": ["wave_1", "wave_3", "wave_5", "wave_a", "wave_c"]},
+            {"id": "harmonic", "name": "Harmonic Patterns", "category": "advanced", "description": "Gartley, Bat, Butterfly, Crab patterns",
+             "params": {"tolerance": {"default": 0.05}}, "signals": ["gartley", "bat", "butterfly", "crab", "shark", "cypher"]}
+        ],
+        "total_count": 50
     }
+
+
+@router.get("/chart-data")
+async def get_chart_data_with_trades(
+    symbol: str = "BTCUSDT",
+    timeframe: str = "1h",
+    days: int = 30,
+    indicators: str = "rsi,bb,ema",
+    user: dict = Depends(rate_limit_backtest)
+):
+    """Get OHLCV data with indicator overlays and trade markers for charting"""
+    try:
+        from webapp.services.backtest_engine import RealBacktestEngine
+        import numpy as np
+        
+        engine = RealBacktestEngine()
+        data = await engine.fetch_klines(symbol, timeframe, days, data_source="binance")
+        
+        if data.empty:
+            raise HTTPException(status_code=404, detail="No data available")
+        
+        # Calculate requested indicators
+        indicator_list = [i.strip().lower() for i in indicators.split(",") if i.strip()]
+        indicator_data = {}
+        
+        # RSI
+        if "rsi" in indicator_list:
+            delta = data["close"].diff()
+            gain = delta.where(delta > 0, 0).rolling(14).mean()
+            loss = (-delta.where(delta < 0, 0)).rolling(14).mean()
+            rs = gain / loss.replace(0, np.nan)
+            indicator_data["rsi"] = (100 - (100 / (1 + rs))).fillna(50).tolist()
+        
+        # Bollinger Bands
+        if "bb" in indicator_list:
+            sma20 = data["close"].rolling(20).mean()
+            std20 = data["close"].rolling(20).std()
+            indicator_data["bb_upper"] = (sma20 + 2 * std20).tolist()
+            indicator_data["bb_middle"] = sma20.tolist()
+            indicator_data["bb_lower"] = (sma20 - 2 * std20).tolist()
+        
+        # EMA
+        if "ema" in indicator_list:
+            indicator_data["ema_20"] = data["close"].ewm(span=20).mean().tolist()
+            indicator_data["ema_50"] = data["close"].ewm(span=50).mean().tolist()
+            indicator_data["ema_200"] = data["close"].ewm(span=200).mean().tolist()
+        
+        # SMA
+        if "sma" in indicator_list:
+            indicator_data["sma_20"] = data["close"].rolling(20).mean().tolist()
+            indicator_data["sma_50"] = data["close"].rolling(50).mean().tolist()
+            indicator_data["sma_200"] = data["close"].rolling(200).mean().tolist()
+        
+        # MACD
+        if "macd" in indicator_list:
+            ema12 = data["close"].ewm(span=12).mean()
+            ema26 = data["close"].ewm(span=26).mean()
+            macd_line = ema12 - ema26
+            signal_line = macd_line.ewm(span=9).mean()
+            indicator_data["macd_line"] = macd_line.tolist()
+            indicator_data["macd_signal"] = signal_line.tolist()
+            indicator_data["macd_histogram"] = (macd_line - signal_line).tolist()
+        
+        # Volume SMA
+        if "volume" in indicator_list or "volume_sma" in indicator_list:
+            indicator_data["volume_sma"] = data["volume"].rolling(20).mean().tolist()
+        
+        # ATR
+        if "atr" in indicator_list:
+            high_low = data["high"] - data["low"]
+            high_close = abs(data["high"] - data["close"].shift())
+            low_close = abs(data["low"] - data["close"].shift())
+            tr = high_low.combine(high_close, max).combine(low_close, max)
+            indicator_data["atr"] = tr.rolling(14).mean().tolist()
+        
+        # SuperTrend
+        if "supertrend" in indicator_list:
+            period = 10
+            multiplier = 3.0
+            high_low = data["high"] - data["low"]
+            high_close = abs(data["high"] - data["close"].shift())
+            low_close = abs(data["low"] - data["close"].shift())
+            tr = high_low.combine(high_close, max).combine(low_close, max)
+            atr = tr.rolling(period).mean()
+            hl2 = (data["high"] + data["low"]) / 2
+            upper_band = hl2 + (multiplier * atr)
+            lower_band = hl2 - (multiplier * atr)
+            indicator_data["supertrend_upper"] = upper_band.tolist()
+            indicator_data["supertrend_lower"] = lower_band.tolist()
+        
+        # Prepare OHLCV data for charting
+        ohlcv = []
+        for i, row in data.iterrows():
+            ohlcv.append({
+                "time": int(row["timestamp"].timestamp() * 1000) if hasattr(row["timestamp"], "timestamp") else int(i.timestamp() * 1000),
+                "open": float(row["open"]),
+                "high": float(row["high"]),
+                "low": float(row["low"]),
+                "close": float(row["close"]),
+                "volume": float(row["volume"])
+            })
+        
+        return {
+            "success": True,
+            "symbol": symbol,
+            "timeframe": timeframe,
+            "data_points": len(ohlcv),
+            "ohlcv": ohlcv,
+            "indicators": indicator_data
+        }
+    except Exception as e:
+        logger.error(f"Chart data error: {e}")
+        raise HTTPException(status_code=500, detail=str(e))
 
 
 # ============== LIVE MODE ENDPOINTS ==============
@@ -2665,4 +2830,422 @@ async def delete_backtest_result(backtest_id: int, user: dict = Depends(get_curr
     except HTTPException:
         raise
     except Exception as e:
+        return {"success": False, "error": str(e)}
+
+
+# ============= TRADE VISUALIZATION ENDPOINTS =============
+
+@router.post("/run-with-chart")
+async def run_backtest_with_chart_data(request: BacktestRequest, user: dict = Depends(rate_limit_backtest)):
+    """
+    Run backtest AND return full chart data with trade markers for visualization.
+    Returns OHLCV candles + indicator data + entry/exit markers for beautiful charting.
+    """
+    try:
+        from webapp.services.backtest_engine import RealBacktestEngine
+        import numpy as np
+        
+        engine = RealBacktestEngine()
+        
+        # Run the backtest
+        all_results = {}
+        all_chart_data = {}
+        
+        for strategy in request.strategies:
+            result = await engine.run_backtest(
+                strategy=strategy,
+                symbol=request.symbol,
+                timeframe=request.timeframe,
+                days=request.days,
+                initial_balance=request.initial_balance,
+                risk_per_trade=request.risk_per_trade,
+                stop_loss_percent=request.stop_loss_percent,
+                take_profit_percent=request.take_profit_percent,
+                data_source=request.data_source
+            )
+            all_results[strategy] = result
+            
+            # Generate chart data with trade markers
+            trades = result.get("trades", [])
+            equity_curve = result.get("equity_curve", [])
+            
+            # Create trade markers for chart
+            trade_markers = []
+            for idx, trade in enumerate(trades):
+                # Entry marker
+                trade_markers.append({
+                    "type": "entry",
+                    "time": trade.get("entry_time", trade.get("open_time")),
+                    "price": trade.get("entry_price"),
+                    "side": trade.get("side", "long"),
+                    "size": trade.get("size", trade.get("quantity")),
+                    "trade_id": idx + 1,
+                    "color": "#00C853" if trade.get("side", "long") == "long" else "#FF5252",
+                    "icon": "▲" if trade.get("side", "long") == "long" else "▼"
+                })
+                # Exit marker
+                if trade.get("exit_price"):
+                    pnl = trade.get("pnl", trade.get("profit", 0))
+                    pnl_pct = trade.get("pnl_pct", trade.get("profit_pct", 0))
+                    trade_markers.append({
+                        "type": "exit",
+                        "time": trade.get("exit_time", trade.get("close_time")),
+                        "price": trade.get("exit_price"),
+                        "pnl": pnl,
+                        "pnl_pct": pnl_pct,
+                        "exit_reason": trade.get("exit_reason", "tp" if pnl > 0 else "sl"),
+                        "trade_id": idx + 1,
+                        "color": "#00C853" if pnl >= 0 else "#FF5252",
+                        "icon": "✓" if pnl >= 0 else "✗"
+                    })
+            
+            # Create drawdown segments for chart
+            drawdown_segments = []
+            peak = request.initial_balance
+            for point in equity_curve:
+                if point["equity"] > peak:
+                    peak = point["equity"]
+                dd = ((peak - point["equity"]) / peak) * 100 if peak > 0 else 0
+                drawdown_segments.append({
+                    "time": point.get("time"),
+                    "equity": point["equity"],
+                    "drawdown_pct": round(dd, 2)
+                })
+            
+            all_chart_data[strategy] = {
+                "trade_markers": trade_markers,
+                "equity_curve": equity_curve,
+                "drawdown_segments": drawdown_segments,
+                "total_trades": len(trades),
+                "winning_trades": sum(1 for t in trades if (t.get("pnl") or t.get("profit", 0)) > 0),
+                "losing_trades": sum(1 for t in trades if (t.get("pnl") or t.get("profit", 0)) <= 0)
+            }
+        
+        # Fetch OHLCV data for the chart background
+        data = await engine.fetch_klines(request.symbol, request.timeframe, request.days, request.data_source)
+        
+        ohlcv = []
+        if not data.empty:
+            for i, row in data.iterrows():
+                ts = int(row["timestamp"].timestamp() * 1000) if hasattr(row["timestamp"], "timestamp") else int(i.timestamp() * 1000)
+                ohlcv.append({
+                    "time": ts,
+                    "open": float(row["open"]),
+                    "high": float(row["high"]),
+                    "low": float(row["low"]),
+                    "close": float(row["close"]),
+                    "volume": float(row["volume"])
+                })
+        
+        # Calculate common indicators for overlay
+        indicators = {}
+        if not data.empty:
+            close = data["close"]
+            # RSI
+            delta = close.diff()
+            gain = delta.where(delta > 0, 0).rolling(14).mean()
+            loss = (-delta.where(delta < 0, 0)).rolling(14).mean()
+            rs = gain / loss.replace(0, np.nan)
+            indicators["rsi"] = (100 - (100 / (1 + rs))).fillna(50).tolist()
+            
+            # Bollinger Bands
+            sma20 = close.rolling(20).mean()
+            std20 = close.rolling(20).std()
+            indicators["bb_upper"] = (sma20 + 2 * std20).tolist()
+            indicators["bb_middle"] = sma20.tolist()
+            indicators["bb_lower"] = (sma20 - 2 * std20).tolist()
+            
+            # EMAs
+            indicators["ema_20"] = close.ewm(span=20).mean().tolist()
+            indicators["ema_50"] = close.ewm(span=50).mean().tolist()
+            
+            # MACD
+            ema12 = close.ewm(span=12).mean()
+            ema26 = close.ewm(span=26).mean()
+            macd_line = ema12 - ema26
+            signal_line = macd_line.ewm(span=9).mean()
+            indicators["macd_line"] = macd_line.tolist()
+            indicators["macd_signal"] = signal_line.tolist()
+            indicators["macd_histogram"] = (macd_line - signal_line).tolist()
+            
+            # Volume SMA
+            indicators["volume_sma"] = data["volume"].rolling(20).mean().tolist()
+        
+        return {
+            "success": True,
+            "symbol": request.symbol,
+            "timeframe": request.timeframe,
+            "days": request.days,
+            "results": all_results,
+            "chart_data": {
+                "ohlcv": ohlcv,
+                "indicators": indicators,
+                "strategies": all_chart_data
+            }
+        }
+        
+    except Exception as e:
+        logger.error(f"Run with chart error: {e}")
+        return {"success": False, "error": str(e)}
+
+
+@router.get("/trade-replay/{backtest_id}")
+async def get_trade_replay_data(backtest_id: int, user: dict = Depends(get_current_user)):
+    """
+    Get trade-by-trade replay data for a saved backtest.
+    Returns data formatted for step-through visualization.
+    """
+    user_id = user["user_id"]
+    try:
+        with get_db() as conn:
+            cur = conn.cursor()
+            cur.execute("""
+                SELECT * FROM backtest_results 
+                WHERE id = %s AND user_id = %s
+            """, (backtest_id, user_id))
+            row = cur.fetchone()
+        
+        if not row:
+            raise HTTPException(404, "Backtest not found")
+        
+        result = dict(row)
+        result_data = result.get("result_data", {})
+        if isinstance(result_data, str):
+            import json
+            result_data = json.loads(result_data)
+        
+        trades = result_data.get("trades", [])
+        equity_curve = result_data.get("equity_curve", [])
+        
+        # Build replay frames
+        replay_frames = []
+        current_position = None
+        current_equity = result.get("initial_balance", 10000)
+        
+        for idx, trade in enumerate(trades):
+            # Entry frame
+            replay_frames.append({
+                "frame_type": "entry",
+                "frame_index": len(replay_frames),
+                "time": trade.get("entry_time", trade.get("open_time")),
+                "trade_number": idx + 1,
+                "side": trade.get("side", "long"),
+                "entry_price": trade.get("entry_price"),
+                "size": trade.get("size", trade.get("quantity")),
+                "stop_loss": trade.get("stop_loss"),
+                "take_profit": trade.get("take_profit"),
+                "equity_before": current_equity,
+                "position_open": True,
+                "indicator_values": trade.get("entry_indicators", {}),
+                "signal_reason": trade.get("signal_reason", trade.get("entry_reason", "Strategy signal"))
+            })
+            
+            # Exit frame
+            if trade.get("exit_price"):
+                pnl = trade.get("pnl", trade.get("profit", 0))
+                current_equity += pnl
+                replay_frames.append({
+                    "frame_type": "exit",
+                    "frame_index": len(replay_frames),
+                    "time": trade.get("exit_time", trade.get("close_time")),
+                    "trade_number": idx + 1,
+                    "exit_price": trade.get("exit_price"),
+                    "pnl": pnl,
+                    "pnl_pct": trade.get("pnl_pct", trade.get("profit_pct", 0)),
+                    "exit_reason": trade.get("exit_reason", "TP" if pnl > 0 else "SL"),
+                    "equity_after": current_equity,
+                    "position_open": False,
+                    "cumulative_pnl": current_equity - result.get("initial_balance", 10000),
+                    "win_rate_so_far": round((sum(1 for t in trades[:idx+1] if (t.get("pnl") or t.get("profit", 0)) > 0) / (idx + 1)) * 100, 1)
+                })
+        
+        return {
+            "success": True,
+            "backtest_id": backtest_id,
+            "symbol": result.get("symbol"),
+            "strategy": result.get("strategy"),
+            "timeframe": result.get("timeframe"),
+            "total_frames": len(replay_frames),
+            "total_trades": len(trades),
+            "replay_frames": replay_frames,
+            "summary": {
+                "initial_balance": result.get("initial_balance", 10000),
+                "final_balance": result_data.get("final_balance", current_equity),
+                "total_pnl": result_data.get("total_pnl", current_equity - result.get("initial_balance", 10000)),
+                "win_rate": result_data.get("win_rate", 0),
+                "max_drawdown": result_data.get("max_drawdown", 0)
+            }
+        }
+        
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(f"Trade replay error: {e}")
+        return {"success": False, "error": str(e)}
+
+
+@router.get("/strategy-analytics/{strategy}")
+async def get_strategy_analytics(
+    strategy: str,
+    symbol: str = "BTCUSDT",
+    timeframe: str = "1h",
+    days: int = 30,
+    user: dict = Depends(rate_limit_backtest)
+):
+    """
+    Get comprehensive analytics for a strategy including:
+    - Performance by hour of day
+    - Performance by day of week
+    - Trade duration distribution
+    - Win/loss streaks
+    - Risk-adjusted metrics (Sharpe, Sortino, Calmar)
+    """
+    try:
+        from webapp.services.backtest_engine import RealBacktestEngine
+        import numpy as np
+        
+        engine = RealBacktestEngine()
+        result = await engine.run_backtest(
+            strategy=strategy,
+            symbol=symbol,
+            timeframe=timeframe,
+            days=days,
+            initial_balance=10000,
+            risk_per_trade=2.0,
+            stop_loss_percent=2.0,
+            take_profit_percent=4.0,
+            data_source="binance"
+        )
+        
+        trades = result.get("trades", [])
+        if not trades:
+            return {"success": True, "message": "No trades generated", "analytics": {}}
+        
+        # Performance by hour
+        hourly_pnl = {}
+        for trade in trades:
+            entry_time = trade.get("entry_time", trade.get("open_time", ""))
+            if entry_time:
+                try:
+                    from datetime import datetime
+                    if isinstance(entry_time, str):
+                        dt = datetime.fromisoformat(entry_time.replace("Z", "+00:00"))
+                    else:
+                        dt = datetime.fromtimestamp(entry_time / 1000) if entry_time > 1e10 else datetime.fromtimestamp(entry_time)
+                    hour = dt.hour
+                    pnl = trade.get("pnl", trade.get("profit", 0))
+                    if hour not in hourly_pnl:
+                        hourly_pnl[hour] = {"total_pnl": 0, "trades": 0, "wins": 0}
+                    hourly_pnl[hour]["total_pnl"] += pnl
+                    hourly_pnl[hour]["trades"] += 1
+                    if pnl > 0:
+                        hourly_pnl[hour]["wins"] += 1
+                except:
+                    pass
+        
+        # Performance by day of week
+        daily_pnl = {i: {"total_pnl": 0, "trades": 0, "wins": 0} for i in range(7)}
+        for trade in trades:
+            entry_time = trade.get("entry_time", trade.get("open_time", ""))
+            if entry_time:
+                try:
+                    from datetime import datetime
+                    if isinstance(entry_time, str):
+                        dt = datetime.fromisoformat(entry_time.replace("Z", "+00:00"))
+                    else:
+                        dt = datetime.fromtimestamp(entry_time / 1000) if entry_time > 1e10 else datetime.fromtimestamp(entry_time)
+                    day = dt.weekday()
+                    pnl = trade.get("pnl", trade.get("profit", 0))
+                    daily_pnl[day]["total_pnl"] += pnl
+                    daily_pnl[day]["trades"] += 1
+                    if pnl > 0:
+                        daily_pnl[day]["wins"] += 1
+                except:
+                    pass
+        
+        # Win/loss streaks
+        current_streak = 0
+        max_win_streak = 0
+        max_loss_streak = 0
+        is_winning = None
+        
+        for trade in trades:
+            pnl = trade.get("pnl", trade.get("profit", 0))
+            if pnl > 0:
+                if is_winning == True:
+                    current_streak += 1
+                else:
+                    current_streak = 1
+                    is_winning = True
+                max_win_streak = max(max_win_streak, current_streak)
+            else:
+                if is_winning == False:
+                    current_streak += 1
+                else:
+                    current_streak = 1
+                    is_winning = False
+                max_loss_streak = max(max_loss_streak, current_streak)
+        
+        # Risk metrics
+        returns = [t.get("pnl_pct", t.get("profit_pct", 0)) for t in trades]
+        if returns:
+            returns_arr = np.array(returns)
+            avg_return = np.mean(returns_arr)
+            std_return = np.std(returns_arr) if len(returns_arr) > 1 else 1
+            downside_returns = returns_arr[returns_arr < 0]
+            downside_std = np.std(downside_returns) if len(downside_returns) > 1 else 1
+            
+            sharpe = (avg_return / std_return) * np.sqrt(252) if std_return > 0 else 0
+            sortino = (avg_return / downside_std) * np.sqrt(252) if downside_std > 0 else 0
+            
+            max_dd = result.get("max_drawdown", 1)
+            total_return = result.get("total_return_pct", result.get("return_pct", 0))
+            calmar = total_return / abs(max_dd) if max_dd != 0 else 0
+        else:
+            sharpe = sortino = calmar = 0
+        
+        day_names = ["Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday", "Sunday"]
+        
+        return {
+            "success": True,
+            "strategy": strategy,
+            "symbol": symbol,
+            "analytics": {
+                "performance_by_hour": {
+                    str(h): {
+                        "total_pnl": round(v["total_pnl"], 2),
+                        "trades": v["trades"],
+                        "win_rate": round((v["wins"] / v["trades"]) * 100, 1) if v["trades"] > 0 else 0
+                    }
+                    for h, v in sorted(hourly_pnl.items())
+                },
+                "performance_by_day": {
+                    day_names[d]: {
+                        "total_pnl": round(v["total_pnl"], 2),
+                        "trades": v["trades"],
+                        "win_rate": round((v["wins"] / v["trades"]) * 100, 1) if v["trades"] > 0 else 0
+                    }
+                    for d, v in daily_pnl.items()
+                },
+                "streaks": {
+                    "max_winning_streak": max_win_streak,
+                    "max_losing_streak": max_loss_streak
+                },
+                "risk_metrics": {
+                    "sharpe_ratio": round(sharpe, 2),
+                    "sortino_ratio": round(sortino, 2),
+                    "calmar_ratio": round(calmar, 2)
+                },
+                "trade_stats": {
+                    "total_trades": len(trades),
+                    "winning_trades": sum(1 for t in trades if (t.get("pnl") or t.get("profit", 0)) > 0),
+                    "losing_trades": sum(1 for t in trades if (t.get("pnl") or t.get("profit", 0)) <= 0),
+                    "avg_win": round(np.mean([t.get("pnl", t.get("profit", 0)) for t in trades if (t.get("pnl") or t.get("profit", 0)) > 0]), 2) if any((t.get("pnl") or t.get("profit", 0)) > 0 for t in trades) else 0,
+                    "avg_loss": round(np.mean([t.get("pnl", t.get("profit", 0)) for t in trades if (t.get("pnl") or t.get("profit", 0)) <= 0]), 2) if any((t.get("pnl") or t.get("profit", 0)) <= 0 for t in trades) else 0
+                }
+            }
+        }
+        
+    except Exception as e:
+        logger.error(f"Strategy analytics error: {e}")
         return {"success": False, "error": str(e)}
