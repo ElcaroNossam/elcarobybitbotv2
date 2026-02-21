@@ -120,8 +120,11 @@ class SQLiteCompatCursor:
         pg_query = _sqlite_to_pg(query)
         
         # Handle RETURNING id for INSERT statements - but only for tables with 'id' column
-        # Skip for tables with composite primary keys: active_positions, user_strategy_settings
-        tables_without_id = ['active_positions', 'user_strategy_settings', 'pending_limit_orders']
+        # Skip for tables with composite/non-id primary keys
+        tables_without_id = [
+            'active_positions', 'user_strategy_settings', 'pending_limit_orders',
+            'users', 'pyramids'  # users.user_id, pyramids.(user_id,symbol,exchange)
+        ]
         has_id_column = True
         for table in tables_without_id:
             if table.lower() in pg_query.lower():

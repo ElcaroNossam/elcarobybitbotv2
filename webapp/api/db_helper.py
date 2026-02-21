@@ -114,8 +114,11 @@ class _DictCompatCursor:
         
         # Add RETURNING id for INSERT statements if not present
         if 'INSERT' in pg_query.upper() and 'RETURNING' not in pg_query.upper():
-            # Skip for tables without id column
-            tables_without_id = ['active_positions', 'user_strategy_settings', 'pending_limit_orders']
+            # Skip for tables without id column (composite/non-id primary keys)
+            tables_without_id = [
+                'active_positions', 'user_strategy_settings', 'pending_limit_orders',
+                'users', 'pyramids'  # users.user_id, pyramids.(user_id,symbol,exchange)
+            ]
             has_id_column = True
             for table in tables_without_id:
                 if table.lower() in pg_query.lower():
