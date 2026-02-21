@@ -371,8 +371,10 @@ TEXTS = {
     'prompt_be_trigger': 'Введите триггер безубытка % (напр., 1.0):',
     'prompt_long_be_trigger': '📈 LONG триггер BE %\n\nВведите % прибыли для переноса SL на вход:',
     'prompt_short_be_trigger': '📉 SHORT триггер BE %\n\nВведите % прибыли для переноса SL на вход:',
+    'prompt_long_be_offset': '📈 LONG офсет BE %\n\nВведите % выше входа для SL:',
+    'prompt_short_be_offset': '📉 SHORT офсет BE %\n\nВведите % ниже входа для SL:',
     'param_be_trigger': '🎯 Триггер BE %',
-    'be_moved_to_entry': '🔒 {symbol}: Стоп-лосс перенесён на вход @ {entry}',
+    'be_moved_to_entry': '🔒 {symbol}: SL перенесён на вход +{offset}% @ {price}',
     'be_status_enabled': '✅ BE: {trigger}%',
     'be_status_disabled': '❌ BE: Выкл',
     

@@ -9872,6 +9872,7 @@ def get_strategy_side_keyboard(strategy: str, side: str, t: dict, settings: dict
         be_enabled = defaults.get("be_enabled", 0)
     be_enabled = bool(be_enabled)
     be_trigger = settings.get(f"{side}_be_trigger_pct") or defaults.get("be_trigger_pct", 1.0)
+    be_offset = settings.get(f"{side}_be_offset_pct") or defaults.get("be_offset_pct", 0.15)
     
     # DCA settings
     dca_enabled = settings.get(f"{side}_dca_enabled")
@@ -9937,10 +9938,10 @@ def get_strategy_side_keyboard(strategy: str, side: str, t: dict, settings: dict
     )])
     
     if be_enabled:
-        buttons.append([InlineKeyboardButton(
-            f"   🎯 BE Trigger: {be_trigger}%", 
-            callback_data=f"strat_param:{strategy}:{side}_be_trigger_pct"
-        )])
+        buttons.append([
+            InlineKeyboardButton(f"🎯 Trigger: {be_trigger}%", callback_data=f"strat_param:{strategy}:{side}_be_trigger_pct"),
+            InlineKeyboardButton(f"📏 Offset: +{be_offset}%", callback_data=f"strat_param:{strategy}:{side}_be_offset_pct")
+        ])
     
     # ══════════════════════════════════════════════════════════════
     # 📉 DCA GROUP
@@ -11014,6 +11015,7 @@ async def callback_strategy_settings(update: Update, ctx: ContextTypes.DEFAULT_T
             "long_atr_trigger_pct": t.get('prompt_long_atr_trigger', '📈 LONG Trigger % (profit to activate):'),
             "long_atr_step_pct": t.get('prompt_long_atr_step', '📈 LONG Step % (SL distance):'),
             "long_be_trigger_pct": t.get('prompt_long_be_trigger', '📈 LONG BE Trigger % (move SL to entry):'),
+            "long_be_offset_pct": t.get('prompt_long_be_offset', '📈 LONG BE Offset % (SL above/below entry):'),
             # LONG Partial TP settings
             "long_partial_tp_1_trigger_pct": t.get('prompt_long_ptp_1_trigger', '📈 LONG Step 1: Trigger % (profit to close part):'),
             "long_partial_tp_1_close_pct": t.get('prompt_long_ptp_1_close', '📈 LONG Step 1: Close % (part of position):'),
@@ -11027,6 +11029,7 @@ async def callback_strategy_settings(update: Update, ctx: ContextTypes.DEFAULT_T
             "short_atr_trigger_pct": t.get('prompt_short_atr_trigger', '📉 SHORT Trigger % (profit to activate):'),
             "short_atr_step_pct": t.get('prompt_short_atr_step', '📉 SHORT Step % (SL distance):'),
             "short_be_trigger_pct": t.get('prompt_short_be_trigger', '📉 SHORT BE Trigger % (move SL to entry):'),
+            "short_be_offset_pct": t.get('prompt_short_be_offset', '📉 SHORT BE Offset % (SL above/below entry):'),
             # SHORT Partial TP settings
             "short_partial_tp_1_trigger_pct": t.get('prompt_short_ptp_1_trigger', '📉 SHORT Step 1: Trigger % (profit to close part):'),
             "short_partial_tp_1_close_pct": t.get('prompt_short_ptp_1_close', '📉 SHORT Step 1: Close % (part of position):'),
@@ -23568,12 +23571,20 @@ async def monitor_positions_loop(app: Application):
                             # === BREAK-EVEN (BE) LOGIC ===
                             # Move SL to entry price + small profit offset when profit reaches be_trigger_pct
                             # This runs BEFORE ATR trailing and fixed SL logic
-                            # BE_OFFSET = 0.15% - locks in a small profit instead of exact breakeven
-                            BE_OFFSET_PCT = 0.15  # Lock in 0.15% profit when moving to BE
+                            # BE_OFFSET = configurable % - locks in a small profit instead of exact breakeven
+                            # Get BE offset from strategy settings (per-side), fallback to global default (0.15%)
+                            side_prefix = "long" if side == "Buy" else "short"
+                            be_offset_pct = 0.15  # Default
+                            if strat_settings:
+                                side_be_offset = strat_settings.get(f"{side_prefix}_be_offset_pct")
+                                if side_be_offset is not None:
+                                    be_offset_pct = float(side_be_offset)
+                                elif strat_settings.get("be_offset_pct") is not None:
+                                    be_offset_pct = float(strat_settings.get("be_offset_pct"))
                             if be_enabled and move_pct >= be_trigger_pct and not _be_triggered.get(key, False):
                                 # Position is in profit by at least be_trigger_pct - move SL to break-even+offset
                                 # For Buy: SL above entry (locks profit), For Sell: SL below entry (locks profit)
-                                be_sl = entry * (1 + BE_OFFSET_PCT / 100) if side == "Buy" else entry * (1 - BE_OFFSET_PCT / 100)
+                                be_sl = entry * (1 + be_offset_pct / 100) if side == "Buy" else entry * (1 - be_offset_pct / 100)
                                 
                                 # Check if current SL is worse than BE SL (not yet at break-even)
                                 should_move_to_be = (
@@ -23599,14 +23610,15 @@ async def monitor_positions_loop(app: Application):
                                         # Update SL in database so it persists across bot restarts
                                         db.update_position_sltp(uid, sym, sl_price=be_sl_quantized, account_type=pos_account_type, exchange=current_exchange, respect_manual_override=False)
                                         
-                                        logger.info(f"[BE-ACTIVATED] {sym} uid={uid} - SL moved to BE+0.15% @ {be_sl_quantized:.6f} (entry={entry:.6f}, was {current_sl}, move_pct={move_pct:.2f}%)")
+                                        logger.info(f"[BE-ACTIVATED] {sym} uid={uid} - SL moved to BE+{be_offset_pct}% @ {be_sl_quantized:.6f} (entry={entry:.6f}, was {current_sl}, move_pct={move_pct:.2f}%)")
                                         
                                         # Notify user
                                         try:
                                             await safe_send_notification(
                                                 bot, uid,
-                                                t.get('be_moved_to_entry', "🔄 Break-Even: {symbol} SL → +0.15% @ {price}").format(
+                                                t.get('be_moved_to_entry', "🔄 Break-Even: {symbol} SL → +{offset}% @ {price}").format(
                                                     symbol=sym,
+                                                    offset=be_offset_pct,
                                                     price=be_sl_quantized
                                                 )
                                             )

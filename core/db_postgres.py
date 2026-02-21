@@ -2163,7 +2163,7 @@ def _pg_set_side_setting(user_id: int, strategy: str, side: str, field: str, val
         'use_atr', 'atr_periods', 'atr_multiplier_sl', 'atr_trigger_pct', 'atr_step_pct', 'order_type',
         'limit_offset_pct', 'dca_enabled', 'dca_pct_1', 'dca_pct_2',
         'max_positions', 'coins_group', 'trading_mode', 'direction',
-        'account_type', 'be_enabled', 'be_trigger_pct',  # Break-Even
+        'account_type', 'be_enabled', 'be_trigger_pct', 'be_offset_pct',  # Break-Even
         # Partial Take Profit (срез маржи)
         'partial_tp_enabled', 'partial_tp_1_trigger_pct', 'partial_tp_1_close_pct',
         'partial_tp_2_trigger_pct', 'partial_tp_2_close_pct'

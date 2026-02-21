@@ -16,13 +16,13 @@ struct PositionsView: View {
     @State private var positionToClose: Position?
     
     var body: some View {
-        NavigationStack {
-            ZStack {
-                Color.enlikoBackground.ignoresSafeArea()
-                
-                VStack(spacing: 0) {
-                    // Account Selector
-                    accountSelector
+        // NOTE: No NavigationStack here - this view is pushed from other NavigationStacks
+        ZStack {
+            Color.enlikoBackground.ignoresSafeArea()
+            
+            VStack(spacing: 0) {
+                // Account Selector
+                accountSelector
                         .padding(.horizontal)
                         .padding(.vertical, 8)
                     
@@ -82,7 +82,6 @@ struct PositionsView: View {
                 await tradingService.fetchPositions()
                 await tradingService.fetchOrders()
             }
-        }
     }
     
     // MARK: - Tab Selector
@@ -409,7 +408,13 @@ struct PositionCard: View {
                 )
         )
         .shadow(color: (isLong ? Color.enlikoGreen : Color.enlikoRed).opacity(0.1), radius: 8, y: 4)
-        .onTapGesture { withAnimation(.spring(response: 0.3)) { isExpanded.toggle() } }
+        .contentShape(Rectangle())
+        .simultaneousGesture(
+            TapGesture()
+                .onEnded { _ in
+                    withAnimation(.spring(response: 0.3)) { isExpanded.toggle() }
+                }
+        )
     }
 }
 

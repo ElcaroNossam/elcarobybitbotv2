@@ -383,8 +383,10 @@ TEXTS = {
     'prompt_be_trigger': 'Enter Break-Even Trigger % (e.g., 1.0):',
     'prompt_long_be_trigger': '📈 LONG BE Trigger %\n\nEnter profit % to move SL to entry:',
     'prompt_short_be_trigger': '📉 SHORT BE Trigger %\n\nEnter profit % to move SL to entry:',
+    'prompt_long_be_offset': '📈 LONG BE Offset %\n\nEnter offset % above entry for SL:',
+    'prompt_short_be_offset': '📉 SHORT BE Offset %\n\nEnter offset % below entry for SL:',
     'param_be_trigger': '🎯 BE Trigger %',
-    'be_moved_to_entry': '🔒 {symbol}: Stop-loss moved to entry @ {entry}',
+    'be_moved_to_entry': '🔒 {symbol}: SL moved to entry +{offset}% @ {price}',
     'be_status_enabled': '✅ BE: {trigger}%',
     'be_status_disabled': '❌ BE: Off',
     
