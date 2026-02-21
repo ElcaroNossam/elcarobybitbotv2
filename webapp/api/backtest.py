@@ -36,6 +36,7 @@ class BacktestRequest(BaseModel):
     risk_per_trade: float = 1.0
     stop_loss_percent: float = 2.0
     take_profit_percent: float = 4.0
+    data_source: str = "binance"  # binance, bybit, hyperliquid
 
 
 class MultiSymbolBacktestRequest(BaseModel):
@@ -48,6 +49,7 @@ class MultiSymbolBacktestRequest(BaseModel):
     stop_loss_percent: float = 2.0
     take_profit_percent: float = 4.0
     allocation_mode: str = "equal"  # equal, weighted, dynamic
+    data_source: str = "binance"
 
 
 class WalkForwardRequest(BaseModel):
@@ -59,6 +61,7 @@ class WalkForwardRequest(BaseModel):
     n_folds: int = 3
     initial_balance: float = 10000
     param_ranges: Optional[Dict[str, List[float]]] = None
+    data_source: str = "binance"
 
 
 class CustomBacktestRequest(BaseModel):
@@ -71,6 +74,7 @@ class CustomBacktestRequest(BaseModel):
     stop_loss_percent: float = 2.0
     take_profit_percent: float = 4.0
     save_results: bool = True  # Save results to strategy record
+    data_source: str = "binance"
 
 
 class BacktestResponse(BaseModel):
@@ -82,14 +86,23 @@ class BacktestResponse(BaseModel):
 
 # Rate limiting for expensive backtest operations
 from core.rate_limiter import RateLimiter
+from starlette.requests import Request
 _backtest_limiter = RateLimiter()
 _backtest_limiter.set_limit("backtest", capacity=5, refill_rate=0.5)  # 5 requests, 0.5/sec refill
+_backtest_limiter.set_limit("oi_data", capacity=10, refill_rate=1.0)  # 10 requests, 1/sec refill
 
 async def rate_limit_backtest(user: dict = Depends(get_current_user)):
     """Rate limit backtest requests per user"""
     user_id = user["user_id"]
     if not _backtest_limiter._get_or_create_bucket(str(user_id), "backtest").try_acquire():
         raise HTTPException(429, "Too many backtest requests. Please wait.")
+    return user
+
+async def rate_limit_oi_data(user: dict = Depends(get_current_user)):
+    """Rate limit OI data requests per user"""
+    user_id = user["user_id"]
+    if not _backtest_limiter._get_or_create_bucket(str(user_id), "oi_data").try_acquire():
+        raise HTTPException(429, "Too many OI data requests. Please wait.")
     return user
 
 
@@ -154,7 +167,8 @@ async def run_backtest_with_progress(backtest_id: str, request: BacktestRequest)
                 initial_balance=request.initial_balance,
                 risk_per_trade=request.risk_per_trade,
                 stop_loss_percent=request.stop_loss_percent,
-                take_profit_percent=request.take_profit_percent
+                take_profit_percent=request.take_profit_percent,
+                data_source=request.data_source
             )
             all_results[strategy] = result
         
@@ -186,7 +200,8 @@ async def run_backtest(request: BacktestRequest, user: dict = Depends(rate_limit
                 initial_balance=request.initial_balance,
                 risk_per_trade=request.risk_per_trade,
                 stop_loss_percent=request.stop_loss_percent,
-                take_profit_percent=request.take_profit_percent
+                take_profit_percent=request.take_profit_percent,
+                data_source=request.data_source
             )
             all_results[strategy] = result
         
@@ -244,7 +259,8 @@ async def run_custom_backtest(request: CustomBacktestRequest, user: dict = Depen
             risk_per_trade=request.risk_per_trade,
             stop_loss_percent=request.stop_loss_percent,
             take_profit_percent=request.take_profit_percent,
-            custom_strategy_id=request.strategy_id
+            custom_strategy_id=request.strategy_id,
+            data_source=request.data_source
         )
         
         # Save results to strategy record if requested and user is owner
@@ -283,7 +299,8 @@ async def run_multi_symbol_backtest(request: MultiSymbolBacktestRequest, user: d
             risk_per_trade=request.risk_per_trade,
             stop_loss_percent=request.stop_loss_percent,
             take_profit_percent=request.take_profit_percent,
-            allocation_mode=request.allocation_mode
+            allocation_mode=request.allocation_mode,
+            data_source=request.data_source
         )
         
         return {
@@ -311,6 +328,7 @@ class MonteCarloRequest(BaseModel):
     take_profit_percent: float = 4.0
     n_simulations: int = 1000
     confidence_level: float = 0.95
+    data_source: str = "binance"
 
 
 class OptimizationRequest(BaseModel):
@@ -320,6 +338,7 @@ class OptimizationRequest(BaseModel):
     days: int = 30
     initial_balance: float = 10000
     param_grid: Optional[Dict[str, List[float]]] = None
+    data_source: str = "binance"
 
 
 @router.post("/monte-carlo")
@@ -410,7 +429,8 @@ async def run_walk_forward_optimization(request: WalkForwardRequest, user: dict 
             in_sample_ratio=request.in_sample_ratio,
             n_folds=request.n_folds,
             param_ranges=param_ranges,
-            initial_balance=request.initial_balance
+            initial_balance=request.initial_balance,
+            data_source=request.data_source
         )
         
         return {
@@ -2143,8 +2163,20 @@ async def copy_strategy(strategy_id: int, user: dict = Depends(get_current_user)
             
             # Check if premium and payment required
             if original["visibility"] == "premium" and original.get("price", 0) > 0:
-                # TODO: Check payment status
-                pass
+                # Check if user has purchased this strategy
+                cur.execute("""
+                    SELECT id FROM strategy_purchases 
+                    WHERE strategy_id = ? AND buyer_id = ? AND is_active = TRUE
+                """, (strategy_id, user_id))
+                has_purchased = cur.fetchone() is not None
+                
+                if not has_purchased:
+                    return {
+                        "success": False, 
+                        "error": "This is a premium strategy. Please purchase it first.",
+                        "requires_payment": True,
+                        "price": original.get("price", 0)
+                    }
             
             # Create copy for user
             now = datetime.now().isoformat()
@@ -2324,3 +2356,313 @@ async def get_live_status(user_id: int, user: dict = Depends(get_current_user)):
     except Exception as e:
         return {"success": False, "error": str(e), "active_deployments": []}
 
+
+# ============================================================
+# OPEN INTEREST DATA ENDPOINT
+# ============================================================
+
+class OIDataRequest(BaseModel):
+    symbol: str
+    timeframe: str = "1h"  # 5m, 15m, 30m, 1h, 4h, 1d
+    days: int = 30
+
+
+@router.post("/oi-data")
+async def get_oi_data(req: OIDataRequest, user: dict = Depends(rate_limit_oi_data)):
+    """Get historical Open Interest data for backtesting
+    
+    Returns OI data from Bybit for specified symbol and timeframe.
+    Used by RSI_BB_OI strategy to analyze OI changes.
+    """
+    engine = RealBacktestEngine()
+    oi_data = await engine.fetch_oi_data(
+        symbol=req.symbol,
+        timeframe=req.timeframe,
+        days=req.days
+    )
+    
+    # Calculate OI changes
+    enriched_data = []
+    for i, point in enumerate(oi_data):
+        oi_change_pct = 0.0
+        if i > 0 and oi_data[i-1]["open_interest"] > 0:
+            oi_change_pct = (
+                (point["open_interest"] - oi_data[i-1]["open_interest"]) 
+                / oi_data[i-1]["open_interest"]
+            ) * 100
+        
+        enriched_data.append({
+            "timestamp": point["timestamp"],
+            "time": point["time"],
+            "open_interest": point["open_interest"],
+            "oi_change_pct": round(oi_change_pct, 2)
+        })
+    
+    return {
+        "success": True,
+        "symbol": req.symbol,
+        "timeframe": req.timeframe,
+        "data_points": len(enriched_data),
+        "data": enriched_data
+    }
+
+# ============================================================
+# BACKTEST RESULTS SAVE/LOAD/COMPARE
+# ============================================================
+
+class SaveBacktestRequest(BaseModel):
+    name: str
+    strategy: str
+    symbol: str
+    timeframe: str
+    initial_capital: float = 10000
+    leverage: int = 10
+    tp_percent: float = None
+    sl_percent: float = None
+    # Results
+    total_trades: int
+    winning_trades: int
+    losing_trades: int
+    win_rate: float
+    total_pnl: float
+    max_drawdown: float
+    sharpe_ratio: float
+    profit_factor: float
+    # Optional detailed data
+    trades_json: List[Dict] = None
+    equity_curve: List[Dict] = None
+
+
+@router.post("/results/save")
+async def save_backtest_result(request: SaveBacktestRequest, user: dict = Depends(get_current_user)):
+    """Save backtest result for later comparison
+    
+    Stores backtest configuration and results in database for user.
+    """
+    user_id = user["user_id"]
+    try:
+        with get_db() as conn:
+            cur = conn.cursor()
+            cur.execute("""
+                INSERT INTO backtest_results 
+                (user_id, name, strategy, symbol, timeframe, initial_capital, leverage,
+                 tp_percent, sl_percent, total_trades, winning_trades, losing_trades,
+                 win_rate, total_pnl, max_drawdown, sharpe_ratio, profit_factor,
+                 trades_json, equity_curve, created_at)
+                VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, NOW())
+                RETURNING id
+            """, (
+                user_id, request.name, request.strategy, request.symbol, request.timeframe,
+                request.initial_capital, request.leverage, request.tp_percent, request.sl_percent,
+                request.total_trades, request.winning_trades, request.losing_trades,
+                request.win_rate, request.total_pnl, request.max_drawdown,
+                request.sharpe_ratio, request.profit_factor,
+                json.dumps(request.trades_json) if request.trades_json else None,
+                json.dumps(request.equity_curve) if request.equity_curve else None
+            ))
+            result = cur.fetchone()
+            backtest_id = result[0] if result else None
+            conn.commit()
+        
+        return {"success": True, "backtest_id": backtest_id, "message": f"Backtest '{request.name}' saved"}
+    except Exception as e:
+        return {"success": False, "error": str(e)}
+
+
+@router.get("/results/list")
+async def list_saved_backtests(
+    user: dict = Depends(get_current_user),
+    limit: int = Query(default=50, le=100),
+    strategy: str = Query(default=None)
+):
+    """Get list of saved backtest results for user"""
+    user_id = user["user_id"]
+    try:
+        with get_db() as conn:
+            cur = conn.cursor()
+            
+            if strategy:
+                cur.execute("""
+                    SELECT id, name, strategy, symbol, timeframe, initial_capital,
+                           total_trades, win_rate, total_pnl, max_drawdown, sharpe_ratio,
+                           profit_factor, created_at
+                    FROM backtest_results 
+                    WHERE user_id = %s AND strategy = %s
+                    ORDER BY created_at DESC
+                    LIMIT %s
+                """, (user_id, strategy, limit))
+            else:
+                cur.execute("""
+                    SELECT id, name, strategy, symbol, timeframe, initial_capital,
+                           total_trades, win_rate, total_pnl, max_drawdown, sharpe_ratio,
+                           profit_factor, created_at
+                    FROM backtest_results 
+                    WHERE user_id = %s
+                    ORDER BY created_at DESC
+                    LIMIT %s
+                """, (user_id, limit))
+            
+            rows = cur.fetchall()
+        
+        results = []
+        for row in rows:
+            results.append({
+                "id": row[0],
+                "name": row[1],
+                "strategy": row[2],
+                "symbol": row[3],
+                "timeframe": row[4],
+                "initial_capital": row[5],
+                "total_trades": row[6],
+                "win_rate": row[7],
+                "total_pnl": row[8],
+                "max_drawdown": row[9],
+                "sharpe_ratio": row[10],
+                "profit_factor": row[11],
+                "created_at": row[12].isoformat() if row[12] else None
+            })
+        
+        return {"success": True, "results": results, "total": len(results)}
+    except Exception as e:
+        return {"success": False, "error": str(e), "results": []}
+
+
+@router.get("/results/{backtest_id}")
+async def get_backtest_result(backtest_id: int, user: dict = Depends(get_current_user)):
+    """Get full backtest result by ID"""
+    user_id = user["user_id"]
+    try:
+        with get_db() as conn:
+            cur = conn.cursor()
+            cur.execute("""
+                SELECT * FROM backtest_results 
+                WHERE id = %s AND user_id = %s
+            """, (backtest_id, user_id))
+            row = cur.fetchone()
+        
+        if not row:
+            raise HTTPException(404, "Backtest result not found")
+        
+        # Convert row to dict based on column names
+        columns = ["id", "user_id", "name", "strategy", "symbol", "timeframe", 
+                   "start_date", "end_date", "initial_capital", "leverage",
+                   "tp_percent", "sl_percent", "total_trades", "winning_trades",
+                   "losing_trades", "win_rate", "total_pnl", "max_drawdown",
+                   "sharpe_ratio", "profit_factor", "trades_json", "equity_curve", "created_at"]
+        
+        result = {}
+        for i, col in enumerate(columns):
+            if i < len(row):
+                val = row[i]
+                if col in ("trades_json", "equity_curve") and val:
+                    result[col] = json.loads(val) if isinstance(val, str) else val
+                elif col == "created_at" and val:
+                    result[col] = val.isoformat()
+                else:
+                    result[col] = val
+        
+        return {"success": True, "result": result}
+    except HTTPException:
+        raise
+    except Exception as e:
+        return {"success": False, "error": str(e)}
+
+
+class CompareBacktestsRequest(BaseModel):
+    backtest_ids: List[int]
+
+
+@router.post("/results/compare")
+async def compare_saved_backtests(request: CompareBacktestsRequest, user: dict = Depends(get_current_user)):
+    """Compare multiple saved backtest results
+    
+    Returns side-by-side comparison of key metrics.
+    """
+    user_id = user["user_id"]
+    
+    if len(request.backtest_ids) < 2:
+        return {"success": False, "error": "At least 2 backtests required for comparison"}
+    
+    if len(request.backtest_ids) > 10:
+        return {"success": False, "error": "Maximum 10 backtests can be compared"}
+    
+    try:
+        with get_db() as conn:
+            cur = conn.cursor()
+            
+            placeholders = ",".join(["%s"] * len(request.backtest_ids))
+            cur.execute(f"""
+                SELECT id, name, strategy, symbol, timeframe, initial_capital,
+                       total_trades, winning_trades, losing_trades, win_rate,
+                       total_pnl, max_drawdown, sharpe_ratio, profit_factor, created_at
+                FROM backtest_results 
+                WHERE user_id = %s AND id IN ({placeholders})
+            """, [user_id] + request.backtest_ids)
+            
+            rows = cur.fetchall()
+        
+        if len(rows) < 2:
+            return {"success": False, "error": "Not enough backtests found for comparison"}
+        
+        backtests = []
+        for row in rows:
+            backtests.append({
+                "id": row[0],
+                "name": row[1],
+                "strategy": row[2],
+                "symbol": row[3],
+                "timeframe": row[4],
+                "initial_capital": row[5],
+                "total_trades": row[6],
+                "winning_trades": row[7],
+                "losing_trades": row[8],
+                "win_rate": row[9],
+                "total_pnl": row[10],
+                "max_drawdown": row[11],
+                "sharpe_ratio": row[12],
+                "profit_factor": row[13],
+                "created_at": row[14].isoformat() if row[14] else None
+            })
+        
+        # Calculate comparison metrics
+        best_win_rate = max(backtests, key=lambda x: x["win_rate"] or 0)
+        best_pnl = max(backtests, key=lambda x: x["total_pnl"] or 0)
+        best_sharpe = max(backtests, key=lambda x: x["sharpe_ratio"] or 0)
+        lowest_drawdown = min(backtests, key=lambda x: abs(x["max_drawdown"] or 0))
+        
+        return {
+            "success": True,
+            "backtests": backtests,
+            "comparison": {
+                "best_win_rate": {"id": best_win_rate["id"], "name": best_win_rate["name"], "value": best_win_rate["win_rate"]},
+                "best_pnl": {"id": best_pnl["id"], "name": best_pnl["name"], "value": best_pnl["total_pnl"]},
+                "best_sharpe": {"id": best_sharpe["id"], "name": best_sharpe["name"], "value": best_sharpe["sharpe_ratio"]},
+                "lowest_drawdown": {"id": lowest_drawdown["id"], "name": lowest_drawdown["name"], "value": lowest_drawdown["max_drawdown"]}
+            }
+        }
+    except Exception as e:
+        return {"success": False, "error": str(e)}
+
+
+@router.delete("/results/{backtest_id}")
+async def delete_backtest_result(backtest_id: int, user: dict = Depends(get_current_user)):
+    """Delete a saved backtest result"""
+    user_id = user["user_id"]
+    try:
+        with get_db() as conn:
+            cur = conn.cursor()
+            cur.execute("""
+                DELETE FROM backtest_results 
+                WHERE id = %s AND user_id = %s
+            """, (backtest_id, user_id))
+            deleted = cur.rowcount
+            conn.commit()
+        
+        if deleted == 0:
+            raise HTTPException(404, "Backtest result not found")
+        
+        return {"success": True, "message": "Backtest result deleted"}
+    except HTTPException:
+        raise
+    except Exception as e:
+        return {"success": False, "error": str(e)}

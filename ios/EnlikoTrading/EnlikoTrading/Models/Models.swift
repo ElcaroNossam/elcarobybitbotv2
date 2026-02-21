@@ -1130,6 +1130,7 @@ struct BacktestRequest: Codable {
     let riskPerTrade: Double
     let stopLossPercent: Double
     let takeProfitPercent: Double
+    let dataSource: String
     
     enum CodingKeys: String, CodingKey {
         case strategy
@@ -1140,6 +1141,22 @@ struct BacktestRequest: Codable {
         case riskPerTrade = "risk_per_trade"
         case stopLossPercent = "stop_loss_percent"
         case takeProfitPercent = "take_profit_percent"
+        case dataSource = "data_source"
+    }
+    
+    init(strategy: String, symbol: String, timeframe: String, days: Int, 
+         initialBalance: Double, riskPerTrade: Double, 
+         stopLossPercent: Double, takeProfitPercent: Double,
+         dataSource: String = "binance") {
+        self.strategy = strategy
+        self.symbol = symbol
+        self.timeframe = timeframe
+        self.days = days
+        self.initialBalance = initialBalance
+        self.riskPerTrade = riskPerTrade
+        self.stopLossPercent = stopLossPercent
+        self.takeProfitPercent = takeProfitPercent
+        self.dataSource = dataSource
     }
 }
 

@@ -257,6 +257,28 @@ interface EnlikoApi {
 
     @PUT("/api/spot/dca-settings")
     suspend fun updateSpotDcaSettings(@Body settings: SpotDcaSettings): Response<Unit>
+
+    // ==================== BACKTEST ====================
+    @POST("/api/backtest/run")
+    suspend fun runBacktest(
+        @Body request: io.enliko.trading.ui.screens.strategies.BacktestRunRequest
+    ): Response<io.enliko.trading.ui.screens.strategies.BacktestResultResponse>
+
+    @GET("/api/backtest/strategies")
+    suspend fun getBacktestStrategies(): Response<io.enliko.trading.ui.screens.strategies.StrategiesResponse>
+
+    @GET("/api/backtest/saved")
+    suspend fun getSavedBacktests(): Response<List<io.enliko.trading.ui.screens.strategies.SavedBacktest>>
+
+    @POST("/api/backtest/save")
+    suspend fun saveBacktest(
+        @Body request: Map<String, @JvmSuppressWildcards Any>
+    ): Response<Unit>
+
+    @DELETE("/api/backtest/saved/{id}")
+    suspend fun deleteBacktest(
+        @Path("id") id: String
+    ): Response<Unit>
 }
 
 // ==================== REQUEST/RESPONSE MODELS ====================

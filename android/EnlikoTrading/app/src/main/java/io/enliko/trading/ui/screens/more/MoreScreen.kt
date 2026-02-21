@@ -106,6 +106,13 @@ fun MoreScreen(
                 color = LongGreen
             ),
             MoreMenuItem(
+                id = "backtest",
+                title = "Backtest",
+                subtitle = "Test Strategies",
+                icon = Icons.Filled.Science,
+                color = Color(0xFF7C3AED)
+            ),
+            MoreMenuItem(
                 id = "spot",
                 title = "Spot Trading",
                 subtitle = "Buy & Sell",

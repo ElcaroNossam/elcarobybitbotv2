@@ -131,7 +131,8 @@ class StrategyService: ObservableObject {
         initialBalance: Double,
         riskPerTrade: Double,
         slPercent: Double,
-        tpPercent: Double
+        tpPercent: Double,
+        dataSource: String = "binance"
     ) async -> BacktestResult? {
         isLoading = true
         defer { isLoading = false }
@@ -144,7 +145,8 @@ class StrategyService: ObservableObject {
             initialBalance: initialBalance,
             riskPerTrade: riskPerTrade,
             stopLossPercent: slPercent,
-            takeProfitPercent: tpPercent
+            takeProfitPercent: tpPercent,
+            dataSource: dataSource
         )
         
         do {

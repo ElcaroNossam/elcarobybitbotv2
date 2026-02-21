@@ -33,6 +33,7 @@ import io.enliko.trading.ui.screens.ai.AIAssistantScreen
 import io.enliko.trading.ui.screens.stats.StatsScreen
 import io.enliko.trading.ui.screens.spot.SpotTradingScreen
 import io.enliko.trading.ui.screens.strategies.StrategiesScreen
+import io.enliko.trading.ui.screens.strategies.BacktestScreen
 import io.enliko.trading.ui.screens.settings.StrategySettingsScreen
 import io.enliko.trading.ui.screens.trading.ManualTradingScreen
 import io.enliko.trading.util.AppLanguage
@@ -76,6 +77,7 @@ sealed class Screen(val route: String) {
     object Stats : Screen("stats")
     object SpotTrading : Screen("spot_trading")
     object Strategies : Screen("strategies")
+    object Backtest : Screen("backtest")
     object StrategySettings : Screen("strategy_settings/{strategy}") {
         fun createRoute(strategy: String) = "strategy_settings/$strategy"
     }
@@ -376,6 +378,7 @@ fun EnlikoNavHost(
                             "stats" -> navController.navigate(Screen.Stats.route)
                             "ai" -> navController.navigate(Screen.AIAssistant.route)
                             "strategies" -> navController.navigate(Screen.Strategies.route)
+                            "backtest" -> navController.navigate(Screen.Backtest.route)
                             "spot" -> navController.navigate(Screen.SpotTrading.route)
                             "copy_trading" -> navController.navigate(Screen.CopyTrading.route)
                         }
@@ -418,6 +421,13 @@ fun EnlikoNavHost(
                     onNavigateToSettings = { strategyCode ->
                         navController.navigate(Screen.StrategySettings.createRoute(strategyCode))
                     }
+                )
+            }
+            
+            // Backtest
+            composable(Screen.Backtest.route) {
+                BacktestScreen(
+                    onNavigateBack = { navController.popBackStack() }
                 )
             }
             

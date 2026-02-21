@@ -103,9 +103,16 @@ class RealBacktestEngine:
             "volatility_breakout": VolatilityBreakoutAnalyzer(),
         }
     
-    async def fetch_historical_data(self, symbol: str, timeframe: str, days: int) -> List[Dict]:
-        """Fetch OHLCV data from Binance with caching - UNLIMITED data via pagination"""
-        cache_key = f"{symbol}_{timeframe}_{days}"
+    async def fetch_historical_data(self, symbol: str, timeframe: str, days: int, data_source: str = "binance") -> List[Dict]:
+        """Fetch OHLCV data from specified exchange with caching - UNLIMITED data via pagination
+        
+        Args:
+            symbol: Trading pair (e.g., BTCUSDT)
+            timeframe: Candle interval (1m, 5m, 15m, 1h, 4h, 1d)
+            days: Number of days of historical data
+            data_source: Exchange to fetch from (binance, bybit, hyperliquid)
+        """
+        cache_key = f"{symbol}_{timeframe}_{days}_{data_source}"
         now = datetime.now().timestamp()
         
         # Check cache
@@ -114,6 +121,23 @@ class RealBacktestEngine:
             if now - cached_time < _cache_ttl:
                 return cached_data
         
+        # Route to appropriate data source
+        if data_source == "bybit":
+            candles = await self._fetch_bybit_data(symbol, timeframe, days)
+        elif data_source == "hyperliquid":
+            candles = await self._fetch_hyperliquid_data(symbol, timeframe, days)
+        else:
+            # Default: Binance
+            candles = await self._fetch_binance_data(symbol, timeframe, days)
+        
+        # Cache the data
+        if candles:
+            _data_cache[cache_key] = (candles, now)
+        
+        return candles
+    
+    async def _fetch_binance_data(self, symbol: str, timeframe: str, days: int) -> List[Dict]:
+        """Fetch OHLCV data from Binance with pagination"""
         tf_map = {"1m": "1m", "5m": "5m", "15m": "15m", "1h": "1h", "4h": "4h", "1d": "1d"}
         interval = tf_map.get(timeframe, "1h")
         
@@ -176,11 +200,227 @@ class RealBacktestEngine:
                     if len(data) < limit:
                         break
         
-        # Cache the data
-        if all_candles:
-            _data_cache[cache_key] = (all_candles, now)
+        return all_candles
+    
+    async def _fetch_bybit_data(self, symbol: str, timeframe: str, days: int) -> List[Dict]:
+        """Fetch OHLCV data from Bybit with pagination"""
+        # Bybit interval format
+        tf_map = {"1m": "1", "5m": "5", "15m": "15", "1h": "60", "4h": "240", "1d": "D"}
+        interval = tf_map.get(timeframe, "60")
+        
+        # Calculate total candles needed
+        candles_per_day = {"1m": 1440, "5m": 288, "15m": 96, "1h": 24, "4h": 6, "1d": 1}
+        total_candles_needed = days * candles_per_day.get(timeframe, 24)
+        
+        all_candles = []
+        end_time = int(datetime.now().timestamp() * 1000)
+        
+        async with aiohttp.ClientSession() as session:
+            while len(all_candles) < total_candles_needed:
+                limit = min(200, total_candles_needed - len(all_candles))  # Bybit limit is 200
+                url = f"https://api.bybit.com/v5/market/kline?category=linear&symbol={symbol}&interval={interval}&limit={limit}&end={end_time}"
+                
+                async with session.get(url) as resp:
+                    if resp.status != 200:
+                        logger.error(f"Bybit API error: {resp.status}")
+                        break
+                    
+                    response = await resp.json()
+                    if response.get("retCode") != 0:
+                        logger.error(f"Bybit API error: {response.get('retMsg')}")
+                        break
+                    
+                    data = response.get("result", {}).get("list", [])
+                    if not data:
+                        break
+                    
+                    # Bybit returns newest first, parse in reverse
+                    batch = []
+                    for k in reversed(data):
+                        try:
+                            # Bybit format: [timestamp, open, high, low, close, volume, turnover]
+                            candle = {
+                                "time": datetime.fromtimestamp(int(k[0]) / 1000).isoformat(),
+                                "timestamp": int(k[0]),
+                                "open": float(k[1]),
+                                "high": float(k[2]),
+                                "low": float(k[3]),
+                                "close": float(k[4]),
+                                "volume": float(k[5])
+                            }
+                            if candle["high"] < candle["low"]:
+                                continue
+                            if any(candle[x] <= 0 for x in ["open", "high", "low", "close"]):
+                                continue
+                            batch.append(candle)
+                        except (ValueError, IndexError, TypeError) as e:
+                            logger.error(f"Failed to parse Bybit candle: {e}")
+                            continue
+                    
+                    all_candles = batch + all_candles
+                    
+                    # Set end_time for next batch (oldest timestamp - 1)
+                    end_time = int(data[-1][0]) - 1
+                    
+                    if len(data) < limit:
+                        break
         
         return all_candles
+    
+    async def _fetch_hyperliquid_data(self, symbol: str, timeframe: str, days: int) -> List[Dict]:
+        """Fetch OHLCV data from HyperLiquid with pagination"""
+        # HyperLiquid interval format
+        tf_map = {"1m": "1m", "5m": "5m", "15m": "15m", "1h": "1h", "4h": "4h", "1d": "1d"}
+        interval = tf_map.get(timeframe, "1h")
+        
+        # HyperLiquid uses coin name without USDT suffix
+        coin = symbol.replace("USDT", "").replace("PERP", "")
+        
+        # Calculate timestamps
+        end_time = int(datetime.now().timestamp() * 1000)
+        start_time = end_time - (days * 24 * 60 * 60 * 1000)
+        
+        all_candles = []
+        
+        async with aiohttp.ClientSession() as session:
+            # HyperLiquid uses POST with JSON body
+            url = "https://api.hyperliquid.xyz/info"
+            body = {
+                "type": "candleSnapshot",
+                "req": {
+                    "coin": coin,
+                    "interval": interval,
+                    "startTime": start_time,
+                    "endTime": end_time
+                }
+            }
+            
+            async with session.post(url, json=body) as resp:
+                if resp.status != 200:
+                    logger.error(f"HyperLiquid API error: {resp.status}")
+                    return all_candles
+                
+                data = await resp.json()
+                if not data or not isinstance(data, list):
+                    logger.warning(f"HyperLiquid returned no data for {coin}")
+                    return all_candles
+                
+                for k in data:
+                    try:
+                        # HyperLiquid format: {"t": timestamp, "o": open, "h": high, "l": low, "c": close, "v": volume}
+                        candle = {
+                            "time": datetime.fromtimestamp(k["t"] / 1000).isoformat(),
+                            "timestamp": k["t"],
+                            "open": float(k["o"]),
+                            "high": float(k["h"]),
+                            "low": float(k["l"]),
+                            "close": float(k["c"]),
+                            "volume": float(k.get("v", 0))
+                        }
+                        if candle["high"] < candle["low"]:
+                            continue
+                        if any(candle[x] <= 0 for x in ["open", "high", "low", "close"]):
+                            continue
+                        all_candles.append(candle)
+                    except (ValueError, KeyError, TypeError) as e:
+                        logger.error(f"Failed to parse HyperLiquid candle: {e}")
+                        continue
+        
+        return all_candles
+    
+    async def fetch_oi_data(self, symbol: str, timeframe: str, days: int = 30) -> List[Dict]:
+        """Fetch Open Interest historical data from Bybit
+        
+        Args:
+            symbol: Trading pair (e.g., BTCUSDT)
+            timeframe: Interval - "5min", "15min", "30min", "1h", "4h", "1d"
+            days: Number of days of historical data
+            
+        Returns:
+            List of OI data points with timestamp and open_interest
+        """
+        cache_key = f"oi_{symbol}_{timeframe}_{days}"
+        now = datetime.now().timestamp()
+        
+        # Check cache
+        if cache_key in _data_cache:
+            cached_data, cached_time = _data_cache[cache_key]
+            if now - cached_time < _cache_ttl:
+                return cached_data
+        
+        # Bybit OI interval mapping
+        oi_interval_map = {
+            "5m": "5min", "15m": "15min", "30m": "30min",
+            "1h": "1h", "4h": "4h", "1d": "1d"
+        }
+        interval = oi_interval_map.get(timeframe, "1h")
+        
+        all_oi_data = []
+        end_time = int(datetime.now().timestamp() * 1000)
+        start_time = end_time - (days * 24 * 60 * 60 * 1000)
+        
+        try:
+            async with aiohttp.ClientSession() as session:
+                cursor = ""
+                max_iterations = 50  # Prevent infinite loop
+                
+                for _ in range(max_iterations):
+                    params = {
+                        "category": "linear",
+                        "symbol": symbol,
+                        "intervalTime": interval,
+                        "startTime": start_time,
+                        "endTime": end_time,
+                        "limit": 200
+                    }
+                    if cursor:
+                        params["cursor"] = cursor
+                    
+                    url = "https://api.bybit.com/v5/market/open-interest"
+                    async with session.get(url, params=params) as resp:
+                        if resp.status != 200:
+                            logger.warning(f"Bybit OI API returned status {resp.status}")
+                            break
+                        data = await resp.json()
+                    
+                    if data.get("retCode") != 0:
+                        logger.warning(f"Bybit OI API error: {data.get('retMsg')}")
+                        break
+                    
+                    oi_list = data.get("result", {}).get("list", [])
+                    if not oi_list:
+                        break
+                    
+                    for item in oi_list:
+                        try:
+                            oi_point = {
+                                "timestamp": int(item["timestamp"]),
+                                "open_interest": float(item["openInterest"]),
+                                "time": datetime.fromtimestamp(int(item["timestamp"]) / 1000).isoformat()
+                            }
+                            all_oi_data.append(oi_point)
+                        except (ValueError, KeyError):
+                            continue
+                    
+                    # Check for next page
+                    next_cursor = data.get("result", {}).get("nextPageCursor", "")
+                    if not next_cursor or next_cursor == cursor:
+                        break
+                    cursor = next_cursor
+                    
+                    await asyncio.sleep(0.1)  # Rate limiting
+                    
+        except Exception as e:
+            logger.error(f"Error fetching OI data: {e}")
+        
+        # Sort by timestamp
+        all_oi_data.sort(key=lambda x: x["timestamp"])
+        
+        # Cache
+        if all_oi_data:
+            _data_cache[cache_key] = (all_oi_data, now)
+        
+        return all_oi_data
     
     def get_custom_strategy_analyzer(self, strategy_id: int) -> Optional["CustomStrategyAnalyzer"]:
         """Load a custom strategy from database and create analyzer"""
@@ -206,7 +446,8 @@ class RealBacktestEngine:
         symbol: str,
         timeframe: str,
         days: int,
-        initial_balance: float
+        initial_balance: float,
+        data_source: str = "binance"
     ) -> Dict[str, Any]:
         """
         Run backtest using StrategyConfig object with custom parameters
@@ -215,8 +456,8 @@ class RealBacktestEngine:
         # Import here to avoid circular dependency
         from webapp.services.strategy_parameters import StrategyConfig
         
-        # Fetch historical data
-        candles = await self.fetch_historical_data(symbol, timeframe, days)
+        # Fetch historical data from specified exchange
+        candles = await self.fetch_historical_data(symbol, timeframe, days, data_source=data_source)
         
         if not candles or len(candles) < 50:
             return self._empty_result(initial_balance)
@@ -335,12 +576,19 @@ class RealBacktestEngine:
         risk_per_trade: float = 1.0,
         stop_loss_percent: float = 2.0,
         take_profit_percent: float = 4.0,
-        custom_strategy_id: int = None
+        custom_strategy_id: int = None,
+        data_source: str = "binance",
+        use_oi_data: bool = True
     ) -> Dict[str, Any]:
-        """Run backtest for a specific strategy or custom strategy"""
+        """Run backtest for a specific strategy or custom strategy
         
-        # Fetch historical data
-        candles = await self.fetch_historical_data(symbol, timeframe, days)
+        Args:
+            data_source: Exchange to fetch data from (binance, bybit, hyperliquid)
+            use_oi_data: Whether to fetch and use OI data for OI-based strategies
+        """
+        
+        # Fetch historical data from specified exchange
+        candles = await self.fetch_historical_data(symbol, timeframe, days, data_source=data_source)
         
         if not candles or len(candles) < 50:
             return self._empty_result(initial_balance)
@@ -354,6 +602,16 @@ class RealBacktestEngine:
             analyzer = self.analyzers.get(strategy)
             if not analyzer:
                 return self._empty_result(initial_balance)
+        
+        # Fetch and set OI data for RSI_BB_OI strategy
+        if use_oi_data and strategy == "rsibboi" and hasattr(analyzer, "set_oi_data"):
+            try:
+                oi_data = await self.fetch_oi_data(symbol, timeframe, days)
+                if oi_data:
+                    analyzer.set_oi_data(oi_data)
+                    logger.info(f"Loaded {len(oi_data)} OI data points for {symbol}")
+            except Exception as e:
+                logger.warning(f"Failed to fetch OI data for {symbol}: {e}")
         
         # Run strategy analysis
         signals = analyzer.analyze(candles)
@@ -436,15 +694,16 @@ class RealBacktestEngine:
         risk_per_trade: float = 1.0,
         stop_loss_percent: float = 2.0,
         take_profit_percent: float = 4.0,
-        allocation_mode: str = "equal"  # "equal", "weighted", "dynamic"
+        allocation_mode: str = "equal",  # "equal", "weighted", "dynamic"
+        data_source: str = "binance"
     ) -> Dict[str, Any]:
         """Run backtest across multiple symbols simultaneously"""
         
         if not symbols:
             return self._empty_result(initial_balance)
         
-        # Fetch all symbol data concurrently
-        data_tasks = [self.fetch_historical_data(s, timeframe, days) for s in symbols]
+        # Fetch all symbol data concurrently from specified data source
+        data_tasks = [self.fetch_historical_data(s, timeframe, days, data_source=data_source) for s in symbols]
         all_candles = await asyncio.gather(*data_tasks)
         
         symbol_candles = {s: c for s, c in zip(symbols, all_candles) if c and len(c) >= 50}
@@ -561,14 +820,15 @@ class RealBacktestEngine:
         in_sample_ratio: float = 0.7,  # 70% for optimization
         n_folds: int = 3,  # Number of walk-forward folds
         param_ranges: Dict[str, List] = None,
-        initial_balance: float = 10000
+        initial_balance: float = 10000,
+        data_source: str = "binance"
     ) -> Dict[str, Any]:
         """
         Walk-forward optimization to prevent overfitting.
         Splits data into in-sample (IS) for optimization and out-of-sample (OOS) for validation.
         """
         
-        candles = await self.fetch_historical_data(symbol, timeframe, total_days)
+        candles = await self.fetch_historical_data(symbol, timeframe, total_days, data_source=data_source)
         if not candles or len(candles) < 100:
             return {"error": "Insufficient data", "results": []}
         
@@ -1116,7 +1376,46 @@ class RealBacktestEngine:
 # Strategy Analyzers based on real bot logic
 
 class RSIBBOIAnalyzer:
-    """Based on aiboll/aiboll.py and spain_rsibb_oi/oi.py"""
+    """Based on aiboll/aiboll.py and spain_rsibb_oi/oi.py
+    
+    Now supports real Open Interest data for enhanced signal filtering.
+    OI rising + price falling = potential short squeeze (LONG signal stronger)
+    OI rising + price rising = trend continuation (follow trend)
+    OI falling = position closing, wait for new trend
+    """
+    
+    def __init__(self):
+        self.oi_data = None
+        self.oi_change_threshold = 2.0  # % change threshold for OI significance
+    
+    def set_oi_data(self, oi_data: List[Dict]):
+        """Set OI data for analysis. OI data should have timestamp and open_interest."""
+        self.oi_data = oi_data
+    
+    def _get_oi_change_at_time(self, timestamp: int) -> Optional[float]:
+        """Get OI change percentage at given timestamp"""
+        if not self.oi_data or len(self.oi_data) < 2:
+            return None
+        
+        # Find closest OI data point
+        closest_idx = None
+        min_diff = float('inf')
+        for i, oi in enumerate(self.oi_data):
+            diff = abs(oi["timestamp"] - timestamp)
+            if diff < min_diff:
+                min_diff = diff
+                closest_idx = i
+        
+        if closest_idx is None or closest_idx == 0:
+            return None
+        
+        prev_oi = self.oi_data[closest_idx - 1]["open_interest"]
+        curr_oi = self.oi_data[closest_idx]["open_interest"]
+        
+        if prev_oi == 0:
+            return None
+        
+        return ((curr_oi - prev_oi) / prev_oi) * 100
     
     @safe_analyze
     def analyze(self, candles: List[Dict]) -> Dict[int, Dict]:
@@ -1129,14 +1428,45 @@ class RSIBBOIAnalyzer:
             
             close = closes[i]
             signal = {}
+            base_score = 0
             
             # RSI + BB logic
             if rsi < 30 and close < bb_lower:
-                signal = {"direction": "LONG", "score": 80 + (30 - rsi)}
+                base_score = 80 + (30 - rsi)
+                signal = {"direction": "LONG", "score": base_score}
             elif rsi > 70 and close > bb_upper:
-                signal = {"direction": "SHORT", "score": 80 + (rsi - 70)}
+                base_score = 80 + (rsi - 70)
+                signal = {"direction": "SHORT", "score": base_score}
             
-            if signal:
+            # Apply OI filter if data available
+            if signal and self.oi_data and "timestamp" in candles[i]:
+                oi_change = self._get_oi_change_at_time(candles[i]["timestamp"])
+                if oi_change is not None:
+                    signal["oi_change"] = round(oi_change, 2)
+                    
+                    # OI signal enhancement/filtering
+                    if abs(oi_change) > self.oi_change_threshold:
+                        # Calculate price change
+                        price_change = 0
+                        if i > 0 and closes[i-1] > 0:
+                            price_change = ((close - closes[i-1]) / closes[i-1]) * 100
+                        
+                        # OI rising + price falling = short squeeze potential (LONG stronger)
+                        if oi_change > 0 and price_change < 0 and signal["direction"] == "LONG":
+                            signal["score"] = base_score + 15  # Boost LONG signal
+                            signal["oi_signal"] = "squeeze_potential"
+                        
+                        # OI rising + price rising = trend continuation
+                        elif oi_change > 0 and price_change > 0 and signal["direction"] == "LONG":
+                            signal["score"] = base_score + 10
+                            signal["oi_signal"] = "trend_continuation"
+                        
+                        # OI falling significantly = position closing, weaker signal
+                        elif oi_change < -self.oi_change_threshold:
+                            signal["score"] = base_score - 10  # Reduce signal strength
+                            signal["oi_signal"] = "positions_closing"
+            
+            if signal and signal.get("score", 0) > 70:  # Min score threshold
                 signals[i] = signal
         
         return signals
