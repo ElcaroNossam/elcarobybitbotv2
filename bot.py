@@ -20849,13 +20849,14 @@ async def on_channel_post(update: Update, ctx: ContextTypes.DEFAULT_TYPE):
                         logger.info(f"[{uid}] OI {signal_direction.upper()} OK, proceeding with {symbol}")
 
             # =====================================================
-            # DYNAMIC PARSER TRIGGER - Check if user has deployment for this dynamic parser
+            # DYNAMIC PARSER TRIGGER - Check if user has deployment OR subscription for this dynamic parser
             # =====================================================
             dynamic_trigger = False
             dynamic_deployment = None
+            parser_subscription_settings = None
             
             if is_dynamic_signal and dynamic_parser_match:
-                # Check if user has an active deployment for thisparser
+                # Method 1: Check if user has an active deployment for this parser (personal/marketplace)
                 try:
                     user_deployments = db.get_active_user_deployments_for_trading(uid, ctx_exchange, ctx_account_type)
                     for dep in user_deployments:
@@ -20867,6 +20868,31 @@ async def on_channel_post(update: Update, ctx: ContextTypes.DEFAULT_TYPE):
                             break
                 except Exception as e:
                     logger.warning(f"[{uid}] Failed to check user deployments: {e}")
+                
+                # Method 2: Check if user is subscribed to this admin parser (no deployment needed)
+                # This enables admin-created parsers to work like built-in strategies
+                if not dynamic_trigger:
+                    try:
+                        if db.is_user_subscribed_to_parser(uid, dynamic_parser_match):
+                            dynamic_trigger = True
+                            # Get subscription settings as pseudo-deployment
+                            parser_subscription_settings = db.get_parser_subscription_settings(uid, dynamic_parser_match)
+                            if parser_subscription_settings:
+                                dynamic_deployment = {
+                                    "name": dynamic_parser_match,
+                                    "base_strategy": dynamic_parser_match,
+                                    "source": "admin_parser_subscription",
+                                    "long_enabled": parser_subscription_settings.get("long_enabled", True),
+                                    "short_enabled": parser_subscription_settings.get("short_enabled", True),
+                                    "entry_percent": parser_subscription_settings.get("entry_percent", 1.0),
+                                    "leverage": parser_subscription_settings.get("leverage", 10),
+                                    "dca_enabled": parser_subscription_settings.get("dca_enabled", False),
+                                    "exchange": ctx_exchange,
+                                    "account_type": ctx_account_type,
+                                }
+                                logger.info(f"[{uid}] Subscribed to admin parser '{dynamic_parser_match}' - using subscription settings")
+                    except Exception as e:
+                        logger.warning(f"[{uid}] Failed to check parser subscription: {e}")
 
             if not (rsi_bb_trigger or bitk_trigger or scalper_trigger or elcaro_trigger or fibonacci_trigger or oi_trigger or dynamic_trigger):
                 continue

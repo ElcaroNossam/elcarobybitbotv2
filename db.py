@@ -7743,3 +7743,278 @@ def mark_broadcast_sent(broadcast_id: int, sent_count: int = 0) -> bool:
     except Exception as e:
         _logger.error(f"Failed to mark broadcast sent: {e}")
         return False
+
+
+# ═══════════════════════════════════════════════════════════════════════════════
+# USER PARSER SUBSCRIPTIONS - For admin-created dynamic parsers
+# ═══════════════════════════════════════════════════════════════════════════════
+
+def get_user_parser_subscriptions(user_id: int, active_only: bool = True) -> list:
+    """Get user's subscriptions to dynamic parsers (system strategies).
+    
+    Args:
+        user_id: User ID
+        active_only: If True, only return active subscriptions
+    
+    Returns:
+        List of subscription dicts with parser info
+    """
+    query = """
+        SELECT ups.*, dsp.name as parser_name, dsp.display_name, dsp.base_strategy,
+               dsp.is_system, dsp.is_active as parser_is_active
+        FROM user_parser_subscriptions ups
+        JOIN dynamic_signal_parsers dsp ON ups.parser_id = dsp.id
+        WHERE ups.user_id = %s
+    """
+    params = [user_id]
+    
+    if active_only:
+        query += " AND ups.is_active = TRUE AND dsp.is_active = TRUE"
+    
+    try:
+        with get_conn() as conn:
+            cur = conn.cursor()
+            cur.execute(query, params)
+            return [dict(row) for row in cur.fetchall()]
+    except Exception as e:
+        _logger.error(f"Failed to get user parser subscriptions: {e}")
+        return []
+
+
+def get_user_parser_subscription(user_id: int, parser_id: int = None, parser_name: str = None) -> dict:
+    """Get a specific parser subscription for user.
+    
+    Args:
+        user_id: User ID
+        parser_id: Parser ID (optional)
+        parser_name: Parser name (optional, used if parser_id not provided)
+    
+    Returns:
+        Subscription dict or None
+    """
+    if parser_id:
+        query = """
+            SELECT ups.*, dsp.name as parser_name, dsp.display_name
+            FROM user_parser_subscriptions ups
+            JOIN dynamic_signal_parsers dsp ON ups.parser_id = dsp.id
+            WHERE ups.user_id = %s AND ups.parser_id = %s
+        """
+        params = [user_id, parser_id]
+    elif parser_name:
+        query = """
+            SELECT ups.*, dsp.name as parser_name, dsp.display_name
+            FROM user_parser_subscriptions ups
+            JOIN dynamic_signal_parsers dsp ON ups.parser_id = dsp.id
+            WHERE ups.user_id = %s AND dsp.name = %s
+        """
+        params = [user_id, parser_name]
+    else:
+        return None
+    
+    try:
+        with get_conn() as conn:
+            cur = conn.cursor()
+            cur.execute(query, params)
+            row = cur.fetchone()
+            return dict(row) if row else None
+    except Exception as e:
+        _logger.error(f"Failed to get user parser subscription: {e}")
+        return None
+
+
+def subscribe_to_parser(user_id: int, parser_id: int, **settings) -> int:
+    """Subscribe user to a dynamic parser (enable trading for this strategy).
+    
+    Args:
+        user_id: User ID
+        parser_id: Dynamic parser ID
+        **settings: Optional settings (entry_percent, stop_loss_pct, etc.)
+    
+    Returns:
+        Subscription ID
+    """
+    import json
+    
+    # Build settings JSON
+    settings_json = json.dumps(settings) if settings else "{}"
+    
+    try:
+        with get_conn() as conn:
+            cur = conn.cursor()
+            cur.execute("""
+                INSERT INTO user_parser_subscriptions 
+                (user_id, parser_id, is_active, settings_json, long_enabled, short_enabled,
+                 entry_percent, stop_loss_pct, take_profit_pct, leverage, use_atr, dca_enabled)
+                VALUES (%s, %s, TRUE, %s, 
+                        COALESCE(%s, TRUE), COALESCE(%s, TRUE),
+                        %s, %s, %s, %s, COALESCE(%s, FALSE), COALESCE(%s, FALSE))
+                ON CONFLICT (user_id, parser_id) DO UPDATE SET
+                    is_active = TRUE,
+                    settings_json = EXCLUDED.settings_json,
+                    updated_at = NOW()
+                RETURNING id
+            """, (
+                user_id, parser_id, settings_json,
+                settings.get("long_enabled"), settings.get("short_enabled"),
+                settings.get("entry_percent"), settings.get("stop_loss_pct"),
+                settings.get("take_profit_pct"), settings.get("leverage"),
+                settings.get("use_atr"), settings.get("dca_enabled")
+            ))
+            row = cur.fetchone()
+            conn.commit()
+            return row[0] if row else 0
+    except Exception as e:
+        _logger.error(f"Failed to subscribe to parser: {e}")
+        return 0
+
+
+def unsubscribe_from_parser(user_id: int, parser_id: int) -> bool:
+    """Unsubscribe user from a dynamic parser (disable trading).
+    
+    Args:
+        user_id: User ID
+        parser_id: Dynamic parser ID
+    
+    Returns:
+        True if successful
+    """
+    try:
+        with get_conn() as conn:
+            cur = conn.cursor()
+            cur.execute("""
+                UPDATE user_parser_subscriptions 
+                SET is_active = FALSE, updated_at = NOW()
+                WHERE user_id = %s AND parser_id = %s
+            """, (user_id, parser_id))
+            conn.commit()
+            return cur.rowcount > 0
+    except Exception as e:
+        _logger.error(f"Failed to unsubscribe from parser: {e}")
+        return False
+
+
+def update_parser_subscription(user_id: int, parser_id: int, **updates) -> bool:
+    """Update user's parser subscription settings.
+    
+    Args:
+        user_id: User ID
+        parser_id: Dynamic parser ID
+        **updates: Fields to update (is_active, long_enabled, entry_percent, etc.)
+    
+    Returns:
+        True if successful
+    """
+    if not updates:
+        return True
+    
+    allowed_fields = {
+        "is_active", "long_enabled", "short_enabled", "entry_percent",
+        "stop_loss_pct", "take_profit_pct", "leverage", "use_atr", "dca_enabled"
+    }
+    
+    filtered = {k: v for k, v in updates.items() if k in allowed_fields}
+    if not filtered:
+        return True
+    
+    set_parts = [f"{k} = %s" for k in filtered.keys()]
+    set_parts.append("updated_at = NOW()")
+    set_clause = ", ".join(set_parts)
+    values = list(filtered.values()) + [user_id, parser_id]
+    
+    try:
+        with get_conn() as conn:
+            cur = conn.cursor()
+            cur.execute(
+                f"UPDATE user_parser_subscriptions SET {set_clause} WHERE user_id = %s AND parser_id = %s",
+                values
+            )
+            conn.commit()
+            return cur.rowcount > 0
+    except Exception as e:
+        _logger.error(f"Failed to update parser subscription: {e}")
+        return False
+
+
+def is_user_subscribed_to_parser(user_id: int, parser_name: str) -> bool:
+    """Check if user has active subscription to a parser by name.
+    
+    This is the main function used in on_channel_post to check if
+    a user should receive signals from a specific dynamic parser.
+    
+    Args:
+        user_id: User ID
+        parser_name: Parser name (e.g., 'my_custom_strategy')
+    
+    Returns:
+        True if user has active subscription
+    """
+    try:
+        with get_conn() as conn:
+            cur = conn.cursor()
+            cur.execute("""
+                SELECT 1 FROM user_parser_subscriptions ups
+                JOIN dynamic_signal_parsers dsp ON ups.parser_id = dsp.id
+                WHERE ups.user_id = %s AND dsp.name = %s 
+                  AND ups.is_active = TRUE AND dsp.is_active = TRUE
+            """, (user_id, parser_name))
+            return cur.fetchone() is not None
+    except Exception as e:
+        _logger.error(f"Failed to check parser subscription: {e}")
+        return False
+
+
+def get_parser_subscription_settings(user_id: int, parser_name: str) -> dict:
+    """Get user's trading settings for a specific parser.
+    
+    Args:
+        user_id: User ID
+        parser_name: Parser name
+    
+    Returns:
+        Settings dict or empty dict
+    """
+    sub = get_user_parser_subscription(user_id, parser_name=parser_name)
+    if not sub:
+        return {}
+    
+    return {
+        "entry_percent": sub.get("entry_percent"),
+        "stop_loss_pct": sub.get("stop_loss_pct"),
+        "take_profit_pct": sub.get("take_profit_pct"),
+        "leverage": sub.get("leverage"),
+        "use_atr": sub.get("use_atr"),
+        "dca_enabled": sub.get("dca_enabled"),
+        "long_enabled": sub.get("long_enabled"),
+        "short_enabled": sub.get("short_enabled"),
+    }
+
+
+def increment_parser_subscription_stats(user_id: int, parser_name: str, pnl: float, is_win: bool) -> bool:
+    """Update user's subscription stats after a trade.
+    
+    Args:
+        user_id: User ID
+        parser_name: Parser name
+        pnl: PnL from trade
+        is_win: Whether trade was profitable
+    
+    Returns:
+        True if successful
+    """
+    try:
+        with get_conn() as conn:
+            cur = conn.cursor()
+            cur.execute("""
+                UPDATE user_parser_subscriptions 
+                SET total_trades = total_trades + 1,
+                    total_pnl = total_pnl + %s,
+                    updated_at = NOW()
+                WHERE user_id = %s AND parser_id IN (
+                    SELECT id FROM dynamic_signal_parsers WHERE name = %s
+                )
+            """, (pnl, user_id, parser_name))
+            conn.commit()
+            return cur.rowcount > 0
+    except Exception as e:
+        _logger.error(f"Failed to increment parser subscription stats: {e}")
+        return False

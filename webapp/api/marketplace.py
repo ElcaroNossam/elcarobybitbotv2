@@ -375,7 +375,15 @@ async def get_marketplace(
 
 @router.post("/marketplace/purchase")
 async def purchase_strategy(request: PurchaseRequest, user: dict = Depends(get_current_user)):
-    """Purchase a strategy from marketplace - requires authentication"""
+    """Purchase a strategy from marketplace - requires authentication.
+    
+    Payment is processed in ELC tokens:
+    - Buyer pays full price from their ELC balance
+    - Seller receives 50% of the price
+    - Platform receives 50% (stays in platform pool)
+    """
+    import db_elcaro
+    
     user_id = user["user_id"]  # SECURITY: user_id from JWT
     with get_db() as conn:
         cur = conn.cursor()
@@ -406,24 +414,78 @@ async def purchase_strategy(request: PurchaseRequest, user: dict = Depends(get_c
         if listing["creator_id"] == user_id:
             raise HTTPException(status_code=400, detail="Cannot purchase your own strategy")
         
-        # Get price
-        price = listing["price_ton"] if request.currency == "ton" else listing["price_elc"]
+        # Get price (ELC is the primary currency)
+        if request.currency == "elc":
+            price = listing["price_elc"]
+        elif request.currency == "ton":
+            price = listing["price_ton"]
+        else:
+            raise HTTPException(status_code=400, detail="Invalid currency. Use 'elc' or 'ton'")
+        
+        if price is None or price <= 0:
+            raise HTTPException(status_code=400, detail=f"Strategy not available for purchase with {request.currency.upper()}")
+        
         seller_share = price * 0.5
         platform_share = price * 0.5
+        seller_id = listing["seller_id"]
         
-        # TODO: Integrate with ELC payment system (blockchain.py)
-        # For now, record the purchase (payment verification should happen separately)
+        # ═══════════════════════════════════════════════════════════════
+        # ELC PAYMENT PROCESSING
+        # ═══════════════════════════════════════════════════════════════
         
+        if request.currency == "elc":
+            # Check buyer's ELC balance
+            if not db_elcaro.check_elc_balance(user_id, price):
+                buyer_balance = db_elcaro.get_elc_balance(user_id)
+                raise HTTPException(
+                    status_code=400, 
+                    detail=f"Insufficient ELC balance. Required: {price:.2f} ELC, Available: {buyer_balance['available']:.2f} ELC"
+                )
+            
+            try:
+                # Deduct from buyer
+                db_elcaro.subtract_elc_balance(
+                    user_id, price, 
+                    f"Strategy purchase: {listing['name']} (marketplace #{request.marketplace_id})"
+                )
+                
+                # Credit 50% to seller
+                db_elcaro.add_elc_balance(
+                    seller_id, seller_share,
+                    f"Strategy sale: {listing['name']} (50% of {price:.2f} ELC)"
+                )
+                
+                # Platform share stays in pool (no action needed, it was deducted from buyer)
+                # Log the platform share as a transaction for accounting
+                db_elcaro.add_elc_transaction(
+                    user_id=0,  # Platform account
+                    transaction_type="marketplace_fee",
+                    amount=platform_share,
+                    balance_after=0,  # Not tracked for platform
+                    description=f"Platform fee from strategy sale: {listing['name']}"
+                )
+                
+            except ValueError as e:
+                raise HTTPException(status_code=400, detail=str(e))
+        
+        elif request.currency == "ton":
+            # TON payments handled externally - verify payment before calling this endpoint
+            # For now, TON purchases require manual verification
+            raise HTTPException(status_code=501, detail="TON payments require external verification. Contact support.")
+        
+        # Record the purchase
         cur.execute("""
             INSERT INTO strategy_purchases 
             (buyer_id, marketplace_id, strategy_id, seller_id, amount_paid, currency, seller_share, platform_share, purchased_at)
             VALUES (?, ?, ?, ?, ?, ?, ?, ?, NOW())
         """, (
-            user_id, request.marketplace_id, listing["strategy_id"], listing["seller_id"],
+            user_id, request.marketplace_id, listing["strategy_id"], seller_id,
             price, request.currency, seller_share, platform_share
         ))
         
-        # Update sales count
+        purchase_id = cur.lastrowid
+        
+        # Update sales count and revenue
         cur.execute("""
             UPDATE strategy_marketplace 
             SET total_sales = total_sales + 1, total_revenue = total_revenue + ?
@@ -435,10 +497,13 @@ async def purchase_strategy(request: PurchaseRequest, user: dict = Depends(get_c
         return {
             "success": True,
             "message": f"Strategy '{listing['name']}' purchased successfully!",
+            "purchase_id": purchase_id,
             "amount_paid": price,
             "currency": request.currency,
-            "seller_gets": seller_share,
-            "access_granted": True
+            "seller_received": seller_share,
+            "platform_fee": platform_share,
+            "access_granted": True,
+            "note": "You can now deploy this strategy from your Purchased Strategies."
         }
 
 
@@ -471,6 +536,172 @@ async def get_purchased_strategies(user: dict = Depends(get_current_user)):
 async def get_purchases_alias(user: dict = Depends(get_current_user)):
     """Alias for /marketplace/purchased"""
     return await get_purchased_strategies(user)
+
+
+# ═══════════════════════════════════════════════════════════════════════════════
+# DEPLOY PURCHASED STRATEGY
+# ═══════════════════════════════════════════════════════════════════════════════
+
+class DeployPurchasedRequest(BaseModel):
+    purchase_id: int
+    long_enabled: bool = True
+    short_enabled: bool = True
+    entry_percent: float = 1.0
+    leverage: int = 10
+    dca_enabled: bool = False
+    exchange: str = "bybit"
+    account_type: str = "demo"
+
+@router.post("/marketplace/deploy")
+async def deploy_purchased_strategy(request: DeployPurchasedRequest, user: dict = Depends(get_current_user)):
+    """Deploy a purchased strategy to activate trading signals.
+    
+    This creates a user_strategy_deployment from the purchased strategy's config,
+    allowing the user to trade with that strategy's signal parser.
+    """
+    import db
+    
+    user_id = user["user_id"]
+    
+    with get_db() as conn:
+        cur = conn.cursor()
+        
+        # Verify the purchase belongs to this user and get strategy details
+        cur.execute("""
+            SELECT p.*, s.name, s.config_json, s.strategy_type,
+                   m.id as marketplace_id
+            FROM strategy_purchases p
+            JOIN custom_strategies s ON p.strategy_id = s.id
+            LEFT JOIN strategy_marketplace m ON p.marketplace_id = m.id
+            WHERE p.id = ? AND p.buyer_id = ? AND p.is_active = TRUE
+        """, (request.purchase_id, user_id))
+        
+        purchase = cur.fetchone()
+        if not purchase:
+            raise HTTPException(status_code=404, detail="Purchase not found or not owned by you")
+        
+        purchase = dict(purchase)
+        strategy_config = json.loads(purchase.get("config_json", "{}"))
+        
+        # Check if already deployed
+        cur.execute("""
+            SELECT id FROM user_strategy_deployments 
+            WHERE user_id = ? AND purchase_id = ? AND is_active = TRUE
+        """, (user_id, request.purchase_id))
+        if cur.fetchone():
+            raise HTTPException(status_code=400, detail="Strategy already deployed. Disable existing deployment first.")
+        
+        # Create deployment entry
+        deployment_config = {
+            "source": "marketplace_purchase",
+            "purchase_id": request.purchase_id,
+            "original_strategy_id": purchase["strategy_id"],
+            "marketplace_id": purchase.get("marketplace_id"),
+            **strategy_config,  # Include the strategy's signal parsing config
+            "long_enabled": request.long_enabled,
+            "short_enabled": request.short_enabled,
+            "entry_percent": request.entry_percent,
+            "leverage": request.leverage,
+            "dca_enabled": request.dca_enabled,
+        }
+        
+        cur.execute("""
+            INSERT INTO user_strategy_deployments
+            (user_id, strategy_name, source, config_json, 
+             long_enabled, short_enabled, entry_percent, leverage, dca_enabled,
+             exchange, account_type, is_active, purchase_id, marketplace_listing_id,
+             created_at)
+            VALUES (?, ?, 'marketplace', ?, ?, ?, ?, ?, ?, ?, ?, TRUE, ?, ?, NOW())
+        """, (
+            user_id, purchase["name"], json.dumps(deployment_config),
+            request.long_enabled, request.short_enabled, 
+            request.entry_percent, request.leverage, request.dca_enabled,
+            request.exchange, request.account_type,
+            request.purchase_id, purchase.get("marketplace_id")
+        ))
+        
+        deployment_id = cur.lastrowid
+        conn.commit()
+        
+        return {
+            "success": True,
+            "message": f"Strategy '{purchase['name']}' deployed successfully!",
+            "deployment_id": deployment_id,
+            "settings": {
+                "long_enabled": request.long_enabled,
+                "short_enabled": request.short_enabled,
+                "entry_percent": request.entry_percent,
+                "leverage": request.leverage,
+                "dca_enabled": request.dca_enabled,
+                "exchange": request.exchange,
+                "account_type": request.account_type
+            },
+            "note": "Strategy is now active and will process signals automatically."
+        }
+
+
+@router.delete("/marketplace/deploy/{deployment_id}")
+async def undeploy_strategy(deployment_id: int, user: dict = Depends(get_current_user)):
+    """Disable/remove a deployed strategy."""
+    user_id = user["user_id"]
+    
+    with get_db() as conn:
+        cur = conn.cursor()
+        
+        # Verify ownership
+        cur.execute("""
+            SELECT id, strategy_name FROM user_strategy_deployments
+            WHERE id = ? AND user_id = ? AND is_active = TRUE
+        """, (deployment_id, user_id))
+        
+        deployment = cur.fetchone()
+        if not deployment:
+            raise HTTPException(status_code=404, detail="Deployment not found or not owned by you")
+        
+        deployment = dict(deployment)
+        
+        # Soft delete
+        cur.execute("""
+            UPDATE user_strategy_deployments
+            SET is_active = FALSE, updated_at = NOW()
+            WHERE id = ?
+        """, (deployment_id,))
+        
+        conn.commit()
+        
+        return {
+            "success": True,
+            "message": f"Strategy '{deployment['strategy_name']}' undeployed successfully."
+        }
+
+
+@router.get("/marketplace/deployments")
+async def get_my_deployments(user: dict = Depends(get_current_user)):
+    """Get all active strategy deployments for the user."""
+    user_id = user["user_id"]
+    
+    with get_db() as conn:
+        cur = conn.cursor()
+        cur.execute("""
+            SELECT d.*, 
+                   p.purchased_at, p.amount_paid, p.currency,
+                   m.name as marketplace_name, m.rating
+            FROM user_strategy_deployments d
+            LEFT JOIN strategy_purchases p ON d.purchase_id = p.id
+            LEFT JOIN strategy_marketplace m ON d.marketplace_listing_id = m.id
+            WHERE d.user_id = ? AND d.is_active = TRUE
+            ORDER BY d.created_at DESC
+        """, (user_id,))
+        
+        deployments = []
+        for row in cur.fetchall():
+            dep = dict(row)
+            if dep.get("config_json"):
+                dep["config"] = json.loads(dep["config_json"])
+                del dep["config_json"]
+            deployments.append(dep)
+        
+        return {"success": True, "data": deployments}
 
 
 # ═══════════════════════════════════════════════════════════════════════════════
