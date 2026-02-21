@@ -167,6 +167,16 @@ TEXTS = {
     'btn_no': '❌ No',
     'btn_prev': '« Prev',
     'btn_next': 'Next »',
+    'btn_my_strategies': '📦 My Strategies',
+    
+    # User personal strategies (deployments)
+    'mystrat_header': '📦 *My Personal Strategies*',
+    'mystrat_empty': '📦 *My Strategies*\n\nNo personal strategies deployed yet.\n\nYou can deploy strategies from the WebApp Backtest section.',
+    'mystrat_info': '↕️ Tap on a strategy to toggle or delete',
+    'mystrat_not_found': 'Deployment not found',
+    'mystrat_deleted': 'Strategy deleted',
+    'mystrat_delete_error': 'Failed to delete',
+    'mystrat_delete_confirm': '⚠️ Delete strategy *{name}*?\n\nThis cannot be undone.',
     
     # =====================================================
     # PORTFOLIO & BALANCE

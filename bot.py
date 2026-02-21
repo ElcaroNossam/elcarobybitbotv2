@@ -9640,6 +9640,12 @@ def get_strategy_settings_keyboard(t: dict, cfg: dict = None, uid: int = None) -
     # NOTE: Global Settings removed - use per-strategy Long/Short settings instead
     # Each strategy has its own Entry%, SL%, TP%, ATR settings
     
+    # My Personal Strategies (user deployments from backtest)
+    buttons.append([InlineKeyboardButton(
+        t.get('btn_my_strategies', '📦 My Strategies'),
+        callback_data="mystrat:list"
+    )])
+    
     # Close
     buttons.append([InlineKeyboardButton(t.get('btn_close', '❌ Close'), callback_data="strat_set:close")])
     
@@ -20119,6 +20125,226 @@ def parse_signal(txt: str) -> dict:
         "bb_lo":      bb_lo,
     }
 
+
+# ═══════════════════════════════════════════════════════════════════════════════
+# DYNAMIC SIGNAL PARSERS - Admin-defined parsers from database
+# ═══════════════════════════════════════════════════════════════════════════════
+
+# Cache for dynamic parsers (refreshes every 60 seconds)
+_dynamic_parsers_cache: list = []
+_dynamic_parsers_cache_ts: float = 0
+_DYNAMIC_PARSER_CACHE_TTL = 60  # seconds
+
+def get_cached_dynamic_parsers() -> list:
+    """Get dynamic parsers with caching to avoid DB queries on every signal."""
+    global _dynamic_parsers_cache, _dynamic_parsers_cache_ts
+    import time
+    now = time.time()
+    if now - _dynamic_parsers_cache_ts > _DYNAMIC_PARSER_CACHE_TTL:
+        try:
+            _dynamic_parsers_cache = db.get_dynamic_parsers(active_only=True)
+            _dynamic_parsers_cache_ts = now
+            logger.debug(f"Refreshed dynamic parsers cache: {len(_dynamic_parsers_cache)} parsers")
+        except Exception as e:
+            logger.error(f"Failed to load dynamic parsers: {e}")
+            _dynamic_parsers_cache = []
+    return _dynamic_parsers_cache
+
+
+def match_dynamic_parser(text: str, channel_id: int) -> tuple:
+    """
+    Try to match signal text against dynamic parsers.
+    Returns (parser_name, parsed_data) or (None, None) if no match.
+    
+    parsed_data includes: symbol, side, price (if patterns match)
+    """
+    parsers = get_cached_dynamic_parsers()
+    
+    for parser in parsers:
+        # Check if channel matches
+        channel_ids = parser.get("channel_ids") or []
+        if channel_id not in channel_ids:
+            continue
+        
+        parser_name = parser.get("name", "")
+        signal_pattern = parser.get("signal_pattern", "")
+        symbol_pattern = parser.get("symbol_pattern", "")
+        side_pattern = parser.get("side_pattern", "")
+        price_pattern = parser.get("price_pattern", "")
+        
+        # Check signal pattern (identifier that this is a valid signal)
+        if signal_pattern:
+            try:
+                if not re.search(signal_pattern, text, re.I | re.M):
+                    continue  # Signal pattern doesn't match
+            except re.error:
+                logger.warning(f"Invalid regex in parser {parser_name} signal_pattern")
+                continue
+        
+        # Signal pattern matched! Now extract data
+        parsed_data = {"parser_name": parser_name, "base_strategy": parser.get("base_strategy")}
+        
+        # Extract symbol
+        if symbol_pattern:
+            try:
+                sym_match = re.search(symbol_pattern, text, re.I | re.M)
+                if sym_match:
+                    # Get first capturing group or full match
+                    parsed_data["symbol"] = (sym_match.group(1) if sym_match.lastindex else sym_match.group(0)).upper()
+            except re.error:
+                pass
+        
+        # Extract side
+        if side_pattern:
+            try:
+                side_match = re.search(side_pattern, text, re.I | re.M)
+                if side_match:
+                    raw_side = (side_match.group(1) if side_match.lastindex else side_match.group(0)).upper()
+                    # Normalize side
+                    if raw_side in ("LONG", "UP", "BUY"):
+                        parsed_data["side"] = "Buy"
+                    elif raw_side in ("SHORT", "DOWN", "SELL"):
+                        parsed_data["side"] = "Sell"
+            except re.error:
+                pass
+        
+        # Extract price
+        if price_pattern:
+            try:
+                price_match = re.search(price_pattern, text, re.I | re.M)
+                if price_match:
+                    price_str = price_match.group(1) if price_match.lastindex else price_match.group(0)
+                    # Clean and parse price
+                    price_str = price_str.replace(",", ".").replace(" ", "")
+                    try:
+                        parsed_data["price"] = float(price_str)
+                    except ValueError:
+                        pass
+            except re.error:
+                pass
+        
+        # If we have minimum required data, return this parser
+        if parsed_data.get("symbol") and parsed_data.get("side"):
+            logger.info(f"[DynamicParser] Matched '{parser_name}' for signal: symbol={parsed_data.get('symbol')}, side={parsed_data.get('side')}")
+            return parser_name, parsed_data
+    
+    return None, None
+
+
+def invalidate_dynamic_parsers_cache():
+    """Force refresh of dynamic parsers cache (call after admin changes)."""
+    global _dynamic_parsers_cache_ts
+    _dynamic_parsers_cache_ts = 0
+
+
+# ============================================================
+# USER PERSONAL STRATEGIES (DEPLOYMENTS)
+# ============================================================
+
+async def on_mystrat_callback(update: Update, ctx: ContextTypes.DEFAULT_TYPE):
+    """Handle user's personal strategies callbacks (mystrat:*)."""
+    query = update.callback_query
+    await query.answer()
+    
+    uid = update.effective_user.id
+    data = query.data
+    t = ctx.t
+    
+    if data == "mystrat:list":
+        # Show list of user's deployments
+        deployments = db.get_user_deployments(uid, active_only=False)
+        
+        if not deployments:
+            text = t.get('mystrat_empty', '📦 *My Strategies*\n\nNo personal strategies deployed yet.\n\nYou can deploy strategies from the WebApp Backtest section.')
+            buttons = [[InlineKeyboardButton(t.get('btn_back', '⬅️ Back'), callback_data="strat_set:close")]]
+        else:
+            lines = [t.get('mystrat_header', '📦 *My Personal Strategies*'), ""]
+            for d in deployments:
+                status = "✅" if d.get("is_active") else "⏸️"
+                name = d.get("name", "Unknown")
+                base = d.get("base_strategy", "manual")
+                total_trades = d.get("total_trades", 0)
+                total_pnl = d.get("total_pnl", 0)
+                pnl_emoji = "🟢" if total_pnl >= 0 else "🔴"
+                lines.append(f"{status} *{name}* ({base})")
+                lines.append(f"   {pnl_emoji} PnL: ${total_pnl:.2f} | Trades: {total_trades}")
+            
+            lines.append("")
+            lines.append(t.get('mystrat_info', '↕️ Tap on a strategy to toggle or delete'))
+            text = "\n".join(lines)
+            
+            # Build buttons for each deployment
+            buttons = []
+            for d in deployments:
+                deploy_id = d.get("id")
+                name = d.get("name", "?")[:15]
+                is_active = d.get("is_active", False)
+                status_emoji = "✅" if is_active else "⏸️"
+                buttons.append([
+                    InlineKeyboardButton(f"{status_emoji} {name}", callback_data=f"mystrat:toggle:{deploy_id}"),
+                    InlineKeyboardButton("🗑", callback_data=f"mystrat:delete:{deploy_id}"),
+                ])
+            buttons.append([InlineKeyboardButton(t.get('btn_back', '⬅️ Back'), callback_data="strat_set:close")])
+        
+        await query.edit_message_text(
+            text,
+            parse_mode="Markdown",
+            reply_markup=InlineKeyboardMarkup(buttons)
+        )
+    
+    elif data.startswith("mystrat:toggle:"):
+        # Toggle deployment active status
+        deploy_id = int(data.split(":")[2])
+        
+        deployment = db.get_user_deployment_by_id(deploy_id, user_id=uid)
+        if not deployment:
+            await query.answer(t.get('mystrat_not_found', 'Deployment not found'), show_alert=True)
+            return
+        
+        new_status = not deployment.get("is_active", False)
+        db.update_user_deployment(deploy_id, uid, is_active=new_status)
+        status_text = "activated" if new_status else "deactivated"
+        await query.answer(f"Strategy {status_text}", show_alert=True)
+        
+        # Refresh list
+        update.callback_query.data = "mystrat:list"
+        await on_mystrat_callback(update, ctx)
+    
+    elif data.startswith("mystrat:delete:"):
+        # Confirm deletion
+        deploy_id = int(data.split(":")[2])
+        
+        deployment = db.get_user_deployment_by_id(deploy_id, user_id=uid)
+        if not deployment:
+            await query.answer(t.get('mystrat_not_found', 'Deployment not found'), show_alert=True)
+            return
+        
+        name = deployment.get("name", "Unknown")
+        text = t.get('mystrat_delete_confirm', f'⚠️ Delete strategy *{name}*?\n\nThis cannot be undone.').format(name=name)
+        
+        buttons = [
+            [
+                InlineKeyboardButton(t.get('btn_yes', '✅ Yes'), callback_data=f"mystrat:confirm_delete:{deploy_id}"),
+                InlineKeyboardButton(t.get('btn_no', '❌ No'), callback_data="mystrat:list"),
+            ]
+        ]
+        await query.edit_message_text(text, parse_mode="Markdown", reply_markup=InlineKeyboardMarkup(buttons))
+    
+    elif data.startswith("mystrat:confirm_delete:"):
+        # Actually delete
+        deploy_id = int(data.split(":")[2])
+        
+        success = db.delete_user_deployment(deploy_id, uid)
+        if success:
+            await query.answer(t.get('mystrat_deleted', 'Strategy deleted'), show_alert=True)
+        else:
+            await query.answer(t.get('mystrat_delete_error', 'Failed to delete'), show_alert=True)
+        
+        # Refresh list
+        update.callback_query.data = "mystrat:list"
+        await on_mystrat_callback(update, ctx)
+
+
 @log_calls
 async def on_channel_post(update: Update, ctx: ContextTypes.DEFAULT_TYPE):
     logger.info(f"📨 Received channel post from chat_id={update.channel_post.chat_id if update.channel_post else 'None'}")
@@ -20127,15 +20353,40 @@ async def on_channel_post(update: Update, ctx: ContextTypes.DEFAULT_TYPE):
     except Exception:
         logger.warning("Channel post has no chat_id")
         return
-    if SIGNAL_CHANNEL_IDS and ch_id not in SIGNAL_CHANNEL_IDS:
-        logger.debug(f"Skip channel {ch_id} (not in allowlist)")
-        return
+    
+    # Check if channel is in system allowlist OR in any dynamic parser
+    is_system_channel = SIGNAL_CHANNEL_IDS and ch_id in SIGNAL_CHANNEL_IDS
+    
+    # Check dynamic parser channels
+    dynamic_parser_match = None
+    dynamic_parsed_data = None
+    
+    if not is_system_channel:
+        # Check if any dynamic parser handles this channel
+        all_dynamic_parsers = get_cached_dynamic_parsers()
+        channel_in_dynamic = any(
+            ch_id in (p.get("channel_ids") or [])
+            for p in all_dynamic_parsers
+        )
+        if not channel_in_dynamic:
+            logger.debug(f"Skip channel {ch_id} (not in allowlist and no dynamic parser)")
+            return
 
     txt = (update.channel_post.text or update.channel_post.caption or "")
     logger.info(f"📝 Channel post text (first 200 chars): {txt[:200]!r}")
     if not txt.strip():
         logger.warning("Channel post has empty text/caption — skip")
         return
+    
+    # Try to match dynamic parsers (for both system and dynamic channels)
+    dynamic_parser_match, dynamic_parsed_data = match_dynamic_parser(txt, ch_id)
+    if dynamic_parser_match:
+        logger.info(f"[DynamicParser] Signal matched parser '{dynamic_parser_match}'")
+        # Increment parser stats
+        try:
+            db.increment_parser_signals(dynamic_parser_match)
+        except Exception as e:
+            logger.warning(f"Failed to increment parser signals: {e}")
 
     parsed_bitk = parse_bitk_signal(txt)
     is_bitk = parsed_bitk is not None
@@ -20190,6 +20441,20 @@ async def on_channel_post(update: Update, ctx: ContextTypes.DEFAULT_TYPE):
         parsed["oi_prev"] = parsed_oi.get("oi_prev")
         parsed["oi_now"] = parsed_oi.get("oi_now")
         parsed["oi_chg"] = parsed_oi.get("oi_chg")
+    
+    # NEW: Override with dynamic parser data (if matched and system parsers didn't catch it)
+    is_dynamic_signal = dynamic_parser_match is not None
+    if is_dynamic_signal and dynamic_parsed_data:
+        # Only use dynamic parser data if no system parser matched
+        system_matched = any([is_rsi_bb, is_bitk, is_scalper, is_elcaro, is_fibonacci, is_oi])
+        if not system_matched:
+            if dynamic_parsed_data.get("symbol"):
+                parsed["symbol"] = dynamic_parsed_data.get("symbol")
+            if dynamic_parsed_data.get("side"):
+                parsed["side"] = dynamic_parsed_data.get("side")
+            if dynamic_parsed_data.get("price"):
+                parsed["price"] = dynamic_parsed_data.get("price")
+            logger.info(f"[DynamicParser] Using data from '{dynamic_parser_match}': symbol={parsed.get('symbol')}, side={parsed.get('side')}")
     
     # CRITICAL FIX: Skip non-signal messages (info messages from Fibo Bot etc)
     # Both symbol AND side are required for a valid trading signal
@@ -20583,7 +20848,27 @@ async def on_channel_post(update: Update, ctx: ContextTypes.DEFAULT_TYPE):
                     else:
                         logger.info(f"[{uid}] OI {signal_direction.upper()} OK, proceeding with {symbol}")
 
-            if not (rsi_bb_trigger or bitk_trigger or scalper_trigger or elcaro_trigger or fibonacci_trigger or oi_trigger):
+            # =====================================================
+            # DYNAMIC PARSER TRIGGER - Check if user has deployment for this dynamic parser
+            # =====================================================
+            dynamic_trigger = False
+            dynamic_deployment = None
+            
+            if is_dynamic_signal and dynamic_parser_match:
+                # Check if user has an active deployment for thisparser
+                try:
+                    user_deployments = db.get_active_user_deployments_for_trading(uid, ctx_exchange, ctx_account_type)
+                    for dep in user_deployments:
+                        # Match deployment to parser by name
+                        if dep.get("base_strategy") == dynamic_parser_match:
+                            dynamic_trigger = True
+                            dynamic_deployment = dep
+                            logger.info(f"[{uid}] Dynamic parser '{dynamic_parser_match}' matched user deployment")
+                            break
+                except Exception as e:
+                    logger.warning(f"[{uid}] Failed to check user deployments: {e}")
+
+            if not (rsi_bb_trigger or bitk_trigger or scalper_trigger or elcaro_trigger or fibonacci_trigger or oi_trigger or dynamic_trigger):
                 continue
 
             # =====================================================
@@ -20620,6 +20905,9 @@ async def on_channel_post(update: Update, ctx: ContextTypes.DEFAULT_TYPE):
                 active_strategy = "fibonacci"
             elif oi_trigger:
                 active_strategy = "oi"
+            elif dynamic_trigger and dynamic_deployment:
+                # Use deployment name as strategy identifier
+                active_strategy = dynamic_deployment.get("name") or dynamic_parser_match
             
             # =====================================================
             # MAX POSITIONS CHECK - Skip if limit reached for this strategy/side
@@ -21731,6 +22019,124 @@ async def on_channel_post(update: Update, ctx: ContextTypes.DEFAULT_TYPE):
                             t.get('oi_market_error', "❌ OI error: {msg}").format(
                                 symbol=symbol, side=side, msg=str(e)[:100]
                             )
+                        )
+                continue
+
+            # =====================================================
+            # DYNAMIC STRATEGY TRIGGER - Execute user-deployed custom strategy
+            # =====================================================
+            if dynamic_trigger and dynamic_deployment:
+                dep_name = dynamic_deployment.get("name") or dynamic_parser_match
+                dep_side_display = 'LONG' if side == 'Buy' else 'SHORT'
+                logger.info(f"[{uid}] 🎯 Processing DYNAMIC '{dep_name}' {dep_side_display} trade for {symbol}")
+                
+                # Get settings from deployment config
+                risk_pct = float(dynamic_deployment.get("entry_percent") or 1.0)
+                user_sl_pct = float(dynamic_deployment.get("sl_percent") or 30.0)
+                user_tp_pct = float(dynamic_deployment.get("tp_percent") or 10.0)
+                user_leverage = int(dynamic_deployment.get("leverage") or 10)
+                pos_use_atr = bool(dynamic_deployment.get("atr_enabled"))
+                
+                logger.info(f"[{uid}] ⚙️ Dynamic '{dep_name}' {dep_side_display} settings: entry%={risk_pct}, SL%={user_sl_pct}, TP%={user_tp_pct}, leverage={user_leverage}, ATR={'ON' if pos_use_atr else 'OFF'}")
+                
+                try:
+                    if user_sl_pct <= 0:
+                        user_sl_pct = 1.0
+                    qty = await calc_qty(uid, symbol, spot_price, risk_pct, sl_pct=user_sl_pct, account_type=ctx_account_type, exchange=ctx_exchange)
+                    
+                    # Set leverage
+                    if user_leverage:
+                        try:
+                            await set_leverage(uid, symbol, leverage=user_leverage, account_type=ctx_account_type)
+                        except Exception as e:
+                            logger.warning(f"[{uid}] dynamic: failed to set leverage: {e}")
+                    
+                    # Place market order
+                    order_results = await place_order_all_accounts(
+                        uid, symbol, side, orderType="Market", qty=qty, 
+                        strategy=dep_name, leverage=user_leverage,
+                        signal_id=signal_id, timeframe=timeframe,
+                        calc_qty_per_target=True, entry_price=spot_price
+                    )
+                    
+                    # Build success/skipped summary
+                    success_accounts = []
+                    skipped_accounts = []
+                    for target_key, result in order_results.items():
+                        exchange_label = "Bybit" if result.get("exchange", "bybit") == "bybit" else "HyperLiquid"
+                        acc_label = get_account_label_for_display(target_key, result.get("exchange"))
+                        if result.get("success"):
+                            target_qty = result.get("qty", qty)
+                            success_accounts.append(f"{exchange_label} {acc_label}: {target_qty}")
+                        elif result.get("skipped"):
+                            skipped_accounts.append(f"{exchange_label} {acc_label} ⏭️ (already open)")
+                    
+                    # Calculate SL/TP prices
+                    if side == "Buy":
+                        actual_sl = spot_price * (1 - user_sl_pct / 100)
+                        actual_tp = spot_price * (1 + user_tp_pct / 100) if user_tp_pct else None
+                    else:
+                        actual_sl = spot_price * (1 + user_sl_pct / 100)
+                        actual_tp = spot_price * (1 - user_tp_pct / 100) if user_tp_pct else None
+                    
+                    # Set TP/SL on all exchanges where position was opened
+                    if not pos_use_atr:
+                        for target_key, target_result in order_results.items():
+                            if target_result.get("success"):
+                                t_exchange = target_result.get("exchange", "bybit")
+                                t_acc = target_key.split(":")[1] if ":" in target_key else ctx_account_type
+                                t_acc = "demo" if t_acc == "paper" else ("real" if t_acc == "live" else t_acc)
+                                try:
+                                    await set_trading_stop(uid, symbol, tp_price=actual_tp, sl_price=actual_sl, side_hint=side, account_type=t_acc, exchange=t_exchange)
+                                except Exception as ts_err:
+                                    logger.warning(f"[{uid}] Failed to set TP/SL on {target_key}: {ts_err}")
+                    
+                    # Update deployment performance stats
+                    try:
+                        db.update_deployment_performance(dynamic_deployment["id"], 0, False)  # Increment trades_count
+                    except Exception as e:
+                        logger.warning(f"Failed to update deployment stats: {e}")
+                    
+                    inc_pyramid(uid, symbol, side, exchange=ctx_exchange)
+                    
+                    # Send notification
+                    side_display = 'LONG' if side == 'Buy' else 'SHORT'
+                    side_emoji = '📈' if side == 'Buy' else '📉'
+                    
+                    accounts_lines = []
+                    if success_accounts:
+                        accounts_lines.extend(f'• {acc}' for acc in success_accounts)
+                    if skipped_accounts:
+                        accounts_lines.extend(f'• {acc}' for acc in skipped_accounts)
+                    accounts_str = '\n'.join(accounts_lines) if accounts_lines else f'• Qty: {qty}'
+                    
+                    sl_price = spot_price * (1 - user_sl_pct/100) if side == 'Buy' else spot_price * (1 + user_sl_pct/100)
+                    tp_price = spot_price * (1 + user_tp_pct/100) if side == 'Buy' else spot_price * (1 - user_tp_pct/100)
+                    
+                    total_qty = sum(r.get("qty", 0) for r in order_results.values() if r.get("success")) or qty
+                    notif_margin = float(total_qty) * spot_price / user_leverage if user_leverage else 0
+                    qty_display = f"{total_qty:.4g}"
+                    
+                    signal_info = (
+                        f'🎯 *{dep_name.upper()}* {side_emoji} *{side_display}*\n'
+                        f'━━━━━━━━━━━━━━━━\n'
+                        f'🪙 `{symbol}`\n'
+                        f'💰 Entry: `{spot_price:.6g}`\n'
+                        f'📏 Size: `{qty_display}` • Margin: `{notif_margin:.2f} USDT`\n'
+                        f'⚡ Leverage: `{user_leverage}x`\n'
+                        f'🛡️ SL: `{sl_price:.6g}` ({user_sl_pct:.2f}%)\n'
+                        f'🎯 TP: `{tp_price:.6g}` ({user_tp_pct:.2f}%)\n\n'
+                        f'*Opened on:*\n{accounts_str}\n'
+                    )
+                    
+                    await ctx.bot.send_message(uid, signal_info, parse_mode="Markdown")
+                    
+                except Exception as e:
+                    handled = await handle_trade_error(ctx.bot, uid, e, ctx_account_type, t, dep_name, symbol)
+                    if not handled:
+                        await ctx.bot.send_message(
+                            uid,
+                            f"❌ {dep_name} error: {str(e)[:100]}"
                         )
                 continue
 
@@ -24755,11 +25161,12 @@ async def cmd_admin(update: Update, ctx: ContextTypes.DEFAULT_TYPE):
         [InlineKeyboardButton("📈 Positions", callback_data="admin:positions_menu"),
          InlineKeyboardButton("📊 Trades", callback_data="admin:trades_menu")],
         [InlineKeyboardButton("📡 Signals", callback_data="admin:signals_menu"),
-         InlineKeyboardButton(t.get('admin_reports', '📊 Reports'), callback_data="admin:reports_menu")],
-        [InlineKeyboardButton(t.get('admin_payments', '💳 Payments'), callback_data="admin:payments_menu"),
-         InlineKeyboardButton("🔧 System", callback_data="admin:system_menu")],
-        [InlineKeyboardButton("🚨 Errors", callback_data="admin:errors_menu"),
+         InlineKeyboardButton("🎯 Strategies", callback_data="admin:strategies_menu")],
+        [InlineKeyboardButton(t.get('admin_reports', '📊 Reports'), callback_data="admin:reports_menu"),
+         InlineKeyboardButton(t.get('admin_payments', '💳 Payments'), callback_data="admin:payments_menu")],
+        [InlineKeyboardButton("🔧 System", callback_data="admin:system_menu"),
          InlineKeyboardButton("📢 Broadcast", callback_data="admin:broadcast_menu")],
+        [InlineKeyboardButton("🚨 Errors", callback_data="admin:errors_menu")],
         [InlineKeyboardButton(t['admin_pause_all'],  callback_data="admin:pause"),
          InlineKeyboardButton(t['admin_resume_all'], callback_data="admin:resume")],
         [InlineKeyboardButton(t['admin_close_longs'],  callback_data="admin:close_longs"),
@@ -24792,11 +25199,12 @@ async def on_admin_cb(update: Update, ctx: ContextTypes.DEFAULT_TYPE):
             [InlineKeyboardButton("📈 Positions", callback_data="admin:positions_menu"),
              InlineKeyboardButton("📊 Trades", callback_data="admin:trades_menu")],
             [InlineKeyboardButton("📡 Signals", callback_data="admin:signals_menu"),
-             InlineKeyboardButton(t.get('admin_reports', '📊 Reports'), callback_data="admin:reports_menu")],
-            [InlineKeyboardButton(t.get('admin_payments', '💳 Payments'), callback_data="admin:payments_menu"),
-             InlineKeyboardButton("🔧 System", callback_data="admin:system_menu")],
-            [InlineKeyboardButton("🚨 Errors", callback_data="admin:errors_menu"),
+             InlineKeyboardButton("🎯 Strategies", callback_data="admin:strategies_menu")],
+            [InlineKeyboardButton(t.get('admin_reports', '📊 Reports'), callback_data="admin:reports_menu"),
+             InlineKeyboardButton(t.get('admin_payments', '💳 Payments'), callback_data="admin:payments_menu")],
+            [InlineKeyboardButton("🔧 System", callback_data="admin:system_menu"),
              InlineKeyboardButton("📢 Broadcast", callback_data="admin:broadcast_menu")],
+            [InlineKeyboardButton("🚨 Errors", callback_data="admin:errors_menu")],
             [InlineKeyboardButton(t['admin_pause_all'],  callback_data="admin:pause"),
              InlineKeyboardButton(t['admin_resume_all'], callback_data="admin:resume")],
             [InlineKeyboardButton(t['admin_close_longs'],  callback_data="admin:close_longs"),
@@ -26059,6 +26467,217 @@ async def on_admin_cb(update: Update, ctx: ContextTypes.DEFAULT_TYPE):
         ]
         await q.edit_message_text(text, parse_mode="Markdown", reply_markup=InlineKeyboardMarkup(keyboard))
 
+    # =====================================================
+    # STRATEGIES MENU - Admin manage dynamic signal parsers
+    # =====================================================
+    elif cmd == "strategies_menu":
+        import db as db_module
+        parsers = db_module.get_dynamic_parsers(active_only=False)
+        
+        text = "🎯 *Strategy Parsers Management*\n\n"
+        text += f"📊 Total parsers: {len(parsers)}\n"
+        system_count = sum(1 for p in parsers if p.get("is_system"))
+        custom_count = len(parsers) - system_count
+        text += f"  • System: {system_count}\n"
+        text += f"  • Custom: {custom_count}\n\n"
+        
+        text += "*Active parsers:*\n"
+        for p in parsers:
+            if p.get("is_active"):
+                icon = "🔒" if p.get("is_system") else "⚙️"
+                signals = p.get("signals_parsed", 0)
+                text += f"{icon} {p['display_name'] or p['name']}: {signals} signals\n"
+        
+        keyboard = [
+            [InlineKeyboardButton("📋 All Parsers", callback_data="admin:parsers_list:0")],
+            [InlineKeyboardButton("➕ Add New Parser", callback_data="admin:add_parser_start")],
+            [InlineKeyboardButton(t.get('btn_back', '⬅️ Back'), callback_data="admin:menu")],
+        ]
+        await q.edit_message_text(text, parse_mode="Markdown", reply_markup=InlineKeyboardMarkup(keyboard))
+
+    elif cmd.startswith("parsers_list:"):
+        import db as db_module
+        page = int(cmd.split(":")[1]) if len(cmd.split(":")) > 1 else 0
+        parsers = db_module.get_dynamic_parsers(active_only=False)
+        
+        per_page = 8
+        total_pages = max(1, (len(parsers) + per_page - 1) // per_page)
+        page_parsers = parsers[page * per_page:(page + 1) * per_page]
+        
+        text = f"📋 *Signal Parsers* — Page {page + 1}/{total_pages}\n\n"
+        
+        keyboard = []
+        for p in page_parsers:
+            status = "✅" if p.get("is_active") else "❌"
+            icon = "🔒" if p.get("is_system") else "⚙️"
+            name = p['display_name'] or p['name']
+            keyboard.append([
+                InlineKeyboardButton(f"{status}{icon} {name}", callback_data=f"admin:parser_view:{p['id']}")
+            ])
+        
+        nav_row = []
+        if page > 0:
+            nav_row.append(InlineKeyboardButton("◀️", callback_data=f"admin:parsers_list:{page - 1}"))
+        if page < total_pages - 1:
+            nav_row.append(InlineKeyboardButton("▶️", callback_data=f"admin:parsers_list:{page + 1}"))
+        if nav_row:
+            keyboard.append(nav_row)
+        
+        keyboard.append([InlineKeyboardButton(t.get('btn_back', '⬅️ Back'), callback_data="admin:strategies_menu")])
+        await q.edit_message_text(text, parse_mode="Markdown", reply_markup=InlineKeyboardMarkup(keyboard))
+
+    elif cmd.startswith("parser_view:"):
+        import db as db_module
+        parser_id = int(cmd.split(":")[1])
+        parser = None
+        for p in db_module.get_dynamic_parsers(active_only=False):
+            if p["id"] == parser_id:
+                parser = p
+                break
+        
+        if not parser:
+            await q.answer("Parser not found", show_alert=True)
+            return
+        
+        status = "✅ Active" if parser.get("is_active") else "❌ Inactive"
+        system = "🔒 System (immutable)" if parser.get("is_system") else "⚙️ Custom"
+        
+        text = f"🎯 *Parser: {parser['display_name'] or parser['name']}*\n\n"
+        text += f"📌 *Internal name:* `{parser['name']}`\n"
+        text += f"📊 *Status:* {status}\n"
+        text += f"🏷 *Type:* {system}\n"
+        text += f"🎯 *Base strategy:* {parser.get('base_strategy', 'manual')}\n"
+        text += f"📡 *Signals parsed:* {parser.get('signals_parsed', 0)}\n\n"
+        
+        if parser.get("description"):
+            text += f"📝 *Description:*\n{parser['description']}\n\n"
+        
+        channel_ids = parser.get("channel_ids", [])
+        if channel_ids:
+            text += f"📢 *Channels:* {', '.join(str(c) for c in channel_ids)}\n"
+        
+        if parser.get("signal_pattern"):
+            text += f"🔍 *Signal pattern:* `{parser['signal_pattern'][:50]}...`\n"
+        
+        keyboard = []
+        if not parser.get("is_system"):
+            toggle_cb = f"admin:parser_toggle:{parser_id}"
+            toggle_text = "❌ Deactivate" if parser.get("is_active") else "✅ Activate"
+            keyboard.append([InlineKeyboardButton(toggle_text, callback_data=toggle_cb)])
+            keyboard.append([InlineKeyboardButton("✏️ Edit", callback_data=f"admin:parser_edit:{parser_id}")])
+            keyboard.append([InlineKeyboardButton("🗑 Delete", callback_data=f"admin:parser_delete:{parser_id}")])
+        else:
+            toggle_cb = f"admin:parser_toggle:{parser_id}"
+            toggle_text = "❌ Deactivate" if parser.get("is_active") else "✅ Activate"
+            keyboard.append([InlineKeyboardButton(toggle_text, callback_data=toggle_cb)])
+        
+        keyboard.append([InlineKeyboardButton(t.get('btn_back', '⬅️ Back'), callback_data="admin:parsers_list:0")])
+        await q.edit_message_text(text, parse_mode="Markdown", reply_markup=InlineKeyboardMarkup(keyboard))
+
+    elif cmd.startswith("parser_toggle:"):
+        import db as db_module
+        parser_id = int(cmd.split(":")[1])
+        parser = None
+        for p in db_module.get_dynamic_parsers(active_only=False):
+            if p["id"] == parser_id:
+                parser = p
+                break
+        
+        if not parser:
+            await q.answer("Parser not found", show_alert=True)
+            return
+        
+        new_status = not parser.get("is_active", True)
+        # For system parsers, we only toggle is_active without full update check
+        with get_conn() as conn:
+            conn.execute(
+                "UPDATE dynamic_signal_parsers SET is_active = ? WHERE id = ?",
+                (new_status, parser_id)
+            )
+            conn.commit()
+        
+        invalidate_dynamic_parsers_cache()  # Force refresh of parser cache
+        status_text = "activated" if new_status else "deactivated"
+        await q.answer(f"Parser {status_text}!", show_alert=True)
+        q.data = f"admin:parser_view:{parser_id}"
+        await on_admin_cb(update, ctx)
+
+    elif cmd.startswith("parser_delete:"):
+        import db as db_module
+        parser_id = int(cmd.split(":")[1])
+        
+        if db_module.delete_dynamic_parser(parser_id):
+            invalidate_dynamic_parsers_cache()  # Force refresh of parser cache
+            await q.answer("Parser deleted!", show_alert=True)
+            q.data = "admin:parsers_list:0"
+            await on_admin_cb(update, ctx)
+        else:
+            await q.answer("Cannot delete system parser", show_alert=True)
+
+    elif cmd == "add_parser_start":
+        # Start conversation for adding new parser
+        ctx.user_data["admin_parser"] = {"step": "name"}
+        await q.edit_message_text(
+            "➕ *Add New Signal Parser*\n\n"
+            "Step 1/5: Enter parser *name* (internal, lowercase, no spaces):\n"
+            "Example: `my_signals`",
+            parse_mode="Markdown",
+            reply_markup=InlineKeyboardMarkup([
+                [InlineKeyboardButton("❌ Cancel", callback_data="admin:strategies_menu")]
+            ])
+        )
+
+    elif cmd == "parser_confirm_create":
+        import db as db_module
+        parser_data = ctx.user_data.get("admin_parser", {})
+        
+        if not parser_data.get("name"):
+            await q.answer("No parser data. Start again.", show_alert=True)
+            ctx.user_data.pop("admin_parser", None)
+            q.data = "admin:strategies_menu"
+            await on_admin_cb(update, ctx)
+            return
+        
+        try:
+            parser_id = db_module.create_dynamic_parser(
+                name=parser_data["name"],
+                display_name=parser_data.get("display_name", parser_data["name"]),
+                channel_ids=parser_data.get("channel_ids", []),
+                signal_pattern=parser_data.get("signal_pattern", ".*"),
+                symbol_pattern=parser_data.get("symbol_pattern", r'([A-Z]{2,10}USDT?)'),
+                side_pattern=parser_data.get("side_pattern", r'(LONG|SHORT|Long|Short)'),
+                price_pattern=parser_data.get("price_pattern"),
+                description=f"Custom parser for {parser_data.get('display_name', parser_data['name'])}",
+                example_signal=parser_data.get("example_signal"),
+                base_strategy="manual",
+                created_by=uid
+            )
+            
+            invalidate_dynamic_parsers_cache()  # Force refresh of parser cache
+            ctx.user_data.pop("admin_parser", None)
+            
+            await q.edit_message_text(
+                f"✅ *Parser Created Successfully!*\n\n"
+                f"🆔 ID: `{parser_id}`\n"
+                f"📋 Name: `{parser_data['name']}`\n"
+                f"🏷 Display: {parser_data.get('display_name', parser_data['name'])}\n\n"
+                f"⚠️ *Important:* Add channel ID `{parser_data.get('channel_ids', [0])[0]}` "
+                f"to your SIGNAL_CHANNEL_IDS environment variable to start receiving signals.",
+                parse_mode="Markdown",
+                reply_markup=InlineKeyboardMarkup([
+                    [InlineKeyboardButton("📋 View Parsers", callback_data="admin:parsers_list:0")],
+                    [InlineKeyboardButton(t.get('btn_back', '⬅️ Back'), callback_data="admin:strategies_menu")]
+                ])
+            )
+        except Exception as e:
+            logger.exception(f"Failed to create parser: {e}")
+            await q.answer(f"Error: {str(e)[:50]}", show_alert=True)
+            ctx.user_data.pop("admin_parser", None)
+
+    elif cmd == "parser_edit_patterns":
+        # TODO: Allow editing individual patterns before creation
+        await q.answer("Pattern editing coming soon. Please create and edit later.", show_alert=True)
+
 
 async def show_user_card(q, ctx, target_uid: int):
     """Display user card with all information and actions."""
@@ -26601,6 +27220,143 @@ async def text_handler(update: Update, ctx: ContextTypes.DEFAULT_TYPE):
             ])
         )
         return
+
+    # Handle admin parser creation conversation
+    if ctx.user_data.get("admin_parser") and uid == ADMIN_ID:
+        parser_data = ctx.user_data["admin_parser"]
+        step = parser_data.get("step")
+        t = LANGS.get(ctx.user_data.get("lang", DEFAULT_LANG), LANGS[DEFAULT_LANG])
+        
+        if step == "name":
+            # Validate name
+            name = text.strip().lower().replace(" ", "_")
+            if not re.match(r'^[a-z_][a-z0-9_]*$', name):
+                await update.message.reply_text(
+                    "❌ Invalid name. Use only lowercase letters, numbers, and underscores.\n\n"
+                    "Example: `my_signals`, `premium_alerts`",
+                    parse_mode="Markdown",
+                    reply_markup=InlineKeyboardMarkup([
+                        [InlineKeyboardButton("❌ Cancel", callback_data="admin:strategies_menu")]
+                    ])
+                )
+                return
+            parser_data["name"] = name
+            parser_data["step"] = "display_name"
+            await update.message.reply_text(
+                f"✅ Name: `{name}`\n\n"
+                "Step 2/5: Enter *display name* (shown to users):\n"
+                "Example: `Premium Signals`",
+                parse_mode="Markdown",
+                reply_markup=InlineKeyboardMarkup([
+                    [InlineKeyboardButton("❌ Cancel", callback_data="admin:strategies_menu")]
+                ])
+            )
+            return
+        
+        elif step == "display_name":
+            parser_data["display_name"] = text.strip()
+            parser_data["step"] = "channel_id"
+            await update.message.reply_text(
+                f"✅ Display name: *{text.strip()}*\n\n"
+                "Step 3/5: Enter *channel ID* to parse signals from:\n"
+                "(Forward a message from the channel or enter the ID)\n\n"
+                "Example: `-1001234567890`",
+                parse_mode="Markdown",
+                reply_markup=InlineKeyboardMarkup([
+                    [InlineKeyboardButton("❌ Cancel", callback_data="admin:strategies_menu")]
+                ])
+            )
+            return
+        
+        elif step == "channel_id":
+            try:
+                channel_id = int(text.strip())
+            except ValueError:
+                await update.message.reply_text(
+                    "❌ Invalid channel ID. Enter a number.\n\nExample: `-1001234567890`",
+                    reply_markup=InlineKeyboardMarkup([
+                        [InlineKeyboardButton("❌ Cancel", callback_data="admin:strategies_menu")]
+                    ])
+                )
+                return
+            parser_data["channel_ids"] = [channel_id]
+            parser_data["step"] = "signal_example"
+            await update.message.reply_text(
+                f"✅ Channel: `{channel_id}`\n\n"
+                "Step 4/5: *Paste an example signal* from the channel:\n\n"
+                "I will analyze it to extract:\n"
+                "• Symbol pattern\n"
+                "• Side (Long/Short) pattern\n"
+                "• Entry price pattern",
+                parse_mode="Markdown",
+                reply_markup=InlineKeyboardMarkup([
+                    [InlineKeyboardButton("❌ Cancel", callback_data="admin:strategies_menu")]
+                ])
+            )
+            return
+        
+        elif step == "signal_example":
+            example = text.strip()
+            parser_data["example_signal"] = example
+            
+            # Auto-analyze signal to suggest patterns
+            symbol_pattern = None
+            side_pattern = None
+            price_pattern = None
+            
+            # Try to detect symbol (e.g., BTC, BTCUSDT, ETH/USDT)
+            symbol_match = re.search(r'([A-Z]{2,10}(?:USDT|USD|PERP)?)', example, re.IGNORECASE)
+            if symbol_match:
+                symbol_pattern = r'([A-Z]{2,10}(?:USDT|USD|PERP)?)'
+            
+            # Try to detect side
+            side_upper = example.upper()
+            if 'LONG' in side_upper or 'BUY' in side_upper:
+                side_pattern = r'(LONG|BUY|Long|Buy|long|buy)'
+            elif 'SHORT' in side_upper or 'SELL' in side_upper:
+                side_pattern = r'(SHORT|SELL|Short|Sell|short|sell)'
+            if not side_pattern:
+                side_pattern = r'(LONG|SHORT|Long|Short|Buy|Sell)'
+            
+            # Try to detect price
+            price_match = re.search(r'(?:entry|price|@)[:\s]*\$?(\d+(?:[.,]\d+)?)', example, re.IGNORECASE)
+            if price_match:
+                price_pattern = r'(?:entry|price|@)[:\s]*\$?(\d+(?:[.,]\d+)?)'
+            else:
+                price_pattern = r'(\d+(?:[.,]\d+)?)\s*(?:USDT|USD|\$)?'
+            
+            parser_data["signal_pattern"] = f".*(?:signal|alert|entry).*"  # Generic match
+            parser_data["symbol_pattern"] = symbol_pattern or r'([A-Z]{2,10}USDT?)'
+            parser_data["side_pattern"] = side_pattern
+            parser_data["price_pattern"] = price_pattern
+            parser_data["step"] = "confirm"
+            
+            await update.message.reply_text(
+                f"✅ *Signal analyzed!*\n\n"
+                f"📋 Example stored\n"
+                f"🔍 Symbol pattern: `{symbol_pattern}`\n"
+                f"🎯 Side pattern: `{side_pattern}`\n"
+                f"💰 Price pattern: `{price_pattern}`\n\n"
+                f"Step 5/5: *Confirm creation?*",
+                parse_mode="Markdown",
+                reply_markup=InlineKeyboardMarkup([
+                    [InlineKeyboardButton("✅ Create Parser", callback_data="admin:parser_confirm_create")],
+                    [InlineKeyboardButton("✏️ Edit Patterns", callback_data="admin:parser_edit_patterns")],
+                    [InlineKeyboardButton("❌ Cancel", callback_data="admin:strategies_menu")]
+                ])
+            )
+            return
+        
+        elif step == "confirm":
+            # User entered something in confirm step - ignore
+            await update.message.reply_text(
+                "⚠️ Please use the buttons to confirm or cancel.",
+                reply_markup=InlineKeyboardMarkup([
+                    [InlineKeyboardButton("✅ Create Parser", callback_data="admin:parser_confirm_create")],
+                    [InlineKeyboardButton("❌ Cancel", callback_data="admin:strategies_menu")]
+                ])
+            )
+            return
 
     if mode == "update_tpsl":
         try:
@@ -33451,6 +34207,7 @@ def main():
     app.add_handler(CallbackQueryHandler(on_twofa_cb,    pattern=r"^twofa_(approve|deny):"))
     app.add_handler(CallbackQueryHandler(on_2fa_app_login_cb, pattern=r"^2fa_(confirm|reject):"))
     app.add_handler(CallbackQueryHandler(on_users_cb,    pattern=r"^users:"))
+    app.add_handler(CallbackQueryHandler(on_mystrat_callback, pattern=r"^mystrat:"))
     app.add_handler(CallbackQueryHandler(callback_strategy_settings, pattern=r"^(noop|strat_set:|strat_toggle:|strat_param:|strat_reset:|strat_dir_toggle:|strat_side:|strat_side_toggle:|strat_side_order_type:|strat_side_dca_toggle:|strat_side_coins:|strat_side_coins_set:|strat_side_be:|strat_side_ptp:|dca_param:|dca_toggle|strat_order_type:|strat_coins:|strat_coins_set:|scryptomera_dir:|scryptomera_side:|scalper_dir:|scalper_side:|fibonacci_dir:|elcaro_dir:|oi_dir:|rsi_bb_dir:|strat_atr_toggle:|strat_side_atr_toggle:|strat_mode:|strat_mode_cycle:|global_param:|global_atr:|global_ladder:|global_be:|strat_hl:|hl_strat:|rsi_bb_side:|elcaro_side:|fibonacci_side:|oi_side:|manual_side:)"))
 
     try:

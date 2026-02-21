@@ -951,6 +951,44 @@ class DeployStrategyRequest(BaseModel):
     backtest_results: Optional[Dict[str, Any]] = None
 
 
+class UserStrategyDeployRequest(BaseModel):
+    """Request model for user-personal strategy deployment"""
+    name: str
+    source_type: str = "backtest"  # 'backtest', 'copy', 'custom'
+    source_id: Optional[int] = None
+    base_strategy: str = "manual"  # Name of dynamic parser to use
+    config_json: Optional[Dict[str, Any]] = None
+    # Trading settings
+    entry_percent: float = 1.0
+    stop_loss_percent: float = 30.0
+    take_profit_percent: float = 10.0
+    leverage: int = 10
+    # ATR settings
+    use_atr: bool = False
+    atr_periods: int = 14
+    atr_multiplier: float = 2.0
+    atr_trigger_pct: float = 1.0
+    atr_step_pct: float = 0.5
+    # DCA settings
+    dca_enabled: bool = False
+    dca_percent_1: float = 10.0
+    dca_percent_2: float = 25.0
+    # Break-Even settings
+    be_enabled: bool = False
+    be_trigger_pct: float = 1.0
+    # Partial Take Profit settings
+    partial_tp_enabled: bool = False
+    ptp_step1_trigger: float = 2.0
+    ptp_step1_close: float = 30.0
+    ptp_step2_trigger: float = 5.0
+    ptp_step2_close: float = 50.0
+    # Exchange settings
+    exchange: str = "bybit"
+    account_type: str = "demo"
+    backtest_results: Optional[Dict[str, Any]] = None
+    is_live: bool = False
+
+
 class ReplayDataRequest(BaseModel):
     strategy: str
     symbol: str = "BTCUSDT"
@@ -1221,6 +1259,156 @@ async def get_active_deployment(strategy: str, user: dict = Depends(get_current_
         
     except Exception as e:
         return {"success": False, "error": str(e)}
+
+
+# ============================================================
+# User Personal Strategy Deployments (uses user_strategy_deployments table)
+# ============================================================
+
+@router.post("/user-deploy")
+async def user_deploy_strategy(request: UserStrategyDeployRequest, user: dict = Depends(get_current_user)):
+    """Deploy a strategy personally for the current user (authenticated)"""
+    import db
+    
+    try:
+        user_id = user.get("user_id")
+        if not user_id:
+            return {"success": False, "error": "User ID not found"}
+        
+        deployment_id = db.create_user_deployment(
+            user_id=user_id,
+            name=request.name,
+            source_type=request.source_type,
+            source_id=request.source_id,
+            base_strategy=request.base_strategy,
+            config_json=request.config_json,
+            entry_percent=request.entry_percent,
+            stop_loss_percent=request.stop_loss_percent,
+            take_profit_percent=request.take_profit_percent,
+            leverage=request.leverage,
+            use_atr=request.use_atr,
+            atr_periods=request.atr_periods,
+            atr_multiplier=request.atr_multiplier,
+            atr_trigger_pct=request.atr_trigger_pct,
+            atr_step_pct=request.atr_step_pct,
+            dca_enabled=request.dca_enabled,
+            dca_percent_1=request.dca_percent_1,
+            dca_percent_2=request.dca_percent_2,
+            be_enabled=request.be_enabled,
+            be_trigger_pct=request.be_trigger_pct,
+            partial_tp_enabled=request.partial_tp_enabled,
+            ptp_step1_trigger=request.ptp_step1_trigger,
+            ptp_step1_close=request.ptp_step1_close,
+            ptp_step2_trigger=request.ptp_step2_trigger,
+            ptp_step2_close=request.ptp_step2_close,
+            exchange=request.exchange,
+            account_type=request.account_type,
+            backtest_results=request.backtest_results,
+            is_live=request.is_live
+        )
+        
+        return {
+            "success": True,
+            "deployment_id": deployment_id,
+            "message": f"Strategy '{request.name}' deployed successfully"
+        }
+        
+    except Exception as e:
+        return {"success": False, "error": str(e)}
+
+
+@router.get("/my-deployments")
+async def list_my_deployments(user: dict = Depends(get_current_user)):
+    """List all personal strategy deployments for current user (authenticated)"""
+    import db
+    
+    try:
+        user_id = user.get("user_id")
+        if not user_id:
+            return {"success": False, "error": "User ID not found", "deployments": []}
+        
+        deployments = db.get_user_deployments(user_id)
+        return {"success": True, "deployments": deployments}
+        
+    except Exception as e:
+        return {"success": False, "error": str(e), "deployments": []}
+
+
+@router.delete("/my-deployments/{deployment_id}")
+async def delete_my_deployment(deployment_id: int, user: dict = Depends(get_current_user)):
+    """Delete a personal strategy deployment (authenticated)"""
+    import db
+    
+    try:
+        user_id = user.get("user_id")
+        if not user_id:
+            return {"success": False, "error": "User ID not found"}
+        
+        # Verify ownership
+        deployment = db.get_user_deployment_by_id(deployment_id)
+        if not deployment:
+            return {"success": False, "error": "Deployment not found"}
+        if deployment.get("user_id") != user_id:
+            return {"success": False, "error": "Access denied"}
+        
+        db.delete_user_deployment(deployment_id, user_id)
+        return {"success": True, "message": "Deployment deleted"}
+        
+    except Exception as e:
+        return {"success": False, "error": str(e)}
+
+
+@router.put("/my-deployments/{deployment_id}/toggle")
+async def toggle_my_deployment(deployment_id: int, user: dict = Depends(get_current_user)):
+    """Toggle active status of a personal strategy deployment (authenticated)"""
+    import db
+    
+    try:
+        user_id = user.get("user_id")
+        if not user_id:
+            return {"success": False, "error": "User ID not found"}
+        
+        # Verify ownership
+        deployment = db.get_user_deployment_by_id(deployment_id)
+        if not deployment:
+            return {"success": False, "error": "Deployment not found"}
+        if deployment.get("user_id") != user_id:
+            return {"success": False, "error": "Access denied"}
+        
+        new_status = not deployment.get("is_active", False)
+        db.update_user_deployment(deployment_id, user_id, is_active=new_status)
+        
+        return {
+            "success": True,
+            "is_active": new_status,
+            "message": f"Deployment {'activated' if new_status else 'deactivated'}"
+        }
+        
+    except Exception as e:
+        return {"success": False, "error": str(e)}
+
+
+@router.get("/available-parsers")
+async def get_available_parsers(user: dict = Depends(get_current_user)):
+    """Get list of available dynamic parsers for deployment (authenticated)"""
+    import db
+    
+    try:
+        parsers = db.get_dynamic_parsers(active_only=True)
+        return {
+            "success": True,
+            "parsers": [
+                {
+                    "name": p["name"],
+                    "description": p.get("description"),
+                    "signal_count": p.get("signal_count", 0)
+                }
+                for p in parsers
+            ]
+        }
+        
+    except Exception as e:
+        return {"success": False, "error": str(e), "parsers": []}
 
 
 # WebSocket for live backtesting

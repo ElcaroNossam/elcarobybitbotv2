@@ -5879,6 +5879,348 @@ def delete_custom_strategy(strategy_id: int, user_id: int) -> bool:
         return cur.rowcount > 0
 
 
+# ============ DYNAMIC SIGNAL PARSERS FUNCTIONS ============
+
+def get_dynamic_parsers(active_only: bool = True) -> list:
+    """Get all dynamic signal parsers for signal routing."""
+    import json
+    query = """
+        SELECT id, name, display_name, description, channel_ids, signal_pattern, 
+               symbol_pattern, side_pattern, price_pattern, base_strategy, 
+               default_settings, is_active, is_system
+        FROM dynamic_signal_parsers
+    """
+    if active_only:
+        query += " WHERE is_active = TRUE"
+    query += " ORDER BY is_system DESC, name ASC"
+    
+    with get_conn() as conn:
+        cur = conn.execute(query)
+        rows = cur.fetchall()
+        result = []
+        for row in rows:
+            r = dict(row)
+            # Parse JSON fields
+            if r.get("channel_ids"):
+                r["channel_ids"] = json.loads(r["channel_ids"])
+            if r.get("default_settings"):
+                r["default_settings"] = json.loads(r["default_settings"])
+            result.append(r)
+        return result
+
+
+def get_dynamic_parser_by_name(name: str) -> dict | None:
+    """Get a specific dynamic parser by name."""
+    import json
+    with get_conn() as conn:
+        cur = conn.execute(
+            """SELECT * FROM dynamic_signal_parsers WHERE name = ?""",
+            (name,)
+        )
+        row = cur.fetchone()
+        if not row:
+            return None
+        r = dict(row)
+        if r.get("channel_ids"):
+            r["channel_ids"] = json.loads(r["channel_ids"])
+        if r.get("default_settings"):
+            r["default_settings"] = json.loads(r["default_settings"])
+        return r
+
+
+def create_dynamic_parser(
+    name: str,
+    display_name: str,
+    channel_ids: list,
+    signal_pattern: str,
+    symbol_pattern: str,
+    side_pattern: str,
+    price_pattern: str = None,
+    description: str = None,
+    example_signal: str = None,
+    base_strategy: str = "manual",
+    default_settings: dict = None,
+    created_by: int = None
+) -> int:
+    """Create a new dynamic signal parser (admin function). Returns parser ID."""
+    import json
+    
+    with get_conn() as conn:
+        cur = conn.execute(
+            """INSERT INTO dynamic_signal_parsers 
+               (name, display_name, description, channel_ids, signal_pattern, 
+                symbol_pattern, side_pattern, price_pattern, example_signal,
+                base_strategy, default_settings, is_active, is_system, created_by)
+               VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, TRUE, FALSE, ?)
+               RETURNING id""",
+            (name, display_name, description, json.dumps(channel_ids), signal_pattern,
+             symbol_pattern, side_pattern, price_pattern, example_signal,
+             base_strategy, json.dumps(default_settings or {}), created_by)
+        )
+        row = cur.fetchone()
+        conn.commit()
+        return row[0] if row else cur.lastrowid
+
+
+def update_dynamic_parser(parser_id: int, **updates) -> bool:
+    """Update a dynamic parser settings. Returns True if updated."""
+    import json
+    
+    allowed = {'display_name', 'description', 'channel_ids', 'signal_pattern', 
+               'symbol_pattern', 'side_pattern', 'price_pattern', 'example_signal',
+               'base_strategy', 'default_settings', 'is_active'}
+    filtered = {k: v for k, v in updates.items() if k in allowed}
+    
+    if not filtered:
+        return False
+    
+    # JSON encode list/dict fields
+    for k in ['channel_ids', 'default_settings']:
+        if k in filtered and isinstance(filtered[k], (list, dict)):
+            filtered[k] = json.dumps(filtered[k])
+    
+    set_clause = ', '.join(f"{k} = ?" for k in filtered.keys())
+    values = list(filtered.values()) + [parser_id]
+    
+    with get_conn() as conn:
+        cur = conn.execute(
+            f"UPDATE dynamic_signal_parsers SET {set_clause} WHERE id = ? AND is_system = FALSE",
+            values
+        )
+        conn.commit()
+        return cur.rowcount > 0
+
+
+def delete_dynamic_parser(parser_id: int) -> bool:
+    """Delete a non-system dynamic parser. Returns True if deleted."""
+    with get_conn() as conn:
+        cur = conn.execute(
+            "DELETE FROM dynamic_signal_parsers WHERE id = ? AND is_system = FALSE",
+            (parser_id,)
+        )
+        conn.commit()
+        return cur.rowcount > 0
+
+
+def increment_parser_signals(parser_name: str) -> None:
+    """Increment signals_parsed counter and update last_signal_at for a parser."""
+    with get_conn() as conn:
+        conn.execute(
+            """UPDATE dynamic_signal_parsers 
+               SET signals_parsed = signals_parsed + 1, last_signal_at = NOW()
+               WHERE name = ?""",
+            (parser_name,)
+        )
+        conn.commit()
+
+
+# ============ USER STRATEGY DEPLOYMENTS FUNCTIONS ============
+
+def get_user_deployments(user_id: int, active_only: bool = True) -> list:
+    """Get all strategy deployments for a user."""
+    import json
+    
+    query = """
+        SELECT * FROM user_strategy_deployments
+        WHERE user_id = ?
+    """
+    if active_only:
+        query += " AND is_active = TRUE"
+    query += " ORDER BY created_at DESC"
+    
+    with get_conn() as conn:
+        cur = conn.execute(query, (user_id,))
+        rows = cur.fetchall()
+        result = []
+        for row in rows:
+            r = dict(row)
+            if r.get("config_json"):
+                r["config_json"] = json.loads(r["config_json"])
+            if r.get("backtest_results"):
+                r["backtest_results"] = json.loads(r["backtest_results"])
+            result.append(r)
+        return result
+
+
+def get_user_deployment_by_id(deployment_id: int, user_id: int = None) -> dict | None:
+    """Get a specific deployment by ID, optionally filtered by user."""
+    import json
+    
+    query = "SELECT * FROM user_strategy_deployments WHERE id = ?"
+    params = [deployment_id]
+    if user_id:
+        query += " AND user_id = ?"
+        params.append(user_id)
+    
+    with get_conn() as conn:
+        cur = conn.execute(query, params)
+        row = cur.fetchone()
+        if not row:
+            return None
+        r = dict(row)
+        if r.get("config_json"):
+            r["config_json"] = json.loads(r["config_json"])
+        if r.get("backtest_results"):
+            r["backtest_results"] = json.loads(r["backtest_results"])
+        return r
+
+
+def create_user_deployment(
+    user_id: int,
+    name: str,
+    source_type: str,  # 'backtest', 'copy', 'custom'
+    source_id: int = None,
+    base_strategy: str = "manual",
+    config_json: dict = None,
+    # Trading settings
+    entry_percent: float = 1.0,
+    stop_loss_percent: float = 30.0,
+    take_profit_percent: float = 10.0,
+    leverage: int = 10,
+    use_atr: bool = False,
+    atr_periods: int = 14,
+    atr_multiplier: float = 2.0,
+    atr_trigger_pct: float = 1.0,
+    atr_step_pct: float = 0.5,
+    dca_enabled: bool = False,
+    dca_percent_1: float = 10.0,
+    dca_percent_2: float = 25.0,
+    be_enabled: bool = False,
+    be_trigger_pct: float = 1.0,
+    partial_tp_enabled: bool = False,
+    ptp_step1_trigger: float = 2.0,
+    ptp_step1_close: float = 30.0,
+    ptp_step2_trigger: float = 5.0,
+    ptp_step2_close: float = 50.0,
+    exchange: str = "bybit",
+    account_type: str = "demo",
+    backtest_results: dict = None,
+    is_live: bool = False
+) -> int:
+    """Create a new user strategy deployment. Returns deployment ID."""
+    import json
+    
+    with get_conn() as conn:
+        cur = conn.execute(
+            """INSERT INTO user_strategy_deployments 
+               (user_id, source_type, source_id, name, base_strategy, config_json,
+                entry_percent, stop_loss_percent, take_profit_percent, leverage,
+                use_atr, atr_periods, atr_multiplier, atr_trigger_pct, atr_step_pct,
+                dca_enabled, dca_percent_1, dca_percent_2,
+                be_enabled, be_trigger_pct,
+                partial_tp_enabled, ptp_step1_trigger, ptp_step1_close, ptp_step2_trigger, ptp_step2_close,
+                exchange, account_type, is_active, is_live, backtest_results)
+               VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, TRUE, ?, ?)
+               RETURNING id""",
+            (user_id, source_type, source_id, name, base_strategy, json.dumps(config_json or {}),
+             entry_percent, stop_loss_percent, take_profit_percent, leverage,
+             use_atr, atr_periods, atr_multiplier, atr_trigger_pct, atr_step_pct,
+             dca_enabled, dca_percent_1, dca_percent_2,
+             be_enabled, be_trigger_pct,
+             partial_tp_enabled, ptp_step1_trigger, ptp_step1_close, ptp_step2_trigger, ptp_step2_close,
+             exchange, account_type, is_live, json.dumps(backtest_results or {}))
+        )
+        row = cur.fetchone()
+        conn.commit()
+        return row[0] if row else cur.lastrowid
+
+
+def update_user_deployment(deployment_id: int, user_id: int, **updates) -> bool:
+    """Update a user's strategy deployment. Returns True if updated."""
+    import json
+    
+    allowed = {'name', 'config_json', 'entry_percent', 'stop_loss_percent', 'take_profit_percent',
+               'leverage', 'use_atr', 'atr_periods', 'atr_multiplier', 'atr_trigger_pct', 'atr_step_pct',
+               'dca_enabled', 'dca_percent_1', 'dca_percent_2', 'be_enabled', 'be_trigger_pct',
+               'partial_tp_enabled', 'ptp_step1_trigger', 'ptp_step1_close', 'ptp_step2_trigger', 'ptp_step2_close',
+               'exchange', 'account_type', 'is_active', 'is_live'}
+    filtered = {k: v for k, v in updates.items() if k in allowed}
+    
+    if not filtered:
+        return False
+    
+    # JSON encode dict fields
+    for k in ['config_json', 'backtest_results']:
+        if k in filtered and isinstance(filtered[k], dict):
+            filtered[k] = json.dumps(filtered[k])
+    
+    set_clause = ', '.join(f"{k} = ?" for k in filtered.keys())
+    values = list(filtered.values()) + [deployment_id, user_id]
+    
+    with get_conn() as conn:
+        cur = conn.execute(
+            f"UPDATE user_strategy_deployments SET {set_clause} WHERE id = ? AND user_id = ?",
+            values
+        )
+        conn.commit()
+        return cur.rowcount > 0
+
+
+def delete_user_deployment(deployment_id: int, user_id: int) -> bool:
+    """Delete a user's deployment. Returns True if deleted."""
+    with get_conn() as conn:
+        cur = conn.execute(
+            "DELETE FROM user_strategy_deployments WHERE id = ? AND user_id = ?",
+            (deployment_id, user_id)
+        )
+        conn.commit()
+        return cur.rowcount > 0
+
+
+def update_deployment_performance(deployment_id: int, pnl_change: float, is_win: bool) -> None:
+    """Update performance stats after a trade closes."""
+    with get_conn() as conn:
+        if is_win:
+            conn.execute(
+                """UPDATE user_strategy_deployments 
+                   SET total_trades = total_trades + 1, 
+                       wins = wins + 1, 
+                       total_pnl = total_pnl + ?
+                   WHERE id = ?""",
+                (pnl_change, deployment_id)
+            )
+        else:
+            conn.execute(
+                """UPDATE user_strategy_deployments 
+                   SET total_trades = total_trades + 1, 
+                       losses = losses + 1, 
+                       total_pnl = total_pnl + ?
+                   WHERE id = ?""",
+                (pnl_change, deployment_id)
+            )
+        conn.commit()
+
+
+def get_active_user_deployments_for_trading(user_id: int, exchange: str = None, account_type: str = None) -> list:
+    """Get all active LIVE deployments for a user for signal routing.
+    Used in on_channel_post to check user's personal strategies."""
+    import json
+    
+    query = """
+        SELECT * FROM user_strategy_deployments
+        WHERE user_id = ? AND is_active = TRUE AND is_live = TRUE
+    """
+    params = [user_id]
+    
+    if exchange:
+        query += " AND exchange = ?"
+        params.append(exchange)
+    if account_type:
+        query += " AND account_type = ?"
+        params.append(account_type)
+    
+    with get_conn() as conn:
+        cur = conn.execute(query, params)
+        rows = cur.fetchall()
+        result = []
+        for row in rows:
+            r = dict(row)
+            if r.get("config_json"):
+                r["config_json"] = json.loads(r["config_json"])
+            result.append(r)
+        return result
+
+
 # ============ STRATEGY VERSIONING FUNCTIONS ============
 
 def create_strategy_version(
