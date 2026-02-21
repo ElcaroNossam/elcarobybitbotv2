@@ -2409,7 +2409,7 @@ async def start_live_trading(strategy_id: int, request: GoLiveRequest, user: dic
             
             # Get strategy
             cur.execute("""
-                SELECT * FROM custom_strategies WHERE id = ? AND is_active = TRUE
+                SELECT * FROM custom_strategies WHERE id = ? AND is_active = 1
             """, (strategy_id,))
             
             strategy = cur.fetchone()
