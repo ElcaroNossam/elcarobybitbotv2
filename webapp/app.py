@@ -448,14 +448,6 @@ def create_app() -> FastAPI:
     except ImportError as e:
         logger.warning(f"strategy_marketplace router not available: {e}")
     
-    # Dynamic Signal Parsers API (subscribe to admin parsers)
-    try:
-        from webapp.api import parsers
-        app.include_router(parsers.router, prefix="/api", tags=["parsers"])
-        logger.info("✅ Parsers API loaded at /api/parsers")
-    except ImportError as e:
-        logger.warning(f"parsers router not available: {e}")
-    
     # Strategy Builder API (CRUD, Backtest, Live Trading)
     try:
         from webapp.api import strategy_builder_api

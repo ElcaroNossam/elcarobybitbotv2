@@ -1,49 +1,16 @@
 """
-Migration: User Parser Subscriptions & Marketplace Integration
+Migration: Marketplace Integration for User Strategy Deployments
 Version: 026
 Created: 2026-02-21
 
-Creates:
-- user_parser_subscriptions: Track which dynamic parsers each user has enabled
-- Adds marketplace columns to user_strategy_deployments
+Adds marketplace columns to user_strategy_deployments for:
+- Listing personal strategies on marketplace
+- Tracking purchased strategies
 """
 
 
 def upgrade(cur):
     """Apply migration"""
-    
-    # User Parser Subscriptions - which dynamic parsers each user has enabled for trading
-    # CRITICAL: System parsers (is_system=TRUE) are like the built-in 6 strategies -
-    # users enable/disable them per-user without needing a full deployment.
-    cur.execute("""
-        CREATE TABLE IF NOT EXISTS user_parser_subscriptions (
-            id              SERIAL PRIMARY KEY,
-            user_id         BIGINT NOT NULL,
-            parser_id       INTEGER NOT NULL REFERENCES dynamic_signal_parsers(id) ON DELETE CASCADE,
-            
-            -- Settings (override parser defaults)
-            is_active       BOOLEAN DEFAULT TRUE,
-            settings_json   JSONB DEFAULT '{}',
-            
-            -- Per-side settings
-            long_enabled    BOOLEAN DEFAULT TRUE,
-            short_enabled   BOOLEAN DEFAULT TRUE,
-            entry_percent   REAL,
-            stop_loss_pct   REAL,
-            take_profit_pct REAL,
-            leverage        INTEGER,
-            use_atr         BOOLEAN DEFAULT FALSE,
-            dca_enabled     BOOLEAN DEFAULT FALSE,
-            
-            -- Tracking
-            created_at      TIMESTAMP DEFAULT NOW(),
-            updated_at      TIMESTAMP DEFAULT NOW(),
-            total_trades    INTEGER DEFAULT 0,
-            total_pnl       REAL DEFAULT 0,
-            
-            UNIQUE(user_id, parser_id)
-        )
-    """)
     
     # Add marketplace columns to user_strategy_deployments
     try:
@@ -73,17 +40,12 @@ def upgrade(cur):
         pass
     
     # Create indexes
-    cur.execute("CREATE INDEX IF NOT EXISTS idx_ups_user ON user_parser_subscriptions(user_id)")
-    cur.execute("CREATE INDEX IF NOT EXISTS idx_ups_active ON user_parser_subscriptions(user_id, is_active)")
     cur.execute("CREATE INDEX IF NOT EXISTS idx_usd_marketplace ON user_strategy_deployments(marketplace_listing_id)")
     cur.execute("CREATE INDEX IF NOT EXISTS idx_usd_purchase ON user_strategy_deployments(purchase_id)")
 
 
 def downgrade(cur):
     """Rollback migration"""
-    # Drop subscriptions table
-    cur.execute("DROP TABLE IF EXISTS user_parser_subscriptions CASCADE")
-    
     # Remove added columns from user_strategy_deployments
     try:
         cur.execute("ALTER TABLE user_strategy_deployments DROP COLUMN IF EXISTS marketplace_listing_id")
