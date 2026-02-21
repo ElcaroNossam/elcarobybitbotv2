@@ -125,10 +125,10 @@ def test_public_endpoints():
     test_endpoint("get", "/trading/orderbook/BTCUSDT", [200])
     test_endpoint("get", "/trading/recent-trades/BTCUSDT", [200])
     test_endpoint("get", "/trading/funding-rates", [200])
+    test_endpoint("get", "/trading/symbol-info/BTCUSDT", [200])  # Public
     
     # Trading endpoints requiring auth
     test_endpoint("get", "/trading/price/BTCUSDT", [401, 403])  # Requires auth
-    test_endpoint("get", "/trading/symbol-info/BTCUSDT", [401, 403])  # Requires auth
 
 def test_auth_endpoints():
     """Test authentication endpoints"""
