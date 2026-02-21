@@ -1107,6 +1107,9 @@ def pg_set_user_field(user_id: int, field: str, value: Any):
         'api_key', 'api_secret',
         'referral_code', 'referred_by',
         'trading_paused',
+        # Auto-close settings per exchange
+        'bybit_auto_close_enabled', 'bybit_auto_close_time', 'bybit_auto_close_timezone',
+        'hl_auto_close_enabled', 'hl_auto_close_time', 'hl_auto_close_timezone',
     }
     
     if field not in allowed_fields:

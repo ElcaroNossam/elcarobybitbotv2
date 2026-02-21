@@ -168,6 +168,13 @@ USER_FIELDS_WHITELIST = {
     "hl_coins_filter",  # 'ALL', 'TOP', 'VOLATILE' for HyperLiquid
     # Admin controls
     "trading_paused",  # 0/1 - admin can pause trading for user
+    # Auto-close settings per exchange (Feb 21, 2026)
+    "bybit_auto_close_enabled",  # 0/1 - auto-close all Bybit positions at specific time
+    "bybit_auto_close_time",  # HH:MM format (UTC)
+    "bybit_auto_close_timezone",  # Timezone for auto-close (default UTC)
+    "hl_auto_close_enabled",  # 0/1 - auto-close all HL positions at specific time
+    "hl_auto_close_time",  # HH:MM format (UTC)
+    "hl_auto_close_timezone",  # Timezone for auto-close (default UTC)
 }
 
 

@@ -2017,6 +2017,18 @@ def get_api_settings_keyboard(t: dict, creds: dict, uid: int = None) -> InlineKe
         hl_order_type = db.get_user_field(uid, "hl_order_type") or "market"
         hl_coins = db.get_user_field(uid, "hl_coins_group") or "ALL"
     
+    # Auto-close settings
+    bybit_auto_close_enabled = False
+    bybit_auto_close_time = ""
+    hl_auto_close_enabled = False
+    hl_auto_close_time = ""
+    
+    if uid:
+        bybit_auto_close_enabled = bool(db.get_user_field(uid, "bybit_auto_close_enabled"))
+        bybit_auto_close_time = db.get_user_field(uid, "bybit_auto_close_time") or ""
+        hl_auto_close_enabled = bool(db.get_user_field(uid, "hl_auto_close_enabled"))
+        hl_auto_close_time = db.get_user_field(uid, "hl_auto_close_time") or ""
+    
     # Status indicators
     demo_status = "✅" if bybit_demo_ok else "❌"
     real_status = "✅" if bybit_real_ok else "❌"
@@ -2074,6 +2086,13 @@ def get_api_settings_keyboard(t: dict, creds: dict, uid: int = None) -> InlineKe
         InlineKeyboardButton(f"Trading: {bybit_trade_status}", callback_data="api:toggle_bybit"),
     ])
     
+    # Bybit auto-close
+    bybit_ac_status = "🟢 ON" if bybit_auto_close_enabled else "🔴 OFF"
+    bybit_ac_time_display = f" @ {bybit_auto_close_time}" if bybit_auto_close_time else ""
+    buttons.append([
+        InlineKeyboardButton(f"🔒 Auto-Close: {bybit_ac_status}{bybit_ac_time_display}", callback_data="api:bybit_auto_close"),
+    ])
+    
     # ═══════════════════════════════════════════════════════════════════════════
     # ██  HYPERLIQUID BLOCK  ██
     # ═══════════════════════════════════════════════════════════════════════════
@@ -2112,6 +2131,13 @@ def get_api_settings_keyboard(t: dict, creds: dict, uid: int = None) -> InlineKe
     ])
     buttons.append([
         InlineKeyboardButton(f"Trading: {hl_trade_status}", callback_data="api:toggle_hl"),
+    ])
+    
+    # HL auto-close
+    hl_ac_status = "🟢 ON" if hl_auto_close_enabled else "🔴 OFF"
+    hl_ac_time_display = f" @ {hl_auto_close_time}" if hl_auto_close_time else ""
+    buttons.append([
+        InlineKeyboardButton(f"🔒 Auto-Close: {hl_ac_status}{hl_ac_time_display}", callback_data="api:hl_auto_close"),
     ])
     
     # ═══════════════════════════════════════════════════════════════════════════
@@ -2558,6 +2584,259 @@ Use the buttons below to configure:"""
         msg = format_api_settings_message(t, creds, uid)
         keyboard = get_api_settings_keyboard(t, creds, uid)
         await safe_edit(msg, reply_markup=keyboard)
+        return
+    
+    # ─── Auto-Close Settings ───
+    if action == "bybit_auto_close":
+        await q.answer()
+        # Show Bybit auto-close submenu
+        enabled = db.get_user_field(uid, "bybit_auto_close_enabled") or False
+        close_time = db.get_user_field(uid, "bybit_auto_close_time") or ""
+        timezone = db.get_user_field(uid, "bybit_auto_close_timezone") or "UTC"
+        
+        status_emoji = "🟢 ON" if enabled else "🔴 OFF"
+        time_display = close_time if close_time else "Not set"
+        
+        msg_text = f"""🔒 <b>Bybit Auto-Close Settings</b>
+
+<b>Status:</b> {status_emoji}
+<b>Close Time:</b> {time_display}
+<b>Timezone:</b> {timezone}
+
+When enabled, ALL Bybit positions will be closed automatically at the specified time every day."""
+        
+        buttons = [
+            [InlineKeyboardButton(f"Toggle: {status_emoji}", callback_data="api:bybit_auto_close_toggle")],
+            [InlineKeyboardButton(f"⏰ Set Time: {time_display}", callback_data="api:bybit_auto_close_time")],
+            [InlineKeyboardButton(f"🌍 Timezone: {timezone}", callback_data="api:bybit_auto_close_tz")],
+            [InlineKeyboardButton("⬅️ Back", callback_data="api:back")],
+        ]
+        await safe_edit(msg_text, reply_markup=InlineKeyboardMarkup(buttons))
+        return
+    
+    if action == "bybit_auto_close_toggle":
+        current = db.get_user_field(uid, "bybit_auto_close_enabled") or False
+        new_val = not current
+        db.set_user_field(uid, "bybit_auto_close_enabled", new_val)
+        
+        status = "🟢 ON" if new_val else "🔴 OFF"
+        await q.answer(f"Bybit Auto-Close: {status}", show_alert=True)
+        
+        # Refresh the auto-close submenu
+        close_time = db.get_user_field(uid, "bybit_auto_close_time") or ""
+        timezone = db.get_user_field(uid, "bybit_auto_close_timezone") or "UTC"
+        time_display = close_time if close_time else "Not set"
+        
+        msg_text = f"""🔒 <b>Bybit Auto-Close Settings</b>
+
+<b>Status:</b> {status}
+<b>Close Time:</b> {time_display}
+<b>Timezone:</b> {timezone}
+
+When enabled, ALL Bybit positions will be closed automatically at the specified time every day."""
+        
+        buttons = [
+            [InlineKeyboardButton(f"Toggle: {status}", callback_data="api:bybit_auto_close_toggle")],
+            [InlineKeyboardButton(f"⏰ Set Time: {time_display}", callback_data="api:bybit_auto_close_time")],
+            [InlineKeyboardButton(f"🌍 Timezone: {timezone}", callback_data="api:bybit_auto_close_tz")],
+            [InlineKeyboardButton("⬅️ Back", callback_data="api:back")],
+        ]
+        await safe_edit(msg_text, reply_markup=InlineKeyboardMarkup(buttons))
+        return
+    
+    if action == "bybit_auto_close_time":
+        await q.answer()
+        ctx.user_data["mode"] = "enter_bybit_auto_close_time"
+        await safe_edit(
+            "⏰ <b>Set Bybit Auto-Close Time</b>\n\n"
+            "Enter time in <b>HH:MM</b> format (24-hour).\n\n"
+            "Example: <code>23:00</code> to close all positions at 11 PM",
+            reply_markup=InlineKeyboardMarkup([
+                [InlineKeyboardButton("❌ Cancel", callback_data="api:bybit_auto_close")]
+            ])
+        )
+        return
+    
+    if action == "bybit_auto_close_tz":
+        await q.answer()
+        # Show timezone selection
+        common_timezones = [
+            ("UTC", "UTC"),
+            ("Europe/Moscow", "🇷🇺 Moscow"),
+            ("Europe/Kiev", "🇺🇦 Kyiv"),
+            ("Europe/London", "🇬🇧 London"),
+            ("Europe/Berlin", "🇩🇪 Berlin"),
+            ("America/New_York", "🇺🇸 New York"),
+            ("Asia/Tokyo", "🇯🇵 Tokyo"),
+            ("Asia/Singapore", "🇸🇬 Singapore"),
+        ]
+        
+        current_tz = db.get_user_field(uid, "bybit_auto_close_timezone") or "UTC"
+        buttons = []
+        for tz_code, tz_name in common_timezones:
+            prefix = "✓ " if tz_code == current_tz else ""
+            buttons.append([InlineKeyboardButton(f"{prefix}{tz_name}", callback_data=f"api:bybit_auto_close_tz_set:{tz_code}")])
+        buttons.append([InlineKeyboardButton("⬅️ Back", callback_data="api:bybit_auto_close")])
+        
+        await safe_edit(
+            "🌍 <b>Select Timezone for Auto-Close</b>\n\n"
+            f"Current: <b>{current_tz}</b>",
+            reply_markup=InlineKeyboardMarkup(buttons)
+        )
+        return
+    
+    if action.startswith("bybit_auto_close_tz_set:"):
+        tz_code = action.split(":")[1]
+        db.set_user_field(uid, "bybit_auto_close_timezone", tz_code)
+        await q.answer(f"Timezone set to {tz_code}", show_alert=True)
+        
+        # Return to auto-close menu
+        enabled = db.get_user_field(uid, "bybit_auto_close_enabled") or False
+        close_time = db.get_user_field(uid, "bybit_auto_close_time") or ""
+        status_emoji = "🟢 ON" if enabled else "🔴 OFF"
+        time_display = close_time if close_time else "Not set"
+        
+        msg_text = f"""🔒 <b>Bybit Auto-Close Settings</b>
+
+<b>Status:</b> {status_emoji}
+<b>Close Time:</b> {time_display}
+<b>Timezone:</b> {tz_code}
+
+When enabled, ALL Bybit positions will be closed automatically at the specified time every day."""
+        
+        buttons = [
+            [InlineKeyboardButton(f"Toggle: {status_emoji}", callback_data="api:bybit_auto_close_toggle")],
+            [InlineKeyboardButton(f"⏰ Set Time: {time_display}", callback_data="api:bybit_auto_close_time")],
+            [InlineKeyboardButton(f"🌍 Timezone: {tz_code}", callback_data="api:bybit_auto_close_tz")],
+            [InlineKeyboardButton("⬅️ Back", callback_data="api:back")],
+        ]
+        await safe_edit(msg_text, reply_markup=InlineKeyboardMarkup(buttons))
+        return
+    
+    if action == "hl_auto_close":
+        await q.answer()
+        # Show HyperLiquid auto-close submenu
+        enabled = db.get_user_field(uid, "hl_auto_close_enabled") or False
+        close_time = db.get_user_field(uid, "hl_auto_close_time") or ""
+        timezone = db.get_user_field(uid, "hl_auto_close_timezone") or "UTC"
+        
+        status_emoji = "🟢 ON" if enabled else "🔴 OFF"
+        time_display = close_time if close_time else "Not set"
+        
+        msg_text = f"""🔒 <b>HyperLiquid Auto-Close Settings</b>
+
+<b>Status:</b> {status_emoji}
+<b>Close Time:</b> {time_display}
+<b>Timezone:</b> {timezone}
+
+When enabled, ALL HyperLiquid positions will be closed automatically at the specified time every day."""
+        
+        buttons = [
+            [InlineKeyboardButton(f"Toggle: {status_emoji}", callback_data="api:hl_auto_close_toggle")],
+            [InlineKeyboardButton(f"⏰ Set Time: {time_display}", callback_data="api:hl_auto_close_time")],
+            [InlineKeyboardButton(f"🌍 Timezone: {timezone}", callback_data="api:hl_auto_close_tz")],
+            [InlineKeyboardButton("⬅️ Back", callback_data="api:back")],
+        ]
+        await safe_edit(msg_text, reply_markup=InlineKeyboardMarkup(buttons))
+        return
+    
+    if action == "hl_auto_close_toggle":
+        current = db.get_user_field(uid, "hl_auto_close_enabled") or False
+        new_val = not current
+        db.set_user_field(uid, "hl_auto_close_enabled", new_val)
+        
+        status = "🟢 ON" if new_val else "🔴 OFF"
+        await q.answer(f"HyperLiquid Auto-Close: {status}", show_alert=True)
+        
+        # Refresh the auto-close submenu
+        close_time = db.get_user_field(uid, "hl_auto_close_time") or ""
+        timezone = db.get_user_field(uid, "hl_auto_close_timezone") or "UTC"
+        time_display = close_time if close_time else "Not set"
+        
+        msg_text = f"""🔒 <b>HyperLiquid Auto-Close Settings</b>
+
+<b>Status:</b> {status}
+<b>Close Time:</b> {time_display}
+<b>Timezone:</b> {timezone}
+
+When enabled, ALL HyperLiquid positions will be closed automatically at the specified time every day."""
+        
+        buttons = [
+            [InlineKeyboardButton(f"Toggle: {status}", callback_data="api:hl_auto_close_toggle")],
+            [InlineKeyboardButton(f"⏰ Set Time: {time_display}", callback_data="api:hl_auto_close_time")],
+            [InlineKeyboardButton(f"🌍 Timezone: {timezone}", callback_data="api:hl_auto_close_tz")],
+            [InlineKeyboardButton("⬅️ Back", callback_data="api:back")],
+        ]
+        await safe_edit(msg_text, reply_markup=InlineKeyboardMarkup(buttons))
+        return
+    
+    if action == "hl_auto_close_time":
+        await q.answer()
+        ctx.user_data["mode"] = "enter_hl_auto_close_time"
+        await safe_edit(
+            "⏰ <b>Set HyperLiquid Auto-Close Time</b>\n\n"
+            "Enter time in <b>HH:MM</b> format (24-hour).\n\n"
+            "Example: <code>23:00</code> to close all positions at 11 PM",
+            reply_markup=InlineKeyboardMarkup([
+                [InlineKeyboardButton("❌ Cancel", callback_data="api:hl_auto_close")]
+            ])
+        )
+        return
+    
+    if action == "hl_auto_close_tz":
+        await q.answer()
+        # Show timezone selection
+        common_timezones = [
+            ("UTC", "UTC"),
+            ("Europe/Moscow", "🇷🇺 Moscow"),
+            ("Europe/Kiev", "🇺🇦 Kyiv"),
+            ("Europe/London", "🇬🇧 London"),
+            ("Europe/Berlin", "🇩🇪 Berlin"),
+            ("America/New_York", "🇺🇸 New York"),
+            ("Asia/Tokyo", "🇯🇵 Tokyo"),
+            ("Asia/Singapore", "🇸🇬 Singapore"),
+        ]
+        
+        current_tz = db.get_user_field(uid, "hl_auto_close_timezone") or "UTC"
+        buttons = []
+        for tz_code, tz_name in common_timezones:
+            prefix = "✓ " if tz_code == current_tz else ""
+            buttons.append([InlineKeyboardButton(f"{prefix}{tz_name}", callback_data=f"api:hl_auto_close_tz_set:{tz_code}")])
+        buttons.append([InlineKeyboardButton("⬅️ Back", callback_data="api:hl_auto_close")])
+        
+        await safe_edit(
+            "🌍 <b>Select Timezone for Auto-Close</b>\n\n"
+            f"Current: <b>{current_tz}</b>",
+            reply_markup=InlineKeyboardMarkup(buttons)
+        )
+        return
+    
+    if action.startswith("hl_auto_close_tz_set:"):
+        tz_code = action.split(":")[1]
+        db.set_user_field(uid, "hl_auto_close_timezone", tz_code)
+        await q.answer(f"Timezone set to {tz_code}", show_alert=True)
+        
+        # Return to auto-close menu
+        enabled = db.get_user_field(uid, "hl_auto_close_enabled") or False
+        close_time = db.get_user_field(uid, "hl_auto_close_time") or ""
+        status_emoji = "🟢 ON" if enabled else "🔴 OFF"
+        time_display = close_time if close_time else "Not set"
+        
+        msg_text = f"""🔒 <b>HyperLiquid Auto-Close Settings</b>
+
+<b>Status:</b> {status_emoji}
+<b>Close Time:</b> {time_display}
+<b>Timezone:</b> {tz_code}
+
+When enabled, ALL HyperLiquid positions will be closed automatically at the specified time every day."""
+        
+        buttons = [
+            [InlineKeyboardButton(f"Toggle: {status_emoji}", callback_data="api:hl_auto_close_toggle")],
+            [InlineKeyboardButton(f"⏰ Set Time: {time_display}", callback_data="api:hl_auto_close_time")],
+            [InlineKeyboardButton(f"🌍 Timezone: {tz_code}", callback_data="api:hl_auto_close_tz")],
+            [InlineKeyboardButton("⬅️ Back", callback_data="api:back")],
+        ]
+        await safe_edit(msg_text, reply_markup=InlineKeyboardMarkup(buttons))
         return
     
     # ─── Margin Mode Toggle ───
@@ -24763,6 +25042,195 @@ async def spot_auto_dca_loop(app: Application):
             await asyncio.sleep(60)  # Wait a minute before retrying
 
 
+async def auto_close_positions_loop(app: Application):
+    """
+    Background loop for scheduled auto-close of all positions.
+    
+    Checks every minute if any user's auto-close time has been reached.
+    Closes all positions on the specified exchange.
+    
+    Settings per exchange:
+    - bybit_auto_close_enabled, bybit_auto_close_time, bybit_auto_close_timezone
+    - hl_auto_close_enabled, hl_auto_close_time, hl_auto_close_timezone
+    
+    Time format: "HH:MM" in the specified timezone (default UTC).
+    """
+    from datetime import datetime
+    import pytz
+    
+    bot = app.bot
+    logger.info("Starting auto_close_positions_loop")
+    
+    # Track which users we've closed today to avoid duplicate closes
+    _closed_today = {}  # {(user_id, exchange, date): True}
+    
+    while True:
+        try:
+            await asyncio.sleep(60)  # Check every minute
+            
+            if GLOBAL_PAUSED:
+                continue
+            
+            now_utc = datetime.now(pytz.UTC)
+            today_str = now_utc.strftime("%Y-%m-%d")
+            
+            for uid in get_all_users():
+                try:
+                    cfg = get_user_config(uid)
+                    lang = cfg.get("lang", DEFAULT_LANG)
+                    t = LANGS.get(lang, LANGS[DEFAULT_LANG])
+                    
+                    # Check Bybit auto-close
+                    if cfg.get("bybit_auto_close_enabled"):
+                        close_time_str = cfg.get("bybit_auto_close_time")
+                        timezone_str = cfg.get("bybit_auto_close_timezone", "UTC")
+                        
+                        if close_time_str and (uid, "bybit", today_str) not in _closed_today:
+                            try:
+                                tz = pytz.timezone(timezone_str)
+                                now_local = now_utc.astimezone(tz)
+                                current_time_str = now_local.strftime("%H:%M")
+                                
+                                if current_time_str == close_time_str:
+                                    logger.info(f"[AUTO-CLOSE] {uid} Bybit triggered at {close_time_str} {timezone_str}")
+                                    
+                                    # Close all Bybit positions
+                                    closed_count = await _close_all_positions_for_exchange(
+                                        uid, "bybit", cfg, t, bot
+                                    )
+                                    
+                                    _closed_today[(uid, "bybit", today_str)] = True
+                                    
+                                    if closed_count > 0:
+                                        await safe_send_notification(
+                                            bot, uid,
+                                            t.get('auto_close_executed', "🔒 Auto-close: {count} {exchange} positions closed at {time}").format(
+                                                count=closed_count,
+                                                exchange="Bybit",
+                                                time=close_time_str
+                                            )
+                                        )
+                            except Exception as e:
+                                logger.error(f"[AUTO-CLOSE] Bybit error for {uid}: {e}")
+                    
+                    # Check HyperLiquid auto-close
+                    if cfg.get("hl_auto_close_enabled"):
+                        close_time_str = cfg.get("hl_auto_close_time")
+                        timezone_str = cfg.get("hl_auto_close_timezone", "UTC")
+                        
+                        if close_time_str and (uid, "hyperliquid", today_str) not in _closed_today:
+                            try:
+                                tz = pytz.timezone(timezone_str)
+                                now_local = now_utc.astimezone(tz)
+                                current_time_str = now_local.strftime("%H:%M")
+                                
+                                if current_time_str == close_time_str:
+                                    logger.info(f"[AUTO-CLOSE] {uid} HyperLiquid triggered at {close_time_str} {timezone_str}")
+                                    
+                                    # Close all HL positions
+                                    closed_count = await _close_all_positions_for_exchange(
+                                        uid, "hyperliquid", cfg, t, bot
+                                    )
+                                    
+                                    _closed_today[(uid, "hyperliquid", today_str)] = True
+                                    
+                                    if closed_count > 0:
+                                        await safe_send_notification(
+                                            bot, uid,
+                                            t.get('auto_close_executed', "🔒 Auto-close: {count} {exchange} positions closed at {time}").format(
+                                                count=closed_count,
+                                                exchange="HyperLiquid",
+                                                time=close_time_str
+                                            )
+                                        )
+                            except Exception as e:
+                                logger.error(f"[AUTO-CLOSE] HyperLiquid error for {uid}: {e}")
+                
+                except Exception as e:
+                    logger.error(f"[AUTO-CLOSE] Error for user {uid}: {e}")
+            
+            # Clean up old entries (keep only today and yesterday)
+            yesterday_str = (now_utc - timedelta(days=1)).strftime("%Y-%m-%d")
+            _closed_today = {k: v for k, v in _closed_today.items() if k[2] in (today_str, yesterday_str)}
+            
+        except Exception as e:
+            logger.exception(f"Critical error in auto_close_positions_loop: {e}")
+            await asyncio.sleep(60)
+
+
+async def _close_all_positions_for_exchange(uid: int, exchange: str, cfg: dict, t: dict, bot) -> int:
+    """
+    Close all positions for a user on a specific exchange.
+    
+    Returns the number of positions closed.
+    """
+    closed_count = 0
+    
+    try:
+        # Get account types for this exchange
+        if exchange == "bybit":
+            trading_mode = cfg.get("trading_mode", "demo")
+            if trading_mode == "both":
+                account_types = ["demo", "real"]
+            else:
+                account_types = [trading_mode]
+        else:  # hyperliquid
+            hl_testnet = cfg.get("hl_testnet", False)
+            if cfg.get("routing_policy") == "all_enabled":
+                account_types = ["testnet", "mainnet"]
+            else:
+                account_types = ["testnet" if hl_testnet else "mainnet"]
+        
+        for account_type in account_types:
+            try:
+                # Get positions for this account
+                positions = db.get_active_positions(uid, exchange=exchange)
+                
+                for pos in positions:
+                    try:
+                        symbol = pos.get("symbol")
+                        side = pos.get("side")
+                        size = pos.get("size", 0)
+                        pos_account_type = pos.get("account_type", account_type)
+                        
+                        if not symbol or not side or size <= 0:
+                            continue
+                        
+                        # Close position
+                        close_side = "Sell" if side == "Buy" else "Buy"
+                        
+                        if exchange == "bybit":
+                            result = await place_order(
+                                uid, symbol, close_side, "Market", size,
+                                account_type=pos_account_type, reduce_only=True
+                            )
+                        else:
+                            result = await place_order_hyperliquid(
+                                uid, symbol, close_side, "Market", size,
+                                account_type=pos_account_type, is_close=True
+                            )
+                        
+                        if result and result.get("success"):
+                            closed_count += 1
+                            logger.info(f"[AUTO-CLOSE] {uid} {exchange} {symbol} {side} closed successfully")
+                            
+                            # Remove from active positions
+                            db.remove_active_position(uid, symbol, account_type=pos_account_type, exchange=exchange)
+                        else:
+                            logger.warning(f"[AUTO-CLOSE] {uid} {exchange} {symbol} close failed: {result}")
+                    
+                    except Exception as e:
+                        logger.error(f"[AUTO-CLOSE] Error closing {pos.get('symbol')} for {uid}: {e}")
+            
+            except Exception as e:
+                logger.error(f"[AUTO-CLOSE] Error getting positions for {uid} {exchange} {account_type}: {e}")
+    
+    except Exception as e:
+        logger.error(f"[AUTO-CLOSE] Critical error for {uid} {exchange}: {e}")
+    
+    return closed_count
+
+
 @log_calls
 async def start_monitoring(app: Application):
     try:
@@ -24850,6 +25318,24 @@ async def start_monitoring(app: Application):
                 logger.info("notification_loop finished normally")
 
         notif_task.add_done_callback(_on_notif_done)
+    
+    # Start auto-close positions loop (scheduled closes)
+    logger.info("Starting auto_close_positions_loop task")
+    auto_close_task = asyncio.create_task(auto_close_positions_loop(app), name="auto_close_positions_loop")
+    app.bot_data["auto_close_task"] = auto_close_task
+
+    def _on_auto_close_done(t: asyncio.Task):
+        try:
+            exc = t.exception() 
+        except asyncio.CancelledError:
+            logger.info("auto_close_positions_loop cancelled")
+            return
+        if exc:
+            logger.error("auto_close_positions_loop crashed", exc_info=(type(exc), exc, exc.__traceback__))
+        else:
+            logger.info("auto_close_positions_loop finished normally")
+
+    auto_close_task.add_done_callback(_on_auto_close_done)
 
 @with_texts
 @log_calls
@@ -27899,6 +28385,108 @@ async def text_handler(update: Update, ctx: ContextTypes.DEFAULT_TYPE):
                     [InlineKeyboardButton("⬅️ Back", callback_data="api:back")]
                 ])
             )
+        return
+
+    # ─────────────────────────────────────────────────────────────────────────
+    # AUTO-CLOSE TIME INPUT
+    # ─────────────────────────────────────────────────────────────────────────
+    
+    if mode == "enter_bybit_auto_close_time":
+        ctx.user_data.pop("mode", None)
+        
+        # Validate HH:MM format
+        import re
+        time_pattern = r'^([01]?[0-9]|2[0-3]):([0-5][0-9])$'
+        if not re.match(time_pattern, text.strip()):
+            await update.message.reply_text(
+                "❌ <b>Invalid time format!</b>\n\n"
+                "Please enter time in <b>HH:MM</b> format (24-hour).\n"
+                "Examples: <code>09:30</code>, <code>23:00</code>, <code>00:15</code>",
+                parse_mode="HTML",
+                reply_markup=InlineKeyboardMarkup([
+                    [InlineKeyboardButton("🔄 Try Again", callback_data="api:bybit_auto_close_time")],
+                    [InlineKeyboardButton("⬅️ Back", callback_data="api:bybit_auto_close")]
+                ])
+            )
+            return
+        
+        # Normalize time format (ensure HH:MM with leading zeros)
+        parts = text.strip().split(":")
+        normalized_time = f"{int(parts[0]):02d}:{int(parts[1]):02d}"
+        
+        db.set_user_field(uid, "bybit_auto_close_time", normalized_time)
+        
+        # Show confirmation and return to auto-close menu
+        enabled = db.get_user_field(uid, "bybit_auto_close_enabled") or False
+        timezone = db.get_user_field(uid, "bybit_auto_close_timezone") or "UTC"
+        status_emoji = "🟢 ON" if enabled else "🔴 OFF"
+        
+        msg_text = f"""✅ <b>Auto-Close time set to {normalized_time}</b>
+
+🔒 <b>Bybit Auto-Close Settings</b>
+
+<b>Status:</b> {status_emoji}
+<b>Close Time:</b> {normalized_time}
+<b>Timezone:</b> {timezone}
+
+When enabled, ALL Bybit positions will be closed automatically at the specified time every day."""
+        
+        buttons = [
+            [InlineKeyboardButton(f"Toggle: {status_emoji}", callback_data="api:bybit_auto_close_toggle")],
+            [InlineKeyboardButton(f"⏰ Set Time: {normalized_time}", callback_data="api:bybit_auto_close_time")],
+            [InlineKeyboardButton(f"🌍 Timezone: {timezone}", callback_data="api:bybit_auto_close_tz")],
+            [InlineKeyboardButton("⬅️ Back", callback_data="api:back")],
+        ]
+        await update.message.reply_text(msg_text, reply_markup=InlineKeyboardMarkup(buttons), parse_mode="HTML")
+        return
+    
+    if mode == "enter_hl_auto_close_time":
+        ctx.user_data.pop("mode", None)
+        
+        # Validate HH:MM format
+        import re
+        time_pattern = r'^([01]?[0-9]|2[0-3]):([0-5][0-9])$'
+        if not re.match(time_pattern, text.strip()):
+            await update.message.reply_text(
+                "❌ <b>Invalid time format!</b>\n\n"
+                "Please enter time in <b>HH:MM</b> format (24-hour).\n"
+                "Examples: <code>09:30</code>, <code>23:00</code>, <code>00:15</code>",
+                parse_mode="HTML",
+                reply_markup=InlineKeyboardMarkup([
+                    [InlineKeyboardButton("🔄 Try Again", callback_data="api:hl_auto_close_time")],
+                    [InlineKeyboardButton("⬅️ Back", callback_data="api:hl_auto_close")]
+                ])
+            )
+            return
+        
+        # Normalize time format
+        parts = text.strip().split(":")
+        normalized_time = f"{int(parts[0]):02d}:{int(parts[1]):02d}"
+        
+        db.set_user_field(uid, "hl_auto_close_time", normalized_time)
+        
+        # Show confirmation and return to auto-close menu
+        enabled = db.get_user_field(uid, "hl_auto_close_enabled") or False
+        timezone = db.get_user_field(uid, "hl_auto_close_timezone") or "UTC"
+        status_emoji = "🟢 ON" if enabled else "🔴 OFF"
+        
+        msg_text = f"""✅ <b>Auto-Close time set to {normalized_time}</b>
+
+🔒 <b>HyperLiquid Auto-Close Settings</b>
+
+<b>Status:</b> {status_emoji}
+<b>Close Time:</b> {normalized_time}
+<b>Timezone:</b> {timezone}
+
+When enabled, ALL HyperLiquid positions will be closed automatically at the specified time every day."""
+        
+        buttons = [
+            [InlineKeyboardButton(f"Toggle: {status_emoji}", callback_data="api:hl_auto_close_toggle")],
+            [InlineKeyboardButton(f"⏰ Set Time: {normalized_time}", callback_data="api:hl_auto_close_time")],
+            [InlineKeyboardButton(f"🌍 Timezone: {timezone}", callback_data="api:hl_auto_close_tz")],
+            [InlineKeyboardButton("⬅️ Back", callback_data="api:back")],
+        ]
+        await update.message.reply_text(msg_text, reply_markup=InlineKeyboardMarkup(buttons), parse_mode="HTML")
         return
 
     # Legacy API modes (backward compatibility)
