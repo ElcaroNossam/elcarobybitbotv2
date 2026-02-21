@@ -398,6 +398,10 @@
             .action-btn { flex-direction: row; gap: 12px; padding: 14px; }
         }
     </style>
+
+    <!-- Unified Components & Animations -->
+    <link rel="stylesheet" href="/static/css/components.css">
+    <link rel="stylesheet" href="/static/css/animations.css">
 </head>
 <body>
     <div class="container">
@@ -406,7 +410,7 @@
             <p style="color: var(--text-secondary);">Enliko Coin - Your Global Stablecoin</p>
         </div>
         
-        <div class="balance-card">
+        <div class="balance-card hover-lift">
             <div class="balance-label">Available Balance</div>
             <div class="balance-value" id="balance">0.00 ELC</div>
             <div class="balance-usd" id="balanceUsd">≈ $0.00 USD</div>
@@ -432,7 +436,7 @@
             </div>
         </div>
         
-        <div class="card">
+        <div class="card hover-lift">
             <h2>📊 Your Stats</h2>
             <div class="stats-grid">
                 <div class="stat-item">
@@ -450,7 +454,7 @@
             </div>
         </div>
         
-        <div class="card">
+        <div class="card hover-lift">
             <h2>🌐 Blockchain Info</h2>
             <div class="stats-grid">
                 <div class="stat-item">
@@ -758,5 +762,8 @@
         loadStats();
         loadNetworks();
     </script>
+
+    <!-- Dynamic Effects -->
+    <script src="/static/js/dynamic.js"></script>
 </body>
 </html>

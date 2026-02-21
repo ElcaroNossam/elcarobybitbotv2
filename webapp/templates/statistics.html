@@ -664,6 +664,10 @@
             .period-tab { padding: 6px 10px; font-size: 11px; }
         }
     </style>
+
+    <!-- Unified Components & Animations -->
+    <link rel="stylesheet" href="/static/css/components.css">
+    <link rel="stylesheet" href="/static/css/animations.css">
 </head>
 <body>
     <div class="bg-pattern"></div>
@@ -713,37 +717,37 @@
         </div>
         
         <!-- Summary Cards -->
-        <div class="summary-grid" id="summaryGrid">
-            <div class="summary-card highlight">
+        <div class="summary-grid scroll-reveal stagger-container" id="summaryGrid">
+            <div class="summary-card highlight hover-lift stagger-item glassmorphism neon-glow-violet">
                 <div class="summary-label"><i class="fas fa-dollar-sign"></i> Total PnL</div>
-                <div class="summary-value positive" id="totalPnl">$0.00</div>
+                <div class="summary-value positive gradient-text" id="totalPnl">$0.00</div>
                 <div class="summary-change up" id="pnlChange"><i class="fas fa-arrow-up"></i> +0%</div>
             </div>
-            <div class="summary-card">
+            <div class="summary-card hover-lift stagger-item glassmorphism">
                 <div class="summary-label"><i class="fas fa-percentage"></i> Return</div>
-                <div class="summary-value" id="returnPct">0%</div>
+                <div class="summary-value gradient-text" id="returnPct">0%</div>
             </div>
-            <div class="summary-card">
+            <div class="summary-card hover-lift stagger-item glassmorphism">
                 <div class="summary-label"><i class="fas fa-exchange-alt"></i> Total Trades</div>
                 <div class="summary-value" id="totalTrades">0</div>
             </div>
-            <div class="summary-card">
+            <div class="summary-card hover-lift stagger-item glassmorphism">
                 <div class="summary-label"><i class="fas fa-trophy"></i> Win Rate</div>
-                <div class="summary-value" id="winRate">0%</div>
+                <div class="summary-value neon-green" id="winRate">0%</div>
             </div>
-            <div class="summary-card">
+            <div class="summary-card hover-lift stagger-item glassmorphism">
                 <div class="summary-label"><i class="fas fa-chart-bar"></i> Profit Factor</div>
                 <div class="summary-value" id="profitFactor">0.00</div>
             </div>
-            <div class="summary-card">
+            <div class="summary-card hover-lift stagger-item glassmorphism">
                 <div class="summary-label"><i class="fas fa-arrow-down"></i> Max Drawdown</div>
                 <div class="summary-value negative" id="maxDrawdown">0%</div>
             </div>
         </div>
         
         <!-- Charts -->
-        <div class="charts-grid">
-            <div class="chart-card">
+        <div class="charts-grid scroll-reveal stagger-container">
+            <div class="chart-card hover-lift stagger-item glassmorphism">
                 <div class="chart-header">
                     <h3 class="chart-title"><i class="fas fa-chart-area"></i> PnL Over Time</h3>
                 </div>
@@ -752,7 +756,7 @@
                 </div>
             </div>
             
-            <div class="chart-card">
+            <div class="chart-card hover-lift stagger-item glassmorphism">
                 <div class="chart-header">
                     <h3 class="chart-title"><i class="fas fa-pie-chart"></i> By Strategy</h3>
                 </div>
@@ -763,16 +767,16 @@
         </div>
         
         <!-- Strategy Performance -->
-        <div class="strategies-section">
-            <h2 class="section-title"><i class="fas fa-robot"></i> Strategy Performance</h2>
-            <div class="strategy-grid" id="strategyGrid">
+        <div class="strategies-section scroll-reveal">
+            <h2 class="section-title gradient-text"><i class="fas fa-robot animate-pulse"></i> Strategy Performance</h2>
+            <div class="strategy-grid stagger-container" id="strategyGrid">
                 <!-- Filled dynamically -->
             </div>
         </div>
         
         <!-- Recent Trades -->
-        <div class="trades-section">
-            <div class="trades-card">
+        <div class="trades-section scroll-reveal">
+            <div class="trades-card hover-lift glassmorphism">
                 <div class="trades-header">
                     <h3 class="chart-title"><i class="fas fa-history"></i> Recent Trades</h3>
                 </div>
@@ -1102,7 +1106,7 @@
                 const accentColor = strategyAccentColors[name.toLowerCase()] || '#6b7280';
                 
                 return `
-                    <div class="strategy-card" style="border-left: 3px solid ${accentColor};">
+                    <div class="strategy-card hover-lift" style="border-left: 3px solid ${accentColor};">
                         <div class="strategy-header">
                             <span class="strategy-name" style="color: ${accentColor};">
                                 <i class="fas ${icon}"></i>
@@ -1198,5 +1202,8 @@
         // Auto-refresh every 60 seconds
         setInterval(loadStats, 60000);
     </script>
+
+    <!-- Dynamic Effects -->
+    <script src="/static/js/dynamic.js"></script>
 </body>
 </html>

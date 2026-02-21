@@ -347,6 +347,10 @@
             }
         }
     </style>
+
+    <!-- Unified Components & Animations -->
+    <link rel="stylesheet" href="/static/css/components.css">
+    <link rel="stylesheet" href="/static/css/animations.css">
 </head>
 <body>
     <div class="header">
@@ -358,7 +362,7 @@
     
     <div class="grid">
         <!-- Treasury Stats -->
-        <div class="card">
+        <div class="card hover-lift">
             <h2>💎 Treasury Overview</h2>
             <div class="stat-grid">
                 <div class="stat-item">
@@ -389,7 +393,7 @@
         </div>
         
         <!-- Emission Control -->
-        <div class="card">
+        <div class="card hover-lift">
             <h2>🖨️ Token Emission</h2>
             <form id="emissionForm">
                 <div class="form-group">
@@ -405,7 +409,7 @@
         </div>
         
         <!-- Burn Control -->
-        <div class="card">
+        <div class="card hover-lift">
             <h2>🔥 Token Burn</h2>
             <form id="burnForm">
                 <div class="form-group">
@@ -421,7 +425,7 @@
         </div>
         
         <!-- Monetary Policy -->
-        <div class="card">
+        <div class="card hover-lift">
             <h2>📊 Monetary Policy</h2>
             <form id="policyForm">
                 <div class="form-group">
@@ -437,7 +441,7 @@
         </div>
         
         <!-- Treasury Transfer -->
-        <div class="card">
+        <div class="card hover-lift">
             <h2>📤 Treasury Transfer</h2>
             <form id="transferForm">
                 <div class="form-group">
@@ -457,7 +461,7 @@
         </div>
         
         <!-- Wallet Management -->
-        <div class="card">
+        <div class="card hover-lift">
             <h2>👛 Wallet Management</h2>
             <div class="tabs">
                 <button class="tab active" data-tab="freeze">Freeze</button>
@@ -479,7 +483,7 @@
         </div>
         
         <!-- Network Status -->
-        <div class="card full-width">
+        <div class="card full-width hover-lift">
             <h2>🌐 Network Status</h2>
             <div class="network-list" id="networkList">
                 <!-- Populated by JS -->
@@ -487,7 +491,7 @@
         </div>
         
         <!-- Activity Log -->
-        <div class="card full-width">
+        <div class="card full-width hover-lift">
             <h2>📜 Activity Log</h2>
             <div class="log-container" id="activityLog">
                 <div class="log-entry info">[INFO] Dashboard loaded</div>
@@ -773,5 +777,8 @@
         loadNetworks();
         setInterval(loadDashboard, 30000); // Refresh every 30s
     </script>
+
+    <!-- Dynamic Effects -->
+    <script src="/static/js/dynamic.js"></script>
 </body>
 </html>

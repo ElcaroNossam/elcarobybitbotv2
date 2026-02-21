@@ -302,6 +302,10 @@
     
     <!-- Mobile Responsive CSS -->
     <link rel="stylesheet" href="/static/css/mobile.css">
+
+    <!-- Unified Components & Animations -->
+    <link rel="stylesheet" href="/static/css/components.css">
+    <link rel="stylesheet" href="/static/css/animations.css">
 </head>
 <body>
     <div class="container">
@@ -345,19 +349,19 @@
         </div>
 
         <div class="stats">
-            <div class="stat-card">
+            <div class="stat-card scroll-reveal hover-lift">
                 <div class="stat-label">Total Symbols</div>
                 <div class="stat-value" id="symbol-count">0</div>
             </div>
-            <div class="stat-card">
+            <div class="stat-card scroll-reveal hover-lift">
                 <div class="stat-label">Current Exchange</div>
                 <div class="stat-value" id="exchange-name" style="font-size: 1.5rem;">Bybit</div>
             </div>
-            <div class="stat-card">
+            <div class="stat-card scroll-reveal hover-lift">
                 <div class="stat-label">Updates Received</div>
                 <div class="stat-value" id="update-count">0</div>
             </div>
-            <div class="stat-card">
+            <div class="stat-card scroll-reveal hover-lift">
                 <div class="stat-label">Avg Update Rate</div>
                 <div class="stat-value" id="update-rate">0 <span style="font-size: 1rem;">/sec</span></div>
             </div>
@@ -588,5 +592,8 @@
         // Start connection
         connectWebSocket();
     </script>
+
+    <!-- Dynamic Effects -->
+    <script src="/static/js/dynamic.js"></script>
 </body>
 </html>

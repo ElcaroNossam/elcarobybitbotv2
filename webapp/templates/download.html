@@ -323,6 +323,10 @@
             .specs-grid { grid-template-columns: 1fr 1fr; }
         }
     </style>
+
+    <!-- Unified Components & Animations -->
+    <link rel="stylesheet" href="/static/css/components.css">
+    <link rel="stylesheet" href="/static/css/animations.css">
 </head>
 <body>
     <div class="container">
@@ -334,7 +338,7 @@
         </div>
 
         <!-- HERO DOWNLOAD CARD -->
-        <div class="card hero" id="heroCard">
+        <div class="card hero hover-lift" id="heroCard">
             <div class="platform-row">
                 <span class="platform-badge">🤖 ANDROID</span>
                 <span class="version-badge" id="versionBadge">v—</span>
@@ -377,7 +381,7 @@
         </div>
 
         <!-- UPDATE CHECKER -->
-        <div class="card" id="updateCard" style="padding:0;">
+        <div class="card hover-lift" id="updateCard" style="padding:0;">
             <div class="update-checker">
                 <span class="update-checker-icon">🔄</span>
                 <div class="update-checker-text">
@@ -389,7 +393,7 @@
         </div>
 
         <!-- CHANGELOG -->
-        <div class="card" id="changelogCard">
+        <div class="card hover-lift" id="changelogCard">
             <div class="changelog-header">
                 <span class="changelog-title">📋 Changelog</span>
                 <span class="changelog-count" id="changelogCount"></span>
@@ -400,7 +404,7 @@
         </div>
 
         <!-- INSTALL STEPS -->
-        <div class="card">
+        <div class="card hover-lift">
             <div class="steps-title">📲 Installation</div>
             <div class="step">
                 <div class="step-num">1</div>
@@ -428,7 +432,7 @@
         </div>
 
         <!-- iOS -->
-        <div class="card ios-card" id="iosCard">
+        <div class="card ios-card hover-lift" id="iosCard">
             <a href="https://testflight.apple.com/join/enliko" target="_blank" class="ios-btn" id="iosBtn" style="cursor:pointer;text-decoration:none;transition:all 0.3s ease;border:1px solid rgba(99,102,241,0.2);">
                 🍎 iOS — TestFlight
                 <span class="ios-badge" id="iosBadge">BUILD 100</span>
@@ -568,5 +572,8 @@
         }
     })();
     </script>
+
+    <!-- Dynamic Effects -->
+    <script src="/static/js/dynamic.js"></script>
 </body>
 </html>

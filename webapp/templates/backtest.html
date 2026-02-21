@@ -1250,6 +1250,10 @@
         }
     </style>
     <link rel="stylesheet" href="/static/css/backtest-advanced.css">
+
+    <!-- Unified Components & Animations -->
+    <link rel="stylesheet" href="/static/css/components.css">
+    <link rel="stylesheet" href="/static/css/animations.css">
 </head>
 <body>
     <div class="bg-pattern"></div>
@@ -1547,27 +1551,27 @@
                     <div class="live-sidebar">
                         <!-- Stats -->
                         <div class="live-stats-grid">
-                            <div class="live-stat-card">
+                            <div class="live-stat-card hover-lift">
                                 <div class="value" id="liveEquity">$10,000</div>
                                 <div class="label">Equity</div>
                             </div>
-                            <div class="live-stat-card">
+                            <div class="live-stat-card hover-lift">
                                 <div class="value positive" id="livePnL">$0.00</div>
                                 <div class="label">Total P&L</div>
                             </div>
-                            <div class="live-stat-card">
+                            <div class="live-stat-card hover-lift">
                                 <div class="value" id="liveTotalTrades">0</div>
                                 <div class="label">Trades</div>
                             </div>
-                            <div class="live-stat-card">
+                            <div class="live-stat-card hover-lift">
                                 <div class="value" id="liveWinRate">0%</div>
                                 <div class="label">Win Rate</div>
                             </div>
-                            <div class="live-stat-card">
+                            <div class="live-stat-card hover-lift">
                                 <div class="value" id="liveProfitFactor">0.00</div>
                                 <div class="label">Profit Factor</div>
                             </div>
-                            <div class="live-stat-card">
+                            <div class="live-stat-card hover-lift">
                                 <div class="value" id="liveProgress">0%</div>
                                 <div class="label">Progress</div>
                             </div>
@@ -2087,23 +2091,23 @@
             if (!statsGrid) return;
             
             statsGrid.innerHTML = `
-                <div class="stat-card">
+                <div class="stat-card scroll-reveal hover-lift">
                     <div class="stat-value ${metrics.total_pnl >= 0 ? 'positive' : 'negative'}">
                         $${metrics.total_pnl?.toFixed(2) || '0.00'}
                     </div>
                     <div class="stat-label">Total P&L</div>
                 </div>
-                <div class="stat-card">
+                <div class="stat-card scroll-reveal hover-lift">
                     <div class="stat-value">${metrics.total_trades || 0}</div>
                     <div class="stat-label">Total Trades</div>
                 </div>
-                <div class="stat-card">
+                <div class="stat-card scroll-reveal hover-lift">
                     <div class="stat-value ${metrics.win_rate >= 50 ? 'positive' : 'negative'}">
                         ${metrics.win_rate?.toFixed(1) || '0.0'}%
                     </div>
                     <div class="stat-label">Win Rate</div>
                 </div>
-                <div class="stat-card">
+                <div class="stat-card scroll-reveal hover-lift">
                     <div class="stat-value">${metrics.sharpe_ratio?.toFixed(2) || '0.00'}</div>
                     <div class="stat-label">Sharpe Ratio</div>
                 </div>
@@ -2645,41 +2649,41 @@
             // Display stats with deploy button
             const statsGrid = document.getElementById('statsGrid');
             statsGrid.innerHTML = `
-                <div class="stat-card">
+                <div class="stat-card scroll-reveal hover-lift">
                     <div class="value neutral">${firstResult.total_trades}</div>
                     <div class="label">Total Trades</div>
                 </div>
-                <div class="stat-card">
+                <div class="stat-card scroll-reveal hover-lift">
                     <div class="value ${firstResult.win_rate >= 50 ? 'positive' : 'negative'}">${firstResult.win_rate.toFixed(1)}%</div>
                     <div class="label">Win Rate</div>
                 </div>
-                <div class="stat-card">
+                <div class="stat-card scroll-reveal hover-lift">
                     <div class="value ${firstResult.total_pnl_percent >= 0 ? 'positive' : 'negative'}">${firstResult.total_pnl_percent >= 0 ? '+' : ''}${firstResult.total_pnl_percent.toFixed(2)}%</div>
                     <div class="label">Total P&L</div>
                 </div>
-                <div class="stat-card">
+                <div class="stat-card scroll-reveal hover-lift">
                     <div class="value ${firstResult.profit_factor >= 1.5 ? 'positive' : 'neutral'}">${firstResult.profit_factor.toFixed(2)}</div>
                     <div class="label">Profit Factor</div>
                 </div>
-                <div class="stat-card">
+                <div class="stat-card scroll-reveal hover-lift">
                     <div class="value negative">-${firstResult.max_drawdown_percent.toFixed(1)}%</div>
                     <div class="label">Max Drawdown</div>
                 </div>
-                <div class="stat-card">
+                <div class="stat-card scroll-reveal hover-lift">
                     <div class="value ${firstResult.sharpe_ratio >= 1 ? 'positive' : 'neutral'}">${firstResult.sharpe_ratio.toFixed(2)}</div>
                     <div class="label">Sharpe Ratio</div>
                 </div>
-                <div class="stat-card">
+                <div class="stat-card scroll-reveal hover-lift">
                     <div class="value positive">$${firstResult.final_balance.toFixed(2)}</div>
                     <div class="label">Final Balance</div>
                 </div>
                 ${isDeployable ? `
-                <div class="stat-card" style="background: var(--gradient-green); cursor: pointer;" onclick="deployStrategy('${firstStrategyName}', ${JSON.stringify(firstResult).replace(/"/g, '&quot;')})">
+                <div class="stat-card scroll-reveal hover-lift" style="background: var(--gradient-green); cursor: pointer;" onclick="deployStrategy('${firstStrategyName}', ${JSON.stringify(firstResult).replace(/"/g, '&quot;')})">
                     <div class="value" style="color: white;"><i class="fas fa-rocket"></i></div>
                     <div class="label" style="color: rgba(255,255,255,0.9);">Deploy to Live</div>
                 </div>
                 ` : `
-                <div class="stat-card" style="opacity: 0.5;" title="Win rate >= 50% and Profit Factor >= 1.2 required">
+                <div class="stat-card scroll-reveal hover-lift" style="opacity: 0.5;" title="Win rate >= 50% and Profit Factor >= 1.2 required">
                     <div class="value"><i class="fas fa-lock"></i></div>
                     <div class="label">Not Ready</div>
                 </div>
@@ -2875,7 +2879,7 @@
             const best = data.best_result;
             
             statsGrid.innerHTML = `
-                <div class="stat-card" style="grid-column: span 2; background: rgba(153, 27, 27, 0.1); border: 1px solid var(--accent-purple);">
+                <div class="stat-card scroll-reveal hover-lift" style="grid-column: span 2; background: rgba(153, 27, 27, 0.1); border: 1px solid var(--accent-purple);">
                     <div style="font-size: 14px; color: var(--accent-purple); margin-bottom: 10px;">🏆 Optimal Parameters</div>
                     <div style="display: flex; gap: 30px; justify-content: center;">
                         <div>
@@ -2889,19 +2893,19 @@
                         </div>
                     </div>
                 </div>
-                <div class="stat-card">
+                <div class="stat-card scroll-reveal hover-lift">
                     <div class="value ${best.win_rate >= 50 ? 'positive' : 'negative'}">${best.win_rate.toFixed(1)}%</div>
                     <div class="label">Win Rate</div>
                 </div>
-                <div class="stat-card">
+                <div class="stat-card scroll-reveal hover-lift">
                     <div class="value ${best.total_pnl_percent >= 0 ? 'positive' : 'negative'}">${best.total_pnl_percent >= 0 ? '+' : ''}${best.total_pnl_percent.toFixed(2)}%</div>
                     <div class="label">Total P&L</div>
                 </div>
-                <div class="stat-card">
+                <div class="stat-card scroll-reveal hover-lift">
                     <div class="value positive">${best.sharpe_ratio.toFixed(2)}</div>
                     <div class="label">Sharpe Ratio</div>
                 </div>
-                <div class="stat-card">
+                <div class="stat-card scroll-reveal hover-lift">
                     <div class="value neutral">${data.total_combinations}</div>
                     <div class="label">Combinations Tested</div>
                 </div>
@@ -3882,7 +3886,7 @@
             const stars = '★'.repeat(Math.floor(rating)) + '☆'.repeat(5 - Math.floor(rating));
             
             card.innerHTML = `
-                <div class="strategy-card-header">
+                <div class="strategy-card-header hover-lift">
                     <div>
                         <h4>${strategy.name}</h4>
                         <div class="author">by ${strategy.author || 'Anonymous'}</div>
@@ -3906,7 +3910,7 @@
                         <div class="label">Copies</div>
                     </div>
                 </div>
-                <div class="strategy-card-actions">
+                <div class="strategy-card-actions hover-lift">
                     <button class="btn btn-secondary" onclick="viewStrategy('${strategy.id}')">
                         <i class="fas fa-eye"></i> View
                     </button>
@@ -4024,7 +4028,7 @@
                 '<span style="color: var(--text-muted);">Offline</span>';
             
             card.innerHTML = `
-                <div class="strategy-card-header">
+                <div class="strategy-card-header hover-lift">
                     <div>
                         <h4>${strategy.name}</h4>
                         <div class="author">${status}</div>
@@ -4047,7 +4051,7 @@
                         <div class="label">Trades</div>
                     </div>
                 </div>
-                <div class="strategy-card-actions">
+                <div class="strategy-card-actions hover-lift">
                     <button class="btn btn-secondary" onclick="editStrategy('${strategy.id}')">
                         <i class="fas fa-edit"></i> Edit
                     </button>
@@ -4453,5 +4457,8 @@
     <!-- Mobile Navigation & Utilities -->
     <script src="/static/js/mobile-navigation.js"></script>
     <script src="/static/js/bottom-nav.js"></script>
+
+    <!-- Dynamic Effects -->
+    <script src="/static/js/dynamic.js"></script>
 </body>
 </html>

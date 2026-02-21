@@ -1032,6 +1032,10 @@
             }
         }
     </style>
+
+    <!-- Unified Components & Animations -->
+    <link rel="stylesheet" href="/static/css/components.css">
+    <link rel="stylesheet" href="/static/css/animations.css">
 </head>
 <body>
     <!-- Background -->
@@ -1076,7 +1080,7 @@
     </nav>
 
     <!-- Hero Section -->
-    <section class="hero">
+    <section class="hero scroll-reveal">
         <div class="hero-container">
             <!-- Live Stats Bar -->
             <div class="live-stats-bar" id="liveStatsBar">
@@ -1163,7 +1167,7 @@
     </div>
 
     <!-- Market Overview Section -->
-    <section class="market-section" id="market">
+    <section class="market-section scroll-reveal" id="market">
         <div class="market-container">
             <div class="section-header">
                 <span class="section-badge">
@@ -1178,26 +1182,26 @@
 
             <!-- Price Cards: BTC, Gold, S&P 500, USDT Dominance -->
             <div class="market-grid" id="marketGrid">
-                <div class="market-card">
+                <div class="market-card hover-lift">
                     <div class="mc-icon">₿</div>
                     <div class="mc-label">Bitcoin</div>
                     <div class="mc-value" id="mktBtcPrice">—</div>
                     <div class="mc-change neutral" id="mktBtcChange">Loading...</div>
                     <div style="font-size:12px;color:var(--text-muted);margin-top:6px">BTC.D: <span id="mktBtcDom">—</span>%</div>
                 </div>
-                <div class="market-card">
+                <div class="market-card hover-lift">
                     <div class="mc-icon">🥇</div>
                     <div class="mc-label">Gold (XAU/USD)</div>
                     <div class="mc-value" id="mktGoldPrice">—</div>
                     <div class="mc-change neutral" id="mktGoldChange">Loading...</div>
                 </div>
-                <div class="market-card">
+                <div class="market-card hover-lift">
                     <div class="mc-icon">📊</div>
                     <div class="mc-label">S&P 500</div>
                     <div class="mc-value" id="mktSp500">—</div>
                     <div class="mc-change neutral" id="mktSp500Change">Loading...</div>
                 </div>
-                <div class="market-card">
+                <div class="market-card hover-lift">
                     <div class="mc-icon">💵</div>
                     <div class="mc-label">USDT Dominance</div>
                     <div class="mc-value" id="mktUsdtDom">—</div>
@@ -1207,7 +1211,7 @@
 
             <!-- Index Cards: Fear & Greed, Altseason, ALT Signal -->
             <div class="index-grid" id="indexGrid">
-                <div class="index-card">
+                <div class="index-card hover-lift">
                     <div class="idx-title">🎭 Fear & Greed Index</div>
                     <div class="idx-value" id="mktFearGreed" style="color: var(--text-muted);">—</div>
                     <div class="idx-label" id="mktFearGreedLabel">Loading...</div>
@@ -1215,7 +1219,7 @@
                         <div class="idx-gauge-fill" id="mktFearGreedBar" style="width: 0%; background: var(--accent-primary);"></div>
                     </div>
                 </div>
-                <div class="index-card">
+                <div class="index-card hover-lift">
                     <div class="idx-title">🔥 Altseason Index</div>
                     <div class="idx-value" id="mktAltseason" style="color: var(--text-muted);">—</div>
                     <div class="idx-label" id="mktAltseasonLabel">Loading...</div>
@@ -1223,7 +1227,7 @@
                         <div class="idx-gauge-fill" id="mktAltseasonBar" style="width: 0%; background: var(--accent-primary);"></div>
                     </div>
                 </div>
-                <div class="index-card">
+                <div class="index-card hover-lift">
                     <div class="idx-title">📡 ALT Signal</div>
                     <div class="idx-value" id="mktAltSignal" style="color: var(--text-muted);">—</div>
                     <div class="idx-label" id="mktAltSignalDesc">Loading...</div>
@@ -1231,7 +1235,7 @@
             </div>
 
             <!-- Top Coins by Dominance -->
-            <div class="top-coins-card">
+            <div class="top-coins-card hover-lift">
                 <h3>📊 Top Coins by Dominance</h3>
                 <div class="top-coins-table" id="topCoinsTable">
                     <div class="market-loading"><div class="spinner"></div><div>Loading market data...</div></div>
@@ -1240,15 +1244,15 @@
 
             <!-- Total Market Cap -->
             <div class="mcap-grid" id="mcapGrid">
-                <div class="mcap-card">
+                <div class="mcap-card hover-lift">
                     <div class="mcap-lbl">Total 1 (All Crypto)</div>
                     <div class="mcap-val" id="mktTotal1">—</div>
                 </div>
-                <div class="mcap-card">
+                <div class="mcap-card hover-lift">
                     <div class="mcap-lbl">Total 2 (Without BTC)</div>
                     <div class="mcap-val" id="mktTotal2">—</div>
                 </div>
-                <div class="mcap-card">
+                <div class="mcap-card hover-lift">
                     <div class="mcap-lbl">Total 3 (Without BTC+ETH)</div>
                     <div class="mcap-val" id="mktTotal3">—</div>
                 </div>
@@ -1257,7 +1261,7 @@
     </section>
 
     <!-- Stats Section -->
-    <section class="stats-section" id="stats">
+    <section class="stats-section scroll-reveal" id="stats">
         <div class="stats-container">
             <div class="section-header">
                 <span class="section-badge">
@@ -1271,32 +1275,32 @@
             </div>
 
             <div class="stats-grid">
-                <div class="stat-card">
+                <div class="stat-card scroll-reveal hover-lift">
                     <div class="icon"><i class="fas fa-users"></i></div>
                     <div class="value" id="cardUsers">&mdash;</div>
                     <div class="label">Active Traders</div>
                 </div>
-                <div class="stat-card">
+                <div class="stat-card scroll-reveal hover-lift">
                     <div class="icon"><i class="fas fa-exchange-alt"></i></div>
                     <div class="value" id="cardTrades">&mdash;</div>
                     <div class="label">Total Trades</div>
                 </div>
-                <div class="stat-card">
+                <div class="stat-card scroll-reveal hover-lift">
                     <div class="icon"><i class="fas fa-dollar-sign"></i></div>
                     <div class="value" id="cardVolume">&mdash;</div>
                     <div class="label">30d Volume</div>
                 </div>
-                <div class="stat-card">
+                <div class="stat-card scroll-reveal hover-lift">
                     <div class="icon"><i class="fas fa-trophy"></i></div>
                     <div class="value" id="cardWinRate">&mdash;</div>
                     <div class="label">Win Rate</div>
                 </div>
-                <div class="stat-card">
+                <div class="stat-card scroll-reveal hover-lift">
                     <div class="icon"><i class="fas fa-chart-pie"></i></div>
                     <div class="value" id="cardPositions">&mdash;</div>
                     <div class="label">Active Positions</div>
                 </div>
-                <div class="stat-card">
+                <div class="stat-card scroll-reveal hover-lift">
                     <div class="icon"><i class="fas fa-coins"></i></div>
                     <div class="value" id="cardPnl">&mdash;</div>
                     <div class="label">Today's PnL</div>
@@ -1306,7 +1310,7 @@
     </section>
 
     <!-- Features Section -->
-    <section class="features-section" id="features">
+    <section class="features-section scroll-reveal" id="features">
         <div class="section-header">
             <span class="section-badge">
                 <i class="fas fa-bolt"></i>
@@ -1316,32 +1320,32 @@
         </div>
 
         <div class="features-grid">
-            <div class="feature-card">
+            <div class="feature-card scroll-reveal hover-lift">
                 <div class="icon"><i class="fas fa-robot"></i></div>
                 <h3>AI Trading Signals</h3>
                 <p>Real-time AI-generated signals based on technical analysis, sentiment, and on-chain data.</p>
             </div>
-            <div class="feature-card">
+            <div class="feature-card scroll-reveal hover-lift">
                 <div class="icon"><i class="fas fa-chart-line"></i></div>
                 <h3>Advanced Terminal</h3>
                 <p>Professional interface with real-time charts, orderbook, and one-click trading.</p>
             </div>
-            <div class="feature-card">
+            <div class="feature-card scroll-reveal hover-lift">
                 <div class="icon"><i class="fas fa-flask"></i></div>
                 <h3>Strategy Backtester</h3>
                 <p>Test strategies on historical data before risking real capital.</p>
             </div>
-            <div class="feature-card">
+            <div class="feature-card scroll-reveal hover-lift">
                 <div class="icon"><i class="fas fa-users"></i></div>
                 <h3>Copy Trading</h3>
                 <p>Follow top traders and automatically copy their positions.</p>
             </div>
-            <div class="feature-card">
+            <div class="feature-card scroll-reveal hover-lift">
                 <div class="icon"><i class="fas fa-store"></i></div>
                 <h3>Strategy Marketplace</h3>
                 <p>Buy, sell, or share custom trading strategies with the community.</p>
             </div>
-            <div class="feature-card">
+            <div class="feature-card scroll-reveal hover-lift">
                 <div class="icon"><i class="fas fa-shield-alt"></i></div>
                 <h3>Risk Management</h3>
                 <p>Automated SL/TP, Break-Even, Partial Take Profit, and DCA features.</p>
@@ -1350,7 +1354,7 @@
     </section>
 
     <!-- CTA Section -->
-    <section class="cta-section">
+    <section class="cta-section scroll-reveal">
         <div class="cta-content">
             <h2>Ready to Start Trading?</h2>
             <p>Join thousands of traders using Enliko for smarter, faster trading decisions.</p>
@@ -1730,5 +1734,8 @@
         </a>
     </nav>
     <script src="/static/js/bottom-nav.js"></script>
+
+    <!-- Dynamic Effects -->
+    <script src="/static/js/dynamic.js"></script>
 </body>
 </html>

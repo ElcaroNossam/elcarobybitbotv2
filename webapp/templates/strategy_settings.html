@@ -514,6 +514,10 @@
         }
     </style>
     <script src="/static/js/elcaro-theme.js"></script>
+
+    <!-- Unified Components & Animations -->
+    <link rel="stylesheet" href="/static/css/components.css">
+    <link rel="stylesheet" href="/static/css/animations.css">
 </head>
 <body>
     <div class="bg-pattern"></div>
@@ -595,9 +599,9 @@
         </div>
         
         <!-- Settings Card -->
-        <div id="settingsCard" class="settings-card">
-            <div class="card-header">
-                <div class="card-title">
+        <div id="settingsCard" class="settings-card hover-lift">
+            <div class="card-header hover-lift">
+                <div class="card-title hover-lift">
                     <i class="fas fa-cog"></i>
                     <h3 id="cardTitle">Long Settings</h3>
                 </div>
@@ -1241,5 +1245,8 @@
             }
         });
     </script>
+
+    <!-- Dynamic Effects -->
+    <script src="/static/js/dynamic.js"></script>
 </body>
 </html>

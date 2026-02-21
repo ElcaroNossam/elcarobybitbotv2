@@ -542,6 +542,10 @@
         .exchange-btn.active { background: linear-gradient(135deg, var(--green), #00cc6a); border-color: transparent; color: #000; font-weight: 600; }
 
     </style>
+
+    <!-- Unified Components & Animations -->
+    <link rel="stylesheet" href="/static/css/components.css">
+    <link rel="stylesheet" href="/static/css/animations.css">
 </head>
 <body>
     <div class="bg-pattern"></div>
@@ -569,18 +573,18 @@
     
     <div class="container">
         <div class="overview-bar">
-            <div class="overview-card btc">
+            <div class="overview-card btc hover-lift">
                 <div class="overview-label"><i class="fab fa-bitcoin" style="color: #f7931a;"></i> Bitcoin</div>
                 <div style="display: flex; align-items: baseline;">
                     <span class="overview-value" id="btcPrice">$--,---</span>
                     <span class="overview-change" id="btcChange">--%</span>
                 </div>
             </div>
-            <div class="overview-card">
+            <div class="overview-card hover-lift">
                 <div class="overview-label">24h Volume</div>
                 <div class="overview-value" id="totalVolume">$--B</div>
             </div>
-            <div class="overview-card">
+            <div class="overview-card hover-lift">
                 <div class="overview-label">Gainers / Losers</div>
                 <div style="display: flex; gap: 12px;">
                     <span class="overview-value positive" id="gainersCount">--</span>
@@ -588,56 +592,56 @@
                     <span class="overview-value negative" id="losersCount">--</span>
                 </div>
             </div>
-            <div class="overview-card">
+            <div class="overview-card hover-lift">
                 <div class="overview-label">Total Symbols</div>
                 <div class="overview-value" id="totalSymbols">--</div>
             </div>
-            <div class="overview-card">
+            <div class="overview-card hover-lift">
                 <div class="overview-label">Avg Funding</div>
                 <div class="overview-value" id="avgFunding">--%</div>
             </div>
         </div>
         
-        <div class="filters-bar">
+        <div class="filters-bar scroll-reveal animate-fade-in-up">
             <div class="market-type-toggle" id="marketFilter">
-                <button class="market-type-btn active" data-market="futures" id="btn-futures">Futures</button>
-                <button class="market-type-btn" data-market="spot" id="btn-spot">Spot</button>
+                <button class="market-type-btn active btn-ripple" data-market="futures" id="btn-futures">Futures</button>
+                <button class="market-type-btn btn-ripple" data-market="spot" id="btn-spot">Spot</button>
             </div>
             
-            <div class="exchange-selector" id="exchangeFilter">
-                <button class="exchange-btn active" data-exchange="binance" title="Binance">
+            <div class="exchange-selector stagger-container" id="exchangeFilter">
+                <button class="exchange-btn active stagger-item btn-ripple" data-exchange="binance" title="Binance">
                     <i class="fab fa-bitcoin"></i> Binance
                 </button>
-                <button class="exchange-btn" data-exchange="bybit" title="Bybit">
+                <button class="exchange-btn stagger-item btn-ripple" data-exchange="bybit" title="Bybit">
                     <span class="exchange-icon">⚡</span> Bybit
                 </button>
-                <button class="exchange-btn" data-exchange="hyperliquid" title="HyperLiquid">
+                <button class="exchange-btn stagger-item btn-ripple" data-exchange="hyperliquid" title="HyperLiquid">
                     <span class="exchange-icon">🔮</span> HyperLiquid
                 </button>
-                <button class="exchange-btn" data-exchange="okx" title="OKX">
+                <button class="exchange-btn stagger-item btn-ripple" data-exchange="okx" title="OKX">
                     <span class="exchange-icon">🔷</span> OKX
                 </button>
             </div>
             
             <div class="filter-group" id="typeFilter">
-                <button class="filter-btn active" data-filter="all" data-i18n="all">All</button>
-                <button class="filter-btn" data-filter="gainers"><i class="fas fa-arrow-up"></i> <span data-i18n="gainers">Gainers</span></button>
-                <button class="filter-btn" data-filter="losers"><i class="fas fa-arrow-down"></i> <span data-i18n="losers">Losers</span></button>
-                <button class="filter-btn" data-filter="volume"><i class="fas fa-chart-bar"></i> <span data-i18n="high_volume">Volume</span></button>
+                <button class="filter-btn active btn-ripple" data-filter="all" data-i18n="all">All</button>
+                <button class="filter-btn btn-ripple" data-filter="gainers"><i class="fas fa-arrow-up"></i> <span data-i18n="gainers">Gainers</span></button>
+                <button class="filter-btn btn-ripple" data-filter="losers"><i class="fas fa-arrow-down"></i> <span data-i18n="losers">Losers</span></button>
+                <button class="filter-btn btn-ripple" data-filter="volume"><i class="fas fa-chart-bar"></i> <span data-i18n="high_volume">Volume</span></button>
             </div>
             <div class="search-box">
                 <i class="fas fa-search"></i>
                 <input type="text" id="searchInput" placeholder="Search symbol..." data-i18n-placeholder="search">
             </div>
             <div class="view-toggle">
-                <button class="view-btn active" data-view="table"><i class="fas fa-list"></i></button>
-                <button class="view-btn" data-view="heatmap"><i class="fas fa-th"></i></button>
+                <button class="view-btn active btn-ripple" data-view="table"><i class="fas fa-list"></i></button>
+                <button class="view-btn btn-ripple" data-view="heatmap"><i class="fas fa-th"></i></button>
             </div>
         </div>
         
-        <div class="content-grid">
+        <div class="content-grid scroll-reveal">
             <div>
-                <div class="table-container" id="tableView">
+                <div class="table-container glassmorphism" id="tableView">
                     <div class="table-scroll">
                         <table>
                             <thead>
@@ -659,33 +663,33 @@
                                 </tr>
                             </thead>
                             <tbody id="marketTable">
-                                <tr><td colspan="8" class="loading"><i class="fas fa-spinner"></i><p data-i18n="loading">Loading...</p></td></tr>
+                                <tr><td colspan="8" class="loading"><i class="fas fa-spinner animate-spin"></i><p data-i18n="loading">Loading...</p></td></tr>
                             </tbody>
                         </table>
                     </div>
                 </div>
-                <div class="table-container heatmap-container" id="heatmapView">
+                <div class="table-container heatmap-container glassmorphism" id="heatmapView">
                     <div class="heatmap-grid" id="heatmapGrid"></div>
                 </div>
             </div>
             
-            <div class="sidebar">
-                <div class="sidebar-card">
+            <div class="sidebar stagger-container">
+                <div class="sidebar-card hover-lift stagger-item glassmorphism">
                     <div class="sidebar-header">
-                        <div class="sidebar-title"><i class="fas fa-rocket"></i> <span data-i18n="top_gainers">Top Gainers</span></div>
+                        <div class="sidebar-title"><i class="fas fa-rocket neon-green"></i> <span data-i18n="top_gainers">Top Gainers</span></div>
                     </div>
-                    <div class="sidebar-body" id="topGainers"><div class="loading"><i class="fas fa-spinner"></i></div></div>
+                    <div class="sidebar-body" id="topGainers"><div class="loading"><i class="fas fa-spinner animate-spin"></i></div></div>
                 </div>
-                <div class="sidebar-card">
+                <div class="sidebar-card hover-lift stagger-item glassmorphism">
                     <div class="sidebar-header">
-                        <div class="sidebar-title"><i class="fas fa-arrow-trend-down"></i> <span data-i18n="top_losers">Top Losers</span></div>
+                        <div class="sidebar-title"><i class="fas fa-arrow-trend-down" style="color: var(--red);"></i> <span data-i18n="top_losers">Top Losers</span></div>
                     </div>
-                    <div class="sidebar-body" id="topLosers"><div class="loading"><i class="fas fa-spinner"></i></div></div>
+                    <div class="sidebar-body" id="topLosers"><div class="loading"><i class="fas fa-spinner animate-spin"></i></div></div>
                 </div>
-                <div class="sidebar-card">
+                <div class="sidebar-card hover-lift stagger-item glassmorphism">
                     <div class="sidebar-header">
-                        <div class="sidebar-title"><i class="fas fa-fire"></i> <span data-i18n="recent_liquidations">Liquidations</span></div>
-                        <span style="font-size: 0.75rem; color: var(--text-muted);">Live</span>
+                        <div class="sidebar-title"><i class="fas fa-fire animate-pulse" style="color: var(--accent);"></i> <span data-i18n="recent_liquidations">Liquidations</span></div>
+                        <span style="font-size: 0.75rem; color: var(--text-muted);" class="animate-pulse">Live</span>
                     </div>
                     <div class="sidebar-body" id="liquidations">
                         <div class="empty-state" style="padding: 30px;"><i class="fas fa-stream"></i><p>Waiting...</p></div>
@@ -974,5 +978,8 @@
     <!-- Mobile Navigation & Utilities -->
     <script src="/static/js/mobile-navigation.js"></script>
     <script src="/static/js/bottom-nav.js"></script>
+
+    <!-- Dynamic Effects -->
+    <script src="/static/js/dynamic.js"></script>
 </body>
 </html>

@@ -455,6 +455,10 @@
             .podium-roi { font-size: 18px; }
         }
     </style>
+
+    <!-- Unified Components & Animations -->
+    <link rel="stylesheet" href="/static/css/components.css">
+    <link rel="stylesheet" href="/static/css/animations.css">
 </head>
 <body>
     <div class="bg-pattern"></div>
@@ -475,7 +479,7 @@
 
     <main class="main-content">
         <!-- Hero -->
-        <section class="hero">
+        <section class="hero scroll-reveal">
             <h1>🏆 Strategy Leaderboard</h1>
             <p>Real performance of Enliko strategies — aggregated across all users</p>
         </section>
@@ -769,5 +773,8 @@
             await loadUserPosition();
         });
     </script>
+
+    <!-- Dynamic Effects -->
+    <script src="/static/js/dynamic.js"></script>
 </body>
 </html>

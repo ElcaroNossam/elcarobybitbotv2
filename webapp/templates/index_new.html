@@ -22,6 +22,10 @@
     
     <!-- Telegram WebApp Script -->
     <script src="https://telegram.org/js/telegram-web-app.js"></script>
+
+    <!-- Unified Components & Animations -->
+    <link rel="stylesheet" href="/static/css/components.css">
+    <link rel="stylesheet" href="/static/css/animations.css">
 </head>
 <body>
     <!-- Animated Background -->
@@ -61,7 +65,7 @@
     </nav>
 
     <!-- Hero Section -->
-    <section class="hero">
+    <section class="hero scroll-reveal">
         <div class="container">
             <div class="hero-content">
                 <div class="hero-text">
@@ -154,7 +158,7 @@
                     </div>
                     
                     <!-- Floating Profit Card -->
-                    <div class="floating-element profit-card">
+                    <div class="floating-element profit-card hover-lift">
                         <div style="font-size: 0.75rem; color: var(--text-muted);">Today's Profit</div>
                         <div style="font-size: 1.5rem; font-weight: 700; color: var(--accent-green);">+$2,847.50</div>
                         <div style="font-size: 0.75rem; color: var(--accent-green);">↑ 12.4%</div>
@@ -186,7 +190,7 @@
             </div>
             
             <div class="features-grid">
-                <div class="feature-card">
+                <div class="feature-card scroll-reveal hover-lift">
                     <div class="feature-icon">
                         <i class="fas fa-robot"></i>
                     </div>
@@ -200,7 +204,7 @@
                     </a>
                 </div>
                 
-                <div class="feature-card">
+                <div class="feature-card scroll-reveal hover-lift">
                     <div class="feature-icon">
                         <i class="fas fa-chart-line"></i>
                     </div>
@@ -214,7 +218,7 @@
                     </a>
                 </div>
                 
-                <div class="feature-card">
+                <div class="feature-card scroll-reveal hover-lift">
                     <div class="feature-icon">
                         <i class="fas fa-flask"></i>
                     </div>
@@ -228,7 +232,7 @@
                     </a>
                 </div>
                 
-                <div class="feature-card">
+                <div class="feature-card scroll-reveal hover-lift">
                     <div class="feature-icon">
                         <i class="fas fa-users"></i>
                     </div>
@@ -242,7 +246,7 @@
                     </a>
                 </div>
                 
-                <div class="feature-card">
+                <div class="feature-card scroll-reveal hover-lift">
                     <div class="feature-icon">
                         <i class="fas fa-store"></i>
                     </div>
@@ -256,7 +260,7 @@
                     </a>
                 </div>
                 
-                <div class="feature-card">
+                <div class="feature-card scroll-reveal hover-lift">
                     <div class="feature-icon">
                         <i class="fas fa-shield-halved"></i>
                     </div>
@@ -274,7 +278,7 @@
     </section>
 
     <!-- AI Signals Section -->
-    <section id="ai-signals" class="ai-section">
+    <section id="ai-signals" class="ai-section scroll-reveal">
         <div class="container">
             <div class="ai-content">
                 <div class="ai-text">
@@ -383,7 +387,7 @@
             </div>
             
             <div class="strategies-grid">
-                <div class="strategy-card" style="--accent: #7C3AED;">
+                <div class="strategy-card hover-lift" style="--accent: #7C3AED;">
                     <div class="strategy-icon" style="background: rgba(124, 58, 237, 0.1);">🎯</div>
                     <h3 class="strategy-name">Enliko</h3>
                     <p class="strategy-desc">Channel breakout with momentum</p>
@@ -399,7 +403,7 @@
                     </div>
                 </div>
                 
-                <div class="strategy-card" style="--accent: #22c55e;">
+                <div class="strategy-card hover-lift" style="--accent: #22c55e;">
                     <div class="strategy-icon" style="background: rgba(34, 197, 94, 0.1);">📊</div>
                     <h3 class="strategy-name">RSI+BB+OI</h3>
                     <p class="strategy-desc">Multi-indicator confluence</p>
@@ -415,7 +419,7 @@
                     </div>
                 </div>
                 
-                <div class="strategy-card" style="--accent: #4C1D95;">
+                <div class="strategy-card hover-lift" style="--accent: #4C1D95;">
                     <div class="strategy-icon" style="background: rgba(127, 29, 29, 0.1);">🔮</div>
                     <h3 class="strategy-name">Wyckoff/SMC</h3>
                     <p class="strategy-desc">Smart Money Concepts</p>
@@ -431,7 +435,7 @@
                     </div>
                 </div>
                 
-                <div class="strategy-card" style="--accent: #eab308;">
+                <div class="strategy-card hover-lift" style="--accent: #eab308;">
                     <div class="strategy-icon" style="background: rgba(234, 179, 8, 0.1);">💎</div>
                     <h3 class="strategy-name">Scryptomera</h3>
                     <p class="strategy-desc">Volume profile analysis</p>
@@ -447,7 +451,7 @@
                     </div>
                 </div>
                 
-                <div class="strategy-card" style="--accent: #ef4444;">
+                <div class="strategy-card hover-lift" style="--accent: #ef4444;">
                     <div class="strategy-icon" style="background: rgba(239, 68, 68, 0.1);">⚡</div>
                     <h3 class="strategy-name">Scalper</h3>
                     <p class="strategy-desc">High-frequency trading</p>
@@ -474,7 +478,7 @@
     </section>
 
     <!-- Copy Trading Section -->
-    <section id="copy-trading" class="copy-trading-section">
+    <section id="copy-trading" class="copy-trading-section scroll-reveal">
         <div class="container">
             <div class="section-header">
                 <span class="section-badge">
@@ -488,7 +492,7 @@
             </div>
             
             <div class="traders-grid">
-                <div class="trader-card featured">
+                <div class="trader-card featured hover-lift">
                     <div class="trader-header">
                         <div class="trader-avatar">🏆</div>
                         <div class="trader-info">
@@ -522,7 +526,7 @@
                     </button>
                 </div>
                 
-                <div class="trader-card">
+                <div class="trader-card hover-lift">
                     <div class="trader-header">
                         <div class="trader-avatar">🎯</div>
                         <div class="trader-info">
@@ -556,7 +560,7 @@
                     </button>
                 </div>
                 
-                <div class="trader-card">
+                <div class="trader-card hover-lift">
                     <div class="trader-header">
                         <div class="trader-avatar">⚡</div>
                         <div class="trader-info">
@@ -590,7 +594,7 @@
                     </button>
                 </div>
                 
-                <div class="trader-card">
+                <div class="trader-card hover-lift">
                     <div class="trader-header">
                         <div class="trader-avatar">🔮</div>
                         <div class="trader-info">
@@ -634,7 +638,7 @@
     </section>
 
     <!-- Statistics Section -->
-    <section id="stats" class="stats-section">
+    <section id="stats" class="stats-section scroll-reveal">
         <div class="container">
             <div class="section-header">
                 <span class="section-badge">
@@ -648,7 +652,7 @@
             </div>
             
             <div class="stats-grid">
-                <div class="stat-card">
+                <div class="stat-card scroll-reveal hover-lift">
                     <div class="stat-icon volume">
                         <i class="fas fa-coins"></i>
                     </div>
@@ -656,7 +660,7 @@
                     <div class="stat-label">Total Trading Volume</div>
                 </div>
                 
-                <div class="stat-card">
+                <div class="stat-card scroll-reveal hover-lift">
                     <div class="stat-icon traders">
                         <i class="fas fa-users"></i>
                     </div>
@@ -664,7 +668,7 @@
                     <div class="stat-label">Active Traders</div>
                 </div>
                 
-                <div class="stat-card">
+                <div class="stat-card scroll-reveal hover-lift">
                     <div class="stat-icon signals">
                         <i class="fas fa-signal"></i>
                     </div>
@@ -672,7 +676,7 @@
                     <div class="stat-label">Signals Generated</div>
                 </div>
                 
-                <div class="stat-card">
+                <div class="stat-card scroll-reveal hover-lift">
                     <div class="stat-icon winrate">
                         <i class="fas fa-trophy"></i>
                     </div>
@@ -684,7 +688,7 @@
     </section>
 
     <!-- Pricing Section -->
-    <section id="pricing" class="pricing-section">
+    <section id="pricing" class="pricing-section scroll-reveal">
         <div class="container">
             <div class="section-header">
                 <span class="section-badge">
@@ -698,7 +702,7 @@
             </div>
             
             <div class="pricing-grid">
-                <div class="pricing-card">
+                <div class="pricing-card hover-lift">
                     <h3 class="pricing-name">Free</h3>
                     <div class="pricing-price">
                         <span class="pricing-amount">$0</span>
@@ -715,7 +719,7 @@
                     <a href="/terminal" class="btn btn-secondary pricing-cta">Get Started</a>
                 </div>
                 
-                <div class="pricing-card featured">
+                <div class="pricing-card featured hover-lift">
                     <span class="pricing-badge">Most Popular</span>
                     <h3 class="pricing-name">Premium</h3>
                     <div class="pricing-price">
@@ -733,7 +737,7 @@
                     <a href="/terminal" class="btn btn-primary pricing-cta btn-glow">Upgrade Now</a>
                 </div>
                 
-                <div class="pricing-card">
+                <div class="pricing-card hover-lift">
                     <h3 class="pricing-name">Pro</h3>
                     <div class="pricing-price">
                         <span class="pricing-amount">$99</span>
@@ -754,7 +758,7 @@
     </section>
 
     <!-- Testimonials Section -->
-    <section class="testimonials-section">
+    <section class="testimonials-section scroll-reveal">
         <div class="container">
             <div class="section-header">
                 <span class="section-badge">
@@ -765,7 +769,7 @@
             </div>
         </div>
         <div class="testimonials-slider">
-            <div class="testimonial-card">
+            <div class="testimonial-card hover-lift">
                 <div class="testimonial-header">
                     <div class="testimonial-avatar">👨‍💻</div>
                     <div class="testimonial-info">
@@ -780,7 +784,7 @@
                 </p>
             </div>
             
-            <div class="testimonial-card">
+            <div class="testimonial-card hover-lift">
                 <div class="testimonial-header">
                     <div class="testimonial-avatar">👩‍💼</div>
                     <div class="testimonial-info">
@@ -795,7 +799,7 @@
                 </p>
             </div>
             
-            <div class="testimonial-card">
+            <div class="testimonial-card hover-lift">
                 <div class="testimonial-header">
                     <div class="testimonial-avatar">🧑‍🔬</div>
                     <div class="testimonial-info">
@@ -810,7 +814,7 @@
                 </p>
             </div>
             
-            <div class="testimonial-card">
+            <div class="testimonial-card hover-lift">
                 <div class="testimonial-header">
                     <div class="testimonial-avatar">👨‍🎓</div>
                     <div class="testimonial-info">
@@ -826,7 +830,7 @@
             </div>
             
             <!-- Duplicate for infinite scroll -->
-            <div class="testimonial-card">
+            <div class="testimonial-card hover-lift">
                 <div class="testimonial-header">
                     <div class="testimonial-avatar">👨‍💻</div>
                     <div class="testimonial-info">
@@ -841,7 +845,7 @@
                 </p>
             </div>
             
-            <div class="testimonial-card">
+            <div class="testimonial-card hover-lift">
                 <div class="testimonial-header">
                     <div class="testimonial-avatar">👩‍💼</div>
                     <div class="testimonial-info">
@@ -859,7 +863,7 @@
     </section>
 
     <!-- CTA Section -->
-    <section class="cta-section">
+    <section class="cta-section scroll-reveal">
         <div class="container">
             <div class="cta-content">
                 <h2 class="cta-title">Ready to Start Trading Smarter?</h2>
@@ -1060,5 +1064,8 @@
             });
         });
     </script>
+
+    <!-- Dynamic Effects -->
+    <script src="/static/js/dynamic.js"></script>
 </body>
 </html>

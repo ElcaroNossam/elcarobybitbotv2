@@ -320,6 +320,10 @@
             }
         }
     </style>
+
+    <!-- Unified Components & Animations -->
+    <link rel="stylesheet" href="/static/css/components.css">
+    <link rel="stylesheet" href="/static/css/animations.css">
 </head>
 <body>
     <div class="container">
@@ -455,7 +459,7 @@
                 const priceClass = change >= 0 ? 'up' : 'down';
                 
                 return `
-                    <div class="symbol-card">
+                    <div class="symbol-card hover-lift">
                         <div class="symbol-name">${symbol.symbol}</div>
                         <div class="price ${priceClass}">
                             $${(symbol.price || 0).toFixed(2)}
@@ -520,5 +524,8 @@
             setTimeout(connectAll, 500);
         });
     </script>
+
+    <!-- Dynamic Effects -->
+    <script src="/static/js/dynamic.js"></script>
 </body>
 </html>

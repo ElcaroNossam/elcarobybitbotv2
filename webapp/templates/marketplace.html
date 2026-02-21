@@ -646,6 +646,10 @@
             .strategy-card { padding: 12px; }
         }
     </style>
+
+    <!-- Unified Components & Animations -->
+    <link rel="stylesheet" href="/static/css/components.css">
+    <link rel="stylesheet" href="/static/css/animations.css">
 </head>
 <body>
     <div class="bg-pattern"></div>
@@ -718,38 +722,38 @@
 
     <main class="main-content">
         <!-- Hero -->
-        <section class="hero">
-            <h1>Strategy Marketplace</h1>
+        <section class="hero scroll-reveal animate-fade-in-up">
+            <h1 class="gradient-text">Strategy Marketplace</h1>
             <p>Discover and buy proven trading strategies from top traders. All strategies are backtested and verified.</p>
         </section>
 
         <!-- Stats -->
-        <div class="stats-bar">
-            <div class="stat-item">
-                <div class="stat-value" id="totalStrategies">0</div>
+        <div class="stats-bar scroll-reveal stagger-container animate-delay-200">
+            <div class="stat-item stagger-item glassmorphism hover-lift">
+                <div class="stat-value gradient-text" id="totalStrategies" data-counter="0">0</div>
                 <div class="stat-label">Strategies Available</div>
             </div>
-            <div class="stat-item">
-                <div class="stat-value" id="totalTraders">0</div>
+            <div class="stat-item stagger-item glassmorphism hover-lift">
+                <div class="stat-value gradient-text" id="totalTraders" data-counter="0">0</div>
                 <div class="stat-label">Strategy Creators</div>
             </div>
-            <div class="stat-item">
-                <div class="stat-value" id="avgProfit">0%</div>
+            <div class="stat-item stagger-item glassmorphism hover-lift">
+                <div class="stat-value neon-green" id="avgProfit" data-counter="0" data-suffix="%">0%</div>
                 <div class="stat-label">Avg Monthly Profit</div>
             </div>
-            <div class="stat-item">
-                <div class="stat-value" id="totalSales">0</div>
+            <div class="stat-item stagger-item glassmorphism hover-lift">
+                <div class="stat-value gradient-text" id="totalSales" data-counter="0">0</div>
                 <div class="stat-label">Strategies Sold</div>
             </div>
         </div>
 
         <!-- Filters -->
-        <div class="filters">
-            <button class="filter-btn active" data-filter="all">All</button>
-            <button class="filter-btn" data-filter="trending">🔥 Trending</button>
-            <button class="filter-btn" data-filter="verified">✓ Verified</button>
-            <button class="filter-btn" data-filter="new">🆕 New</button>
-            <button class="filter-btn" data-filter="free">Free</button>
+        <div class="filters scroll-reveal animate-delay-400">
+            <button class="filter-btn active btn-ripple" data-filter="all">All</button>
+            <button class="filter-btn btn-ripple" data-filter="trending">🔥 Trending</button>
+            <button class="filter-btn btn-ripple" data-filter="verified">✓ Verified</button>
+            <button class="filter-btn btn-ripple" data-filter="new">🆕 New</button>
+            <button class="filter-btn btn-ripple" data-filter="free">Free</button>
             <div class="search-box">
                 <i class="fas fa-search"></i>
                 <input type="text" id="searchInput" placeholder="Search strategies...">
@@ -757,12 +761,12 @@
         </div>
 
         <!-- Top Strategies -->
-        <h2 class="section-title">
-            <i class="fas fa-fire"></i> Top Performing Strategies
+        <h2 class="section-title scroll-reveal">
+            <i class="fas fa-fire animate-pulse"></i> Top Performing Strategies
         </h2>
 
         <!-- Strategies Grid -->
-        <div class="strategies-grid" id="strategiesGrid">
+        <div class="strategies-grid stagger-container" id="strategiesGrid">
             <!-- Cards will be loaded dynamically -->
         </div>
     </main>
@@ -967,7 +971,7 @@
         function renderStrategies(list) {
             const grid = document.getElementById('strategiesGrid');
             grid.innerHTML = list.map((s, i) => `
-                <div class="strategy-card" style="animation-delay: ${i * 0.1}s">
+                <div class="strategy-card hover-lift" style="animation-delay: ${i * 0.1}s">
                     <div class="strategy-header">
                         <div class="strategy-info">
                             <h3>${s.name}</h3>
@@ -1335,5 +1339,8 @@
         </a>
     </nav>
     <script src="/static/js/bottom-nav.js"></script>
+
+    <!-- Dynamic Effects -->
+    <script src="/static/js/dynamic.js"></script>
 </body>
 </html>

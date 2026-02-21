@@ -461,6 +461,10 @@
             .hero-title { font-size: 2.5rem; }
         }
     </style>
+
+    <!-- Unified Components & Animations -->
+    <link rel="stylesheet" href="/static/css/components.css">
+    <link rel="stylesheet" href="/static/css/animations.css">
 </head>
 <body>
     <div class="hero-bg"></div>
@@ -487,22 +491,22 @@
     </nav>
     
     <!-- Hero Section -->
-    <section class="hero">
+    <section class="hero scroll-reveal">
         <div class="hero-content">
             <div class="hero-badge">
                 <i class="fas fa-bolt"></i>
                 <span>AI-Powered Trading Bot</span>
             </div>
-            <h1 class="hero-title">Trade Smarter, Not Harder</h1>
-            <p class="hero-subtitle">
+            <h1 class="hero-title gradient-text animate-fade-in-up">Trade Smarter, Not Harder</h1>
+            <p class="hero-subtitle animate-fade-in-up animate-delay-200">
                 Professional-grade trading automation for Bybit & HyperLiquid. 
                 AI-powered strategies, real-time analytics, and seamless execution.
             </p>
-            <div class="hero-buttons">
-                <a href="#pricing" class="btn-primary">
+            <div class="hero-buttons animate-fade-in-up animate-delay-400">
+                <a href="#pricing" class="btn-primary btn-ripple neon-glow-violet">
                     <i class="fas fa-rocket"></i> Start Free Now
                 </a>
-                <button onclick="showAuthModal('register')" class="btn-secondary">
+                <button onclick="showAuthModal('register')" class="btn-secondary btn-ripple hover-glow">
                     <i class="fas fa-user-plus"></i> Sign Up
                 </button>
             </div>
@@ -624,60 +628,60 @@
     </section>
     
     <!-- Stats -->
-    <section class="stats">
-        <div class="stat-card">
-            <div class="stat-value" id="stat1">$2.5M+</div>
+    <section class="stats scroll-reveal stagger-container">
+        <div class="stat-card scroll-reveal hover-lift stagger-item glassmorphism">
+            <div class="stat-value gradient-text" data-counter="2.5" data-prefix="$" data-suffix="M+">$0</div>
             <div class="stat-label">Trading Volume</div>
         </div>
-        <div class="stat-card">
-            <div class="stat-value" id="stat2">65%</div>
+        <div class="stat-card scroll-reveal hover-lift stagger-item glassmorphism">
+            <div class="stat-value gradient-text" data-counter="65" data-suffix="%">0%</div>
             <div class="stat-label">Win Rate</div>
         </div>
-        <div class="stat-card">
-            <div class="stat-value" id="stat3">15K+</div>
+        <div class="stat-card scroll-reveal hover-lift stagger-item glassmorphism">
+            <div class="stat-value gradient-text" data-counter="15" data-suffix="K+">0</div>
             <div class="stat-label">Trades Executed</div>
         </div>
-        <div class="stat-card">
-            <div class="stat-value" id="stat4">24/7</div>
+        <div class="stat-card scroll-reveal hover-lift stagger-item glassmorphism">
+            <div class="stat-value gradient-text animate-pulse">24/7</div>
             <div class="stat-label">Active Monitoring</div>
         </div>
     </section>
     
     <!-- Features -->
-    <section class="features" id="features">
-        <div class="section-header">
-            <h2 class="section-title">Powerful Features</h2>
+    <section class="features scroll-reveal" id="features">
+        <div class="section-header animate-fade-in-up">
+            <h2 class="section-title gradient-text">Powerful Features</h2>
             <p class="section-subtitle">Everything you need for professional crypto trading</p>
         </div>
         
-        <div class="features-grid">
-            <div class="feature-card">
-                <div class="feature-icon">🤖</div>
+        <div class="features-grid stagger-container">
+            <div class="feature-card scroll-reveal hover-lift stagger-item glassmorphism">
+                <div class="feature-icon animate-float">🤖</div>
                 <h3 class="feature-title">AI Trading Agent</h3>
                 <p class="feature-desc">Chat with our AI to configure strategies, analyze markets, and optimize your trading parameters in real-time.</p>
             </div>
-            <div class="feature-card">
-                <div class="feature-icon">📊</div>
+            <div class="feature-card scroll-reveal hover-lift stagger-item glassmorphism">
+                <div class="feature-icon animate-float">📊</div>
                 <h3 class="feature-title">Advanced Backtesting</h3>
                 <p class="feature-desc">Test your strategies on historical data with our real backtesting engine connected to actual bot logic.</p>
             </div>
-            <div class="feature-card">
-                <div class="feature-icon">⚡</div>
+            <div class="feature-card scroll-reveal hover-lift stagger-item glassmorphism">
+                <div class="feature-icon animate-float">⚡</div>
                 <h3 class="feature-title">Real-Time Execution</h3>
                 <p class="feature-desc">Lightning-fast order execution on Bybit & HyperLiquid with WebSocket-powered live updates.</p>
             </div>
-            <div class="feature-card">
-                <div class="feature-icon">🎯</div>
+            <div class="feature-card scroll-reveal hover-lift stagger-item glassmorphism">
+                <div class="feature-icon animate-float">🎯</div>
                 <h3 class="feature-title">Multiple Strategies</h3>
                 <p class="feature-desc">Enliko, RSI+BB+OI, Wyckoff SMC, Scryptomera, and Scalper strategies running 24/7.</p>
             </div>
-            <div class="feature-card">
-                <div class="feature-icon">🔔</div>
+            <div class="feature-card scroll-reveal hover-lift stagger-item glassmorphism">
+                <div class="feature-icon animate-float">🔔</div>
                 <h3 class="feature-title">Live Trade Alerts</h3>
                 <p class="feature-desc">Get instant notifications via Telegram and WebSocket when trades open and close.</p>
             </div>
-            <div class="feature-card">
-                <div class="feature-icon">📈</div>
+            <div class="feature-card scroll-reveal hover-lift stagger-item glassmorphism">
+                <div class="feature-icon animate-float">📈</div>
                 <h3 class="feature-title">Pro Terminal</h3>
                 <p class="feature-desc">TradingView charts, equity curves, P&L tracking, and detailed statistics dashboard.</p>
             </div>
@@ -685,16 +689,16 @@
     </section>
     
     <!-- CTA -->
-    <section class="cta">
-        <h2 class="cta-title">Ready to Automate Your Trading?</h2>
+    <section class="cta scroll-reveal animate-fade-in-up">
+        <h2 class="cta-title gradient-text">Ready to Automate Your Trading?</h2>
         <p class="cta-subtitle">Join thousands of traders using Enliko to maximize their profits</p>
-        <a href="/terminal" class="btn-primary" style="font-size: 1.1rem; padding: 18px 40px;">
+        <a href="/terminal" class="btn-primary btn-ripple neon-glow-violet" style="font-size: 1.1rem; padding: 18px 40px;">
             <i class="fas fa-rocket"></i> Launch Terminal
         </a>
     </section>
     
     <!-- Pricing Section -->
-    <section class="pricing" id="pricing" style="padding: 80px 40px; background: var(--bg-secondary);">
+    <section class="pricing scroll-reveal" id="pricing" style="padding: 80px 40px; background: var(--bg-secondary);">
         <div class="section-header" style="text-align: center; margin-bottom: 50px;">
             <h2 class="section-title" style="font-size: 2.5rem; margin-bottom: 1rem;">Subscription Plans</h2>
             <p class="section-subtitle" style="color: var(--text-secondary);">Pay with ELC Tokens (1 ELC = 1 USDT)</p>
@@ -1418,5 +1422,8 @@
             if (mainInput) mainInput.value = amount;
         });
     </script>
+
+    <!-- Dynamic Effects -->
+    <script src="/static/js/dynamic.js"></script>
 </body>
 </html>
