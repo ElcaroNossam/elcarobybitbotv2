@@ -86,10 +86,8 @@ sealed class Screen(val route: String) {
     }
 }
 
-fun isLoggedIn(context: Context): Boolean {
-    val prefs = context.getSharedPreferences("auth_prefs", Context.MODE_PRIVATE)
-    return prefs.getString("auth_token", null) != null
-}
+// SECURITY: Auth state is managed by AuthViewModel using SecurePreferencesRepository
+// Do NOT use plain SharedPreferences for auth tokens!
 
 @Composable
 fun EnlikoNavHost(
@@ -160,9 +158,8 @@ fun EnlikoNavHost(
             composable(Screen.Main.route) {
                 MainScreen(
                     onLogout = {
-                        // Clear token and navigate to login
-                        val prefs = context.getSharedPreferences("auth_prefs", Context.MODE_PRIVATE)
-                        prefs.edit().remove("auth_token").apply()
+                        // SECURITY: Auth tokens are cleared by SettingsViewModel.logout()
+                        // using SecurePreferencesRepository. Just navigate to login.
                         navController.navigate(Screen.Login.route) {
                             popUpTo(Screen.Main.route) { inclusive = true }
                         }

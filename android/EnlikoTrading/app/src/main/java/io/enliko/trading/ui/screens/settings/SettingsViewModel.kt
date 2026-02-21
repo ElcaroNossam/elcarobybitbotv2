@@ -9,6 +9,7 @@ import dagger.hilt.android.lifecycle.HiltViewModel
 import dagger.hilt.android.qualifiers.ApplicationContext
 import io.enliko.trading.data.api.EnlikoApi
 import io.enliko.trading.data.repository.PreferencesRepository
+import io.enliko.trading.data.repository.SecurePreferencesRepository
 import io.enliko.trading.data.websocket.WebSocketService
 import kotlinx.coroutines.flow.*
 import kotlinx.coroutines.launch
@@ -35,6 +36,7 @@ data class SettingsUiState(
 class SettingsViewModel @Inject constructor(
     private val api: EnlikoApi,
     private val preferencesRepository: PreferencesRepository,
+    private val securePreferencesRepository: SecurePreferencesRepository,
     private val webSocketService: WebSocketService,
     @ApplicationContext private val context: Context
 ) : ViewModel() {
@@ -154,6 +156,9 @@ class SettingsViewModel @Inject constructor(
     
     fun logout() {
         viewModelScope.launch {
+            // SECURITY: Clear sensitive auth data from encrypted storage
+            securePreferencesRepository.clearAuth()
+            // Also clear non-sensitive preferences
             preferencesRepository.clearAuth()
             webSocketService.disconnect()
         }

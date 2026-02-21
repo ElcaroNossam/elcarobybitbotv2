@@ -46,7 +46,13 @@ except ImportError:
 
 # Get bot token for hash verification
 BOT_TOKEN = os.getenv("TG_BOT_TOKEN") or os.getenv("BOT_TOKEN") or os.getenv("TELEGRAM_TOKEN") or ""
-SECRET_KEY = os.getenv("JWT_SECRET", os.getenv("SECRET_KEY", "enliko-secret-key-2026"))
+
+# SECURITY: JWT secret MUST be set in production
+SECRET_KEY = os.getenv("JWT_SECRET", os.getenv("SECRET_KEY", ""))
+if not SECRET_KEY:
+    import warnings
+    warnings.warn("JWT_SECRET not set - using insecure fallback for development only!", RuntimeWarning)
+    SECRET_KEY = "dev-only-insecure-key-do-not-use-in-production"
 
 
 # =============================================================================

@@ -163,7 +163,10 @@ class WebSocketService: NSObject, ObservableObject {
     // Settings sync WebSocket (requires auth)
     private var syncWebSocket: URLSessionWebSocketTask?
     
-    private var session: URLSession!
+    // SECURITY: Use lazy to avoid force unwrap crash potential
+    private lazy var session: URLSession = {
+        URLSession(configuration: .default, delegate: self, delegateQueue: nil)
+    }()
     private var reconnectTimer: Timer?
     private var syncReconnectTimer: Timer?
     private var subscribedSymbols: Set<String> = []
@@ -191,7 +194,7 @@ class WebSocketService: NSObject, ObservableObject {
     
     private override init() {
         super.init()
-        session = URLSession(configuration: .default, delegate: self, delegateQueue: nil)
+        // Session is initialized lazily
         logger.info("WebSocketService initialized", category: .websocket)
     }
     

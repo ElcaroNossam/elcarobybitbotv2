@@ -19,7 +19,9 @@ class PreferencesRepository @Inject constructor(
     @ApplicationContext private val context: Context
 ) {
     companion object {
-        private val TOKEN_KEY = stringPreferencesKey("auth_token")
+        // SECURITY: Auth tokens must NOT be stored here!
+        // Use SecurePreferencesRepository for sensitive data.
+        // These are non-sensitive user preferences only.
         private val USER_ID_KEY = stringPreferencesKey("user_id")
         private val LANGUAGE_KEY = stringPreferencesKey("language")
         private val EXCHANGE_KEY = stringPreferencesKey("exchange")
@@ -27,9 +29,7 @@ class PreferencesRepository @Inject constructor(
         private val THEME_KEY = stringPreferencesKey("theme")
     }
 
-    val authToken: Flow<String?> = context.dataStore.data.map { preferences ->
-        preferences[TOKEN_KEY]
-    }
+    // REMOVED: authToken - use SecurePreferencesRepository.authToken instead
 
     val userId: Flow<String?> = context.dataStore.data.map { preferences ->
         preferences[USER_ID_KEY]
@@ -51,11 +51,7 @@ class PreferencesRepository @Inject constructor(
         preferences[THEME_KEY] ?: "system"
     }
 
-    suspend fun saveAuthToken(token: String) {
-        context.dataStore.edit { preferences ->
-            preferences[TOKEN_KEY] = token
-        }
-    }
+    // REMOVED: saveAuthToken - use SecurePreferencesRepository.saveAuthToken instead
 
     suspend fun saveUserId(userId: String) {
         context.dataStore.edit { preferences ->
@@ -88,8 +84,9 @@ class PreferencesRepository @Inject constructor(
     }
 
     suspend fun clearAuth() {
+        // SECURITY: This only clears local user preferences.
+        // Sensitive auth tokens are cleared via SecurePreferencesRepository.clearAuth()
         context.dataStore.edit { preferences ->
-            preferences.remove(TOKEN_KEY)
             preferences.remove(USER_ID_KEY)
         }
     }

@@ -164,8 +164,13 @@ What would you like to know?`
     }
 
     formatMessage(content) {
-        // Convert markdown to HTML
-        return content
+        // SECURITY: Escape HTML first to prevent XSS, then apply safe markdown formatting
+        const escaped = typeof escapeHtml === 'function' 
+            ? escapeHtml(content) 
+            : content.replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+        
+        // Convert markdown to HTML (only after escaping)
+        return escaped
             .replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>')
             .replace(/\*(.*?)\*/g, '<em>$1</em>')
             .replace(/`(.*?)`/g, '<code>$1</code>')
