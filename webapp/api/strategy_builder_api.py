@@ -188,45 +188,144 @@ async def get_templates():
 
 @router.get("/indicators")
 async def get_indicators():
-    """Get all available indicators with their parameters (public endpoint)"""
+    """Get all available indicators with their parameters (public endpoint)
+    
+    Returns 50+ indicators organized by category:
+    - Trend: Moving averages, SuperTrend, VWAP, Ichimoku, ADX
+    - Momentum: RSI, MACD, Stochastic, CCI, Williams %R, ROC, MFI
+    - Volatility: ATR, Bollinger Bands, Keltner, Donchian
+    - Volume: OBV, Volume Oscillator, Accumulation/Distribution, CVD
+    - Order Flow: Open Interest, Funding Rate, Liquidations, Long/Short Ratio
+    - Smart Money (SMC): FVG, Order Blocks, Liquidity Zones, BOS, CHOCH
+    - Price: OHLC, HL2, HLC3
+    - Support/Resistance: Pivot Points, S/R Detection
+    """
     indicators = {
         "trend": [
-            {"id": "ema", "name": "EMA", "params": {"period": {"type": "int", "default": 20, "min": 5, "max": 500}}},
-            {"id": "sma", "name": "SMA", "params": {"period": {"type": "int", "default": 20, "min": 5, "max": 500}}},
+            {"id": "sma", "name": "SMA (Simple Moving Average)", "params": {"period": {"type": "int", "default": 20, "min": 5, "max": 500}}},
+            {"id": "ema", "name": "EMA (Exponential Moving Average)", "params": {"period": {"type": "int", "default": 20, "min": 5, "max": 500}}},
+            {"id": "wma", "name": "WMA (Weighted Moving Average)", "params": {"period": {"type": "int", "default": 20, "min": 5, "max": 500}}},
+            {"id": "hull_ma", "name": "Hull Moving Average", "params": {"period": {"type": "int", "default": 14, "min": 5, "max": 200}}},
+            {"id": "kama", "name": "KAMA (Kaufman Adaptive MA)", "params": {
+                "period": {"type": "int", "default": 10, "min": 5, "max": 100},
+                "fast": {"type": "int", "default": 2, "min": 2, "max": 10},
+                "slow": {"type": "int", "default": 30, "min": 10, "max": 50}
+            }},
             {"id": "supertrend", "name": "SuperTrend", "params": {
                 "period": {"type": "int", "default": 10, "min": 5, "max": 50},
                 "multiplier": {"type": "float", "default": 3.0, "min": 1.0, "max": 10.0}
+            }, "fields": ["value", "direction"]},
+            {"id": "parabolic_sar", "name": "Parabolic SAR", "params": {
+                "af_start": {"type": "float", "default": 0.02, "min": 0.01, "max": 0.1},
+                "af_step": {"type": "float", "default": 0.02, "min": 0.01, "max": 0.1},
+                "af_max": {"type": "float", "default": 0.2, "min": 0.1, "max": 0.5}
             }},
             {"id": "vwap", "name": "VWAP", "params": {}},
+            {"id": "ichimoku", "name": "Ichimoku Cloud", "params": {
+                "tenkan": {"type": "int", "default": 9},
+                "kijun": {"type": "int", "default": 26},
+                "senkou_b": {"type": "int", "default": 52}
+            }, "fields": ["tenkan", "kijun", "senkou_a", "senkou_b", "chikou"]},
+            {"id": "adx", "name": "ADX (Average Directional Index)", "params": {"period": {"type": "int", "default": 14, "min": 5, "max": 50}}, "fields": ["adx", "plus_di", "minus_di"]},
         ],
         "momentum": [
             {"id": "rsi", "name": "RSI", "params": {"period": {"type": "int", "default": 14, "min": 5, "max": 50}}},
-            {"id": "macd", "name": "MACD", "params": {
-                "fast": {"type": "int", "default": 12},
-                "slow": {"type": "int", "default": 26},
-                "signal": {"type": "int", "default": 9}
-            }, "fields": ["macd", "signal", "histogram"]},
             {"id": "stochastic", "name": "Stochastic", "params": {
-                "k_period": {"type": "int", "default": 14},
+                "k_period": {"type": "int", "default": 14, "min": 5, "max": 50},
+                "d_period": {"type": "int", "default": 3, "min": 1, "max": 10},
+                "slowing": {"type": "int", "default": 3, "min": 1, "max": 10}
+            }, "fields": ["k", "d"]},
+            {"id": "stochastic_rsi", "name": "Stochastic RSI", "params": {
+                "rsi_period": {"type": "int", "default": 14},
+                "stoch_period": {"type": "int", "default": 14},
+                "k_period": {"type": "int", "default": 3},
                 "d_period": {"type": "int", "default": 3}
             }, "fields": ["k", "d"]},
+            {"id": "macd", "name": "MACD", "params": {
+                "fast": {"type": "int", "default": 12, "min": 5, "max": 50},
+                "slow": {"type": "int", "default": 26, "min": 10, "max": 100},
+                "signal": {"type": "int", "default": 9, "min": 3, "max": 30}
+            }, "fields": ["macd", "signal", "histogram"]},
+            {"id": "williams_r", "name": "Williams %R", "params": {"period": {"type": "int", "default": 14, "min": 5, "max": 50}}},
+            {"id": "cci", "name": "CCI (Commodity Channel Index)", "params": {"period": {"type": "int", "default": 20, "min": 5, "max": 100}}},
+            {"id": "roc", "name": "ROC (Rate of Change)", "params": {"period": {"type": "int", "default": 12, "min": 1, "max": 50}}},
+            {"id": "mfi", "name": "MFI (Money Flow Index)", "params": {"period": {"type": "int", "default": 14, "min": 5, "max": 50}}},
+            {"id": "momentum", "name": "Momentum", "params": {"period": {"type": "int", "default": 10, "min": 1, "max": 50}}},
+            {"id": "awesome_oscillator", "name": "Awesome Oscillator", "params": {
+                "fast": {"type": "int", "default": 5},
+                "slow": {"type": "int", "default": 34}
+            }},
         ],
         "volatility": [
+            {"id": "atr", "name": "ATR (Average True Range)", "params": {"period": {"type": "int", "default": 14, "min": 5, "max": 50}}},
             {"id": "bb", "name": "Bollinger Bands", "params": {
-                "period": {"type": "int", "default": 20},
-                "std_dev": {"type": "float", "default": 2.0}
+                "period": {"type": "int", "default": 20, "min": 5, "max": 100},
+                "std_dev": {"type": "float", "default": 2.0, "min": 0.5, "max": 5.0}
+            }, "fields": ["upper", "middle", "lower", "bandwidth", "percent_b"]},
+            {"id": "keltner", "name": "Keltner Channels", "params": {
+                "ema_period": {"type": "int", "default": 20},
+                "atr_period": {"type": "int", "default": 10},
+                "multiplier": {"type": "float", "default": 2.0}
             }, "fields": ["upper", "middle", "lower"]},
-            {"id": "atr", "name": "ATR", "params": {"period": {"type": "int", "default": 14}}},
+            {"id": "donchian", "name": "Donchian Channels", "params": {"period": {"type": "int", "default": 20, "min": 5, "max": 100}}, "fields": ["upper", "middle", "lower"]},
+            {"id": "historical_volatility", "name": "Historical Volatility", "params": {"period": {"type": "int", "default": 20}}},
         ],
         "volume": [
-            {"id": "obv", "name": "OBV", "params": {}},
+            {"id": "obv", "name": "OBV (On-Balance Volume)", "params": {}},
             {"id": "volume", "name": "Volume", "params": {}},
+            {"id": "volume_sma", "name": "Volume SMA", "params": {"period": {"type": "int", "default": 20}}},
+            {"id": "volume_oscillator", "name": "Volume Oscillator", "params": {
+                "fast": {"type": "int", "default": 5},
+                "slow": {"type": "int", "default": 20}
+            }},
+            {"id": "ad", "name": "Accumulation/Distribution", "params": {}},
+            {"id": "cvd", "name": "CVD (Cumulative Volume Delta)", "params": {}, "note": "Requires tick data"},
+        ],
+        "order_flow": [
+            {"id": "oi", "name": "Open Interest", "params": {}, "note": "Requires exchange OI data"},
+            {"id": "oi_change", "name": "OI Change %", "params": {"period": {"type": "int", "default": 24, "description": "Hours to compare"}}},
+            {"id": "funding", "name": "Funding Rate", "params": {}, "note": "Perp only"},
+            {"id": "liquidations", "name": "Liquidations", "params": {}, "note": "Aggregated liq volume"},
+            {"id": "lsr", "name": "Long/Short Ratio", "params": {}, "note": "Requires exchange data"},
+        ],
+        "smart_money": [
+            {"id": "fvg", "name": "Fair Value Gaps (FVG)", "params": {
+                "min_gap_percent": {"type": "float", "default": 0.1, "description": "Minimum gap size %"}
+            }, "fields": ["bullish", "bearish", "gap_size"]},
+            {"id": "order_blocks", "name": "Order Blocks", "params": {
+                "lookback": {"type": "int", "default": 50},
+                "strength": {"type": "int", "default": 3, "description": "Candles to confirm"}
+            }, "fields": ["bullish_ob", "bearish_ob", "ob_high", "ob_low"]},
+            {"id": "liquidity_zones", "name": "Liquidity Zones", "params": {
+                "lookback": {"type": "int", "default": 100},
+                "touch_threshold": {"type": "int", "default": 3}
+            }, "fields": ["buy_side", "sell_side"]},
+            {"id": "bos", "name": "Break of Structure (BOS)", "params": {
+                "swing_length": {"type": "int", "default": 5}
+            }, "fields": ["bullish_bos", "bearish_bos"]},
+            {"id": "choch", "name": "Change of Character (CHOCH)", "params": {
+                "swing_length": {"type": "int", "default": 5}
+            }, "fields": ["bullish_choch", "bearish_choch"]},
+            {"id": "fibonacci", "name": "Fibonacci Retracement", "params": {
+                "lookback": {"type": "int", "default": 50}
+            }, "fields": ["0.236", "0.382", "0.5", "0.618", "0.786"]},
         ],
         "price": [
             {"id": "price_close", "name": "Close Price", "params": {}},
+            {"id": "price_open", "name": "Open Price", "params": {}},
             {"id": "price_high", "name": "High Price", "params": {}},
             {"id": "price_low", "name": "Low Price", "params": {}},
-            {"id": "price_open", "name": "Open Price", "params": {}},
+            {"id": "price_hl2", "name": "HL2 (High+Low)/2", "params": {}},
+            {"id": "price_hlc3", "name": "HLC3 (High+Low+Close)/3", "params": {}},
+        ],
+        "support_resistance": [
+            {"id": "pivot", "name": "Pivot Points", "params": {
+                "type": {"type": "string", "default": "standard", "options": ["standard", "fibonacci", "camarilla", "woodie"]}
+            }, "fields": ["pivot", "r1", "r2", "r3", "s1", "s2", "s3"]},
+            {"id": "sr", "name": "Support/Resistance Detection", "params": {
+                "lookback": {"type": "int", "default": 100},
+                "touches": {"type": "int", "default": 2}
+            }, "fields": ["supports", "resistances"]},
         ]
     }
     

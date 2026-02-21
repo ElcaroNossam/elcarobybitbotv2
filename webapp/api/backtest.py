@@ -235,7 +235,7 @@ async def run_custom_backtest(request: CustomBacktestRequest, user: dict = Depen
                 SELECT s.*, p.id as purchase_id 
                 FROM custom_strategies s
                 LEFT JOIN strategy_purchases p ON s.id = p.strategy_id AND p.buyer_id = ?
-                WHERE s.id = ? AND s.is_active = TRUE
+                WHERE s.id = ? AND s.is_active = 1
             """, (user_id, request.strategy_id))
             
             row = cur.fetchone()
@@ -2111,7 +2111,7 @@ async def get_user_strategies(user_id: int, user: dict = Depends(get_current_use
                        (SELECT COUNT(*) FROM live_deployments ld 
                         WHERE ld.strategy_id = cs.id AND ld.user_id = cs.user_id AND ld.status = 'active') as is_live
                 FROM custom_strategies cs
-                WHERE cs.user_id = ? AND cs.is_active = TRUE 
+                WHERE cs.user_id = ? AND cs.is_active = 1 
                 ORDER BY cs.updated_at DESC
             """, (user_id,))
             rows = cur.fetchall()
@@ -2151,7 +2151,7 @@ async def delete_strategy(strategy_id: int, user: dict = Depends(get_current_use
         with get_db() as conn:
             cur = conn.cursor()
             cur.execute("""
-                UPDATE custom_strategies SET is_active = FALSE 
+                UPDATE custom_strategies SET is_active = 0 
                 WHERE id = ? AND user_id = ?
             """, (strategy_id, user_id))
         

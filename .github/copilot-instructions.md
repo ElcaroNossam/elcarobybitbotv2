@@ -1403,7 +1403,7 @@ except Exception as e:
   - Added comprehensive logging in `AuthViewModel.kt`
 - **Files changed:** `AuthViewModel.kt`, `NetworkModule.kt`, `build.gradle.kts`
 - **Commits:** `fba7168`, `c7b6c5c`, `b06aa02`
-- **Download:** https://enliko.com/static/downloads/EnlikoTrading-v2.0.1-debug.apk
+- **Download:** https://enliko.com/static/downloads/EnlikoTrading-v2.1.0-debug.apk
 
 ### ✅ FIX: Telegram Bot Token Updated (Feb 19, 2026)
 - **Изменение:** Обновлён токен Telegram бота на нового бота @enliko_bot
@@ -4395,7 +4395,7 @@ xcodebuild -project EnlikoTrading.xcodeproj \
 *Telegram Bot: Token updated to bot ID 8422437868 (Feb 19, 2026) ✅*
 *Env Vars: TELEGRAM_TOKEN + TELEGRAM_BOT_TOKEN both set (bot.py uses first, oxapay_service uses second)*
 *PRE-LAUNCH AUDIT (Phase 14): Full cross-platform audit - Android 2FA fix, SSL compat (Feb 20, 2026) ✅*
-*Android v2.0.1: Fixed "denied" → "rejected" status check, trust-all-certs SSL for Debug builds*
-*iOS Build 122: TestFlight ready for launch (Feb 20, 2026) ✅*
-*Download: https://enliko.com/static/downloads/EnlikoTrading-v2.0.1-debug.apk*
+*Android v2.1.0: Added BacktestService, RetrofitClient, fixed localization (Feb 21, 2026) ✅*
+*iOS Build 127: TestFlight uploaded (Feb 21, 2026) ✅*
+*Download: https://enliko.com/static/downloads/EnlikoTrading-v2.1.0-debug.apk*
 

@@ -165,6 +165,7 @@ interface Strings {
     val systemTheme: String
     val strategies: String
     val premium: String
+    val backtest: String
     
     // Linked Accounts (Unified Auth)
     val linkedAccounts: String
@@ -529,6 +530,7 @@ interface Strings {
         override val systemTheme = "System"
         override val strategies = "Strategies"
         override val premium = "Premium"
+        override val backtest = "Backtest"
         
         // Linked Accounts (Unified Auth)
         override val linkedAccounts = "Linked Accounts"
@@ -856,6 +858,7 @@ interface Strings {
         override val systemTheme = "Системная"
         override val strategies = "Стратегии"
         override val premium = "Премиум"
+        override val backtest = "Бэктест"
         
         // Linked Accounts
         override val linkedAccounts = "Связанные аккаунты"
@@ -1182,6 +1185,7 @@ interface Strings {
         override val systemTheme = "Системна"
         override val strategies = "Стратегії"
         override val premium = "Преміум"
+        override val backtest = "Бектест"
         
         // Linked Accounts
         override val linkedAccounts = "Пов'язані акаунти"
@@ -1508,6 +1512,7 @@ interface Strings {
         override val systemTheme = "System"
         override val strategies = "Strategien"
         override val premium = "Premium"
+        override val backtest = "Backtest"
         
         // Linked Accounts
         override val linkedAccounts = "Verknüpfte Konten"
@@ -1835,6 +1840,7 @@ interface Strings {
         override val systemTheme = "Sistema"
         override val strategies = "Estrategias"
         override val premium = "Premium"
+        override val backtest = "Backtest"
         override val linkedAccounts = "Cuentas vinculadas"
         override val linkTelegram = "Vincular Telegram"
         override val linkEmail = "Vincular Email"
@@ -2159,6 +2165,7 @@ interface Strings {
         override val systemTheme = "Système"
         override val strategies = "Stratégies"
         override val premium = "Premium"
+        override val backtest = "Backtest"
         override val linkedAccounts = "Comptes liés"
         override val linkTelegram = "Lier Telegram"
         override val linkEmail = "Lier Email"
@@ -2483,6 +2490,7 @@ interface Strings {
         override val systemTheme = "Sistema"
         override val strategies = "Strategie"
         override val premium = "Premium"
+        override val backtest = "Backtest"
         override val linkedAccounts = "Account collegati"
         override val linkTelegram = "Collega Telegram"
         override val linkEmail = "Collega Email"
@@ -2807,6 +2815,7 @@ interface Strings {
         override val systemTheme = "システム"
         override val strategies = "戦略"
         override val premium = "プレミアム"
+        override val backtest = "バックテスト"
         override val linkedAccounts = "連携アカウント"
         override val linkTelegram = "Telegramを連携"
         override val linkEmail = "メールを連携"
@@ -3131,6 +3140,7 @@ interface Strings {
         override val systemTheme = "系统"
         override val strategies = "策略"
         override val premium = "高级版"
+        override val backtest = "回测"
         override val linkedAccounts = "关联账户"
         override val linkTelegram = "关联Telegram"
         override val linkEmail = "关联邮箱"
@@ -3455,6 +3465,7 @@ interface Strings {
         override val systemTheme = "النظام"
         override val strategies = "الاستراتيجيات"
         override val premium = "متميز"
+        override val backtest = "اختبار رجعي"
         override val linkedAccounts = "الحسابات المرتبطة"
         override val linkTelegram = "ربط Telegram"
         override val linkEmail = "ربط البريد"
@@ -3779,6 +3790,7 @@ interface Strings {
         override val systemTheme = "מערכת"
         override val strategies = "אסטרטגיות"
         override val premium = "פרימיום"
+        override val backtest = "בדיקה לאחור"
         override val linkedAccounts = "חשבונות מקושרים"
         override val linkTelegram = "קשר Telegram"
         override val linkEmail = "קשר אימייל"
@@ -4103,6 +4115,7 @@ interface Strings {
         override val systemTheme = "Systemowy"
         override val strategies = "Strategie"
         override val premium = "Premium"
+        override val backtest = "Backtest"
         override val linkedAccounts = "Połączone konta"
         override val linkTelegram = "Połącz Telegram"
         override val linkEmail = "Połącz Email"
@@ -4427,6 +4440,7 @@ interface Strings {
         override val systemTheme = "Systémové"
         override val strategies = "Strategie"
         override val premium = "Premium"
+        override val backtest = "Backtest"
         override val linkedAccounts = "Propojené účty"
         override val linkTelegram = "Propojit Telegram"
         override val linkEmail = "Propojit Email"
@@ -4751,6 +4765,7 @@ interface Strings {
         override val systemTheme = "Sistemos"
         override val strategies = "Strategijos"
         override val premium = "Premium"
+        override val backtest = "Backtest"
         override val linkedAccounts = "Susietos paskyros"
         override val linkTelegram = "Susieti Telegram"
         override val linkEmail = "Susieti el. paštą"
@@ -5075,6 +5090,7 @@ interface Strings {
         override val systemTheme = "Sistemi"
         override val strategies = "Strategjitë"
         override val premium = "Premium"
+        override val backtest = "Backtest"
         override val linkedAccounts = "Llogaritë e lidhura"
         override val linkTelegram = "Lidh Telegram"
         override val linkEmail = "Lidh Email"

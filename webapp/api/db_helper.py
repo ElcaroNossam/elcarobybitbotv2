@@ -17,6 +17,7 @@ Usage:
     finally:
         conn.close()
 """
+from typing import Optional, Any
 import os
 import sys
 
@@ -55,7 +56,7 @@ class _DictCompatConnection:
     
     def __init__(self, pg_conn):
         self._conn = pg_conn
-        self._pool = None
+        self._pool: Optional[Any] = None
     
     def __enter__(self):
         """Context manager entry."""
@@ -74,7 +75,7 @@ class _DictCompatConnection:
         """Get a cursor wrapper that returns dicts and supports lastrowid."""
         return _DictCompatCursor(self._conn.cursor(cursor_factory=psycopg2.extras.RealDictCursor))
     
-    def execute(self, query: str, params: tuple = None):
+    def execute(self, query: str, params: Optional[tuple] = None):
         """Execute query directly."""
         cur = self.cursor()
         cur.execute(query, params)
@@ -107,7 +108,7 @@ class _DictCompatCursor:
         self.rowcount = 0
         self.description = None
     
-    def execute(self, query: str, params: tuple = None):
+    def execute(self, query: str, params: Optional[tuple] = None):
         """Execute query with ? -> %s conversion and RETURNING id for INSERTs."""
         pg_query = _sqlite_to_pg(query)
         

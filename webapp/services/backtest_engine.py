@@ -15,6 +15,12 @@ import math
 # PostgreSQL imports
 from webapp.api.db_helper import get_db
 
+# Advanced indicators library
+from webapp.services.advanced_indicators import (
+    indicator_calculator, TrendIndicators, MomentumIndicators, 
+    VolatilityIndicators, VolumeIndicators, MarketStructureIndicators
+)
+
 # Setup logging
 logger = logging.getLogger(__name__)
 
@@ -2074,74 +2080,281 @@ class CustomStrategyAnalyzer:
         return signals
     
     def _precalculate_indicators(self, candles: List[Dict]) -> Dict[str, List[float]]:
-        """Pre-calculate all indicators that might be needed"""
+        """Pre-calculate all indicators that might be needed - EXPANDED for 50+ indicators"""
         cache = {}
         closes = [c["close"] for c in candles]
         highs = [c["high"] for c in candles]
         lows = [c["low"] for c in candles]
         volumes = [c["volume"] for c in candles]
+        opens = [c["open"] for c in candles]
         
+        # Price data
         cache["price_close"] = closes
         cache["price_high"] = highs
         cache["price_low"] = lows
-        cache["price_open"] = [c["open"] for c in candles]
+        cache["price_open"] = opens
         cache["volume"] = volumes
+        cache["price_hl2"] = [(h + l) / 2 for h, l in zip(highs, lows)]
+        cache["price_hlc3"] = [(h + l + c) / 3 for h, l, c in zip(highs, lows, closes)]
         
-        # Calculate common indicators
-        # RSI
-        for period in [7, 14, 21]:
+        # Prepare data dict for indicator_calculator
+        data = {
+            'open': opens,
+            'high': highs, 
+            'low': lows,
+            'close': closes,
+            'volume': volumes
+        }
+        
+        # ================= TREND INDICATORS =================
+        # RSI - multiple periods
+        for period in [7, 14, 21, 28]:
             cache[f"rsi_{period}"] = self._calc_rsi_series(closes, period)
         
-        # EMAs
-        for period in [9, 20, 21, 50, 100, 200]:
+        # MAs - multiple periods and types
+        for period in [5, 9, 10, 12, 20, 21, 26, 50, 100, 200]:
             cache[f"ema_{period}"] = self._calc_ema_series(closes, period)
-        
-        # SMAs
-        for period in [20, 50, 100, 200]:
             cache[f"sma_{period}"] = self._calc_sma_series(closes, period)
         
-        # Bollinger Bands
-        for period, std in [(20, 2.0), (20, 2.5), (21, 2.0)]:
-            upper, lower, mid = self._calc_bb_series(closes, period, std)
-            cache[f"bb_{period}_{std}_upper"] = upper
-            cache[f"bb_{period}_{std}_lower"] = lower
-            cache[f"bb_{period}_{std}_middle"] = mid
+        # WMA
+        try:
+            for period in [9, 14, 20]:
+                wma_result = indicator_calculator.calculate('wma', data, {'period': period})
+                cache[f"wma_{period}"] = [v if v is not None else 0 for v in wma_result]
+        except Exception as e:
+            logger.debug(f"WMA calculation failed: {e}")
         
-        # MACD
+        # Hull MA
+        try:
+            for period in [9, 14, 20]:
+                hull_result = indicator_calculator.calculate('hull_ma', data, {'period': period})
+                cache[f"hull_ma_{period}"] = [v if v is not None else 0 for v in hull_result]
+        except Exception as e:
+            logger.debug(f"Hull MA calculation failed: {e}")
+        
+        # KAMA
+        try:
+            kama_result = indicator_calculator.calculate('kama', data, {'period': 10})
+            cache["kama_10"] = [v if v is not None else closes[i] for i, v in enumerate(kama_result)]
+        except Exception as e:
+            logger.debug(f"KAMA calculation failed: {e}")
+        
+        # SuperTrend - multiple settings
+        for period, mult in [(10, 3.0), (7, 3.0), (14, 2.0)]:
+            st_values, st_direction = self._calc_supertrend_series(highs, lows, closes, period, mult)
+            cache[f"supertrend_{period}_{mult}_value"] = st_values
+            cache[f"supertrend_{period}_{mult}_direction"] = st_direction
+        
+        # Parabolic SAR
+        try:
+            sar_result = indicator_calculator.calculate('parabolic_sar', data, {})
+            cache["parabolic_sar"] = [v if v is not None else 0 for v in sar_result]
+        except Exception as e:
+            logger.debug(f"Parabolic SAR calculation failed: {e}")
+        
+        # VWAP
+        cache["vwap"] = self._calc_vwap_series(highs, lows, closes, volumes)
+        
+        # Ichimoku
+        try:
+            ichimoku = indicator_calculator.calculate('ichimoku', data, {})
+            if isinstance(ichimoku, dict):
+                for key, values in ichimoku.items():
+                    cache[f"ichimoku_{key}"] = [v if v is not None else 0 for v in values]
+        except Exception as e:
+            logger.debug(f"Ichimoku calculation failed: {e}")
+        
+        # ADX
+        try:
+            for period in [14, 20]:
+                adx_result = indicator_calculator.calculate('adx', data, {'period': period}) if hasattr(indicator_calculator, 'calculate') else None
+                if adx_result:
+                    cache[f"adx_{period}"] = adx_result
+        except Exception as e:
+            logger.debug(f"ADX calculation skipped")
+        
+        # ================= MOMENTUM INDICATORS =================
+        # MACD - multiple settings
+        for fast, slow, signal in [(12, 26, 9), (8, 21, 5)]:
+            try:
+                macd_result = indicator_calculator.calculate('macd', data, {'fast': fast, 'slow': slow, 'signal': signal})
+                if isinstance(macd_result, dict):
+                    cache[f"macd_{fast}_{slow}_{signal}_macd"] = [v if v is not None else 0 for v in macd_result.get('macd', [])]
+                    cache[f"macd_{fast}_{slow}_{signal}_signal"] = [v if v is not None else 0 for v in macd_result.get('signal', [])]
+                    cache[f"macd_{fast}_{slow}_{signal}_histogram"] = [v if v is not None else 0 for v in macd_result.get('histogram', [])]
+            except Exception as e:
+                logger.debug(f"MACD {fast}/{slow}/{signal} calculation failed: {e}")
+        
+        # Default MACD
         macd_line, signal_line = self._calc_macd_series(closes)
         cache["macd_macd"] = macd_line
         cache["macd_signal"] = signal_line
         cache["macd_histogram"] = [m - s for m, s in zip(macd_line, signal_line)]
         
-        # ATR
-        for period in [14, 21]:
+        # Stochastic
+        try:
+            for k_period, d_period in [(14, 3), (5, 3), (21, 3)]:
+                stoch = indicator_calculator.calculate('stochastic', data, {'k_period': k_period, 'd_period': d_period})
+                if isinstance(stoch, dict):
+                    cache[f"stochastic_{k_period}_{d_period}_k"] = [v if v is not None else 50 for v in stoch.get('k', [])]
+                    cache[f"stochastic_{k_period}_{d_period}_d"] = [v if v is not None else 50 for v in stoch.get('d', [])]
+        except Exception as e:
+            logger.debug(f"Stochastic calculation failed: {e}")
+        
+        # Stochastic RSI
+        try:
+            stoch_rsi = indicator_calculator.calculate('stochastic_rsi', data, {'rsi_period': 14, 'stoch_period': 14})
+            if isinstance(stoch_rsi, dict):
+                cache["stochastic_rsi_14_14_k"] = [v if v is not None else 50 for v in stoch_rsi.get('k', [])]
+                cache["stochastic_rsi_14_14_d"] = [v if v is not None else 50 for v in stoch_rsi.get('d', [])]
+        except Exception as e:
+            logger.debug(f"Stochastic RSI calculation failed: {e}")
+        
+        # Williams %R
+        try:
+            for period in [14, 21]:
+                williams = indicator_calculator.calculate('williams_r', data, {'period': period})
+                cache[f"williams_r_{period}"] = [v if v is not None else -50 for v in williams]
+        except Exception as e:
+            logger.debug(f"Williams %R calculation failed: {e}")
+        
+        # CCI
+        try:
+            for period in [14, 20]:
+                cci = indicator_calculator.calculate('cci', data, {'period': period})
+                cache[f"cci_{period}"] = [v if v is not None else 0 for v in cci]
+        except Exception as e:
+            logger.debug(f"CCI calculation failed: {e}")
+        
+        # ROC
+        try:
+            for period in [9, 12, 21]:
+                roc = indicator_calculator.calculate('roc', data, {'period': period})
+                cache[f"roc_{period}"] = [v if v is not None else 0 for v in roc]
+        except Exception as e:
+            logger.debug(f"ROC calculation failed: {e}")
+        
+        # MFI
+        try:
+            for period in [14, 21]:
+                mfi = indicator_calculator.calculate('mfi', data, {'period': period})
+                cache[f"mfi_{period}"] = [v if v is not None else 50 for v in mfi]
+        except Exception as e:
+            logger.debug(f"MFI calculation failed: {e}")
+        
+        # Awesome Oscillator
+        try:
+            ao = indicator_calculator.calculate('awesome_oscillator', data, {})
+            cache["awesome_oscillator"] = [v if v is not None else 0 for v in ao]
+        except Exception as e:
+            logger.debug(f"Awesome Oscillator calculation failed: {e}")
+        
+        # ================= VOLATILITY INDICATORS =================
+        # ATR - multiple periods
+        for period in [7, 14, 21]:
             cache[f"atr_{period}"] = self._calc_atr_series(highs, lows, closes, period)
         
-        # Volume SMA
-        cache["volume_sma_20"] = self._calc_sma_series(volumes, 20)
+        # Bollinger Bands - multiple settings
+        for period, std in [(20, 2.0), (20, 2.5), (21, 2.0), (20, 1.5), (20, 3.0)]:
+            upper, lower, mid = self._calc_bb_series(closes, period, std)
+            cache[f"bb_{period}_{std}_upper"] = upper
+            cache[f"bb_{period}_{std}_lower"] = lower
+            cache[f"bb_{period}_{std}_middle"] = mid
+            # Bandwidth and %B
+            bandwidth = [(u - l) / m if m > 0 else 0 for u, l, m in zip(upper, lower, mid)]
+            percent_b = [(c - l) / (u - l) if (u - l) > 0 else 0.5 for c, u, l in zip(closes, upper, lower)]
+            cache[f"bb_{period}_{std}_bandwidth"] = bandwidth
+            cache[f"bb_{period}_{std}_percent_b"] = percent_b
         
-        # SuperTrend
-        st_values, st_direction = self._calc_supertrend_series(highs, lows, closes, 10, 3.0)
-        cache["supertrend_10_3.0_value"] = st_values
-        cache["supertrend_10_3.0_direction"] = st_direction
+        # Keltner Channels
+        try:
+            for ema_p, atr_p, mult in [(20, 10, 2.0), (20, 10, 1.5)]:
+                keltner = indicator_calculator.calculate('keltner_channels', data, {
+                    'ema_period': ema_p, 'atr_period': atr_p, 'multiplier': mult
+                })
+                if isinstance(keltner, dict):
+                    cache[f"keltner_{ema_p}_{atr_p}_{mult}_upper"] = [v if v is not None else 0 for v in keltner.get('upper', [])]
+                    cache[f"keltner_{ema_p}_{atr_p}_{mult}_lower"] = [v if v is not None else 0 for v in keltner.get('lower', [])]
+                    cache[f"keltner_{ema_p}_{atr_p}_{mult}_middle"] = [v if v is not None else 0 for v in keltner.get('middle', [])]
+        except Exception as e:
+            logger.debug(f"Keltner Channels calculation failed: {e}")
         
-        # VWAP
-        cache["vwap"] = self._calc_vwap_series(highs, lows, closes, volumes)
+        # Donchian Channels
+        try:
+            for period in [20, 50]:
+                donchian = indicator_calculator.calculate('donchian_channels', data, {'period': period})
+                if isinstance(donchian, dict):
+                    cache[f"donchian_{period}_upper"] = [v if v is not None else 0 for v in donchian.get('upper', [])]
+                    cache[f"donchian_{period}_lower"] = [v if v is not None else 0 for v in donchian.get('lower', [])]
+                    cache[f"donchian_{period}_middle"] = [v if v is not None else 0 for v in donchian.get('middle', [])]
+        except Exception as e:
+            logger.debug(f"Donchian Channels calculation failed: {e}")
         
+        # Historical Volatility
+        try:
+            for period in [20, 30]:
+                hv = indicator_calculator.calculate('historical_volatility', data, {'period': period})
+                cache[f"historical_volatility_{period}"] = [v if v is not None else 0 for v in hv]
+        except Exception as e:
+            logger.debug(f"Historical Volatility calculation failed: {e}")
+        
+        # ================= VOLUME INDICATORS =================
         # OBV
         cache["obv"] = self._calc_obv_series(closes, volumes)
+        
+        # Volume SMA
+        for period in [10, 20, 50]:
+            cache[f"volume_sma_{period}"] = self._calc_sma_series(volumes, period)
+        
+        # Volume Oscillator
+        try:
+            vol_osc = indicator_calculator.calculate('volume_oscillator', data, {'fast': 5, 'slow': 20})
+            cache["volume_oscillator_5_20"] = [v if v is not None else 0 for v in vol_osc]
+        except Exception as e:
+            logger.debug(f"Volume Oscillator calculation failed: {e}")
+        
+        # Accumulation/Distribution
+        try:
+            ad = indicator_calculator.calculate('accumulation_distribution', data, {})
+            cache["ad"] = [v if v is not None else 0 for v in ad]
+        except Exception as e:
+            logger.debug(f"A/D calculation failed: {e}")
+        
+        # ================= SUPPORT/RESISTANCE =================
+        # Pivot Points
+        try:
+            pivot = indicator_calculator.calculate('pivot_points', data, {})
+            if isinstance(pivot, dict):
+                for key, value in pivot.items():
+                    cache[f"pivot_{key}"] = [value] * len(closes) if not isinstance(value, list) else value
+        except Exception as e:
+            logger.debug(f"Pivot Points calculation failed: {e}")
+        
+        # Support/Resistance
+        try:
+            sr = indicator_calculator.calculate('support_resistance', data, {'period': 50})
+            if isinstance(sr, dict):
+                cache["sr_supports"] = sr.get('supports', [])
+                cache["sr_resistances"] = sr.get('resistances', [])
+        except Exception as e:
+            logger.debug(f"S/R calculation failed: {e}")
         
         return cache
     
     def _get_indicator_value(self, indicator_config: Dict, index: int, cache: Dict) -> Optional[float]:
-        """Get indicator value at index from cache"""
+        """Get indicator value at index from cache - EXPANDED for 50+ indicators"""
         ind_type = indicator_config.get("type", "")
         params = indicator_config.get("params", {})
         field = indicator_config.get("field")
         
-        # Build cache key
+        # Build cache key based on indicator type
+        key = None
+        
+        # ================= PRICE =================
         if ind_type.startswith("price_"):
             key = ind_type
+        
+        # ================= TREND =================
         elif ind_type == "rsi":
             period = params.get("period", 14)
             key = f"rsi_{period}"
@@ -2151,32 +2364,119 @@ class CustomStrategyAnalyzer:
         elif ind_type == "sma":
             period = params.get("period", 20)
             key = f"sma_{period}"
-        elif ind_type == "bb":
+        elif ind_type == "wma":
             period = params.get("period", 20)
-            std = params.get("std_dev", 2.0)
-            field = field or "middle"
-            key = f"bb_{period}_{std}_{field}"
-        elif ind_type == "macd":
-            field = field or "macd"
-            key = f"macd_{field}"
-        elif ind_type == "atr":
-            period = params.get("period", 14)
-            key = f"atr_{period}"
+            key = f"wma_{period}"
+        elif ind_type == "hull_ma":
+            period = params.get("period", 9)
+            key = f"hull_ma_{period}"
+        elif ind_type == "kama":
+            period = params.get("period", 10)
+            key = f"kama_{period}"
         elif ind_type == "supertrend":
             period = params.get("period", 10)
             mult = params.get("multiplier", 3.0)
             field = field or "direction"
             key = f"supertrend_{period}_{mult}_{field}"
+        elif ind_type == "parabolic_sar":
+            key = "parabolic_sar"
         elif ind_type == "vwap":
             key = "vwap"
+        elif ind_type == "ichimoku":
+            field = field or "tenkan"
+            key = f"ichimoku_{field}"
+        elif ind_type == "adx":
+            period = params.get("period", 14)
+            key = f"adx_{period}"
+        
+        # ================= MOMENTUM =================
+        elif ind_type == "macd":
+            fast = params.get("fast", 12)
+            slow = params.get("slow", 26)
+            signal = params.get("signal", 9)
+            field = field or "macd"
+            # Try specific settings first, fallback to default
+            key = f"macd_{fast}_{slow}_{signal}_{field}"
+            if key not in cache:
+                key = f"macd_{field}"
+        elif ind_type == "stochastic":
+            k_period = params.get("k_period", 14)
+            d_period = params.get("d_period", 3)
+            field = field or "k"
+            key = f"stochastic_{k_period}_{d_period}_{field}"
+        elif ind_type == "stochastic_rsi":
+            rsi_period = params.get("rsi_period", 14)
+            stoch_period = params.get("stoch_period", 14)
+            field = field or "k"
+            key = f"stochastic_rsi_{rsi_period}_{stoch_period}_{field}"
+        elif ind_type == "williams_r":
+            period = params.get("period", 14)
+            key = f"williams_r_{period}"
+        elif ind_type == "cci":
+            period = params.get("period", 20)
+            key = f"cci_{period}"
+        elif ind_type == "roc":
+            period = params.get("period", 12)
+            key = f"roc_{period}"
+        elif ind_type == "mfi":
+            period = params.get("period", 14)
+            key = f"mfi_{period}"
+        elif ind_type == "momentum":
+            period = params.get("period", 10)
+            key = f"roc_{period}"  # ROC is effectively momentum
+        elif ind_type == "awesome_oscillator":
+            key = "awesome_oscillator"
+        
+        # ================= VOLATILITY =================
+        elif ind_type == "atr":
+            period = params.get("period", 14)
+            key = f"atr_{period}"
+        elif ind_type == "bb":
+            period = params.get("period", 20)
+            std = params.get("std_dev", 2.0)
+            field = field or "middle"
+            key = f"bb_{period}_{std}_{field}"
+        elif ind_type == "keltner":
+            ema_period = params.get("ema_period", 20)
+            atr_period = params.get("atr_period", 10)
+            mult = params.get("multiplier", 2.0)
+            field = field or "middle"
+            key = f"keltner_{ema_period}_{atr_period}_{mult}_{field}"
+        elif ind_type == "donchian":
+            period = params.get("period", 20)
+            field = field or "middle"
+            key = f"donchian_{period}_{field}"
+        elif ind_type == "historical_volatility":
+            period = params.get("period", 20)
+            key = f"historical_volatility_{period}"
+        
+        # ================= VOLUME =================
         elif ind_type == "obv":
             key = "obv"
         elif ind_type == "volume":
             key = "volume"
-        else:
-            return None
+        elif ind_type == "volume_sma":
+            period = params.get("period", 20)
+            key = f"volume_sma_{period}"
+        elif ind_type == "volume_oscillator":
+            fast = params.get("fast", 5)
+            slow = params.get("slow", 20)
+            key = f"volume_oscillator_{fast}_{slow}"
+        elif ind_type == "ad":
+            key = "ad"
         
-        if key in cache and index < len(cache[key]):
+        # ================= SUPPORT/RESISTANCE =================
+        elif ind_type == "pivot":
+            field = field or "pivot"
+            key = f"pivot_{field}"
+        
+        # ================= FALLBACK =================
+        else:
+            # Try direct lookup
+            key = ind_type
+        
+        # Get value from cache
+        if key and key in cache and index < len(cache[key]):
             return cache[key][index]
         return None
     

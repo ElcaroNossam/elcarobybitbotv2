@@ -6,6 +6,7 @@
 //
 
 import Foundation
+import Combine
 
 // MARK: - Request Models
 
@@ -152,13 +153,13 @@ struct BacktestTradeData: Codable, Identifiable {
 
 // MARK: - Strategies Response
 
-struct StrategiesResponse: Codable {
+struct BacktestStrategiesResponse: Codable {
     let success: Bool
-    let strategies: [StrategyInfo]?
+    let strategies: [BacktestStrategyInfo]?
     let error: String?
 }
 
-struct StrategyInfo: Codable, Identifiable {
+struct BacktestStrategyInfo: Codable, Identifiable {
     var id: String { name }
     
     let name: String
@@ -288,8 +289,8 @@ class BacktestService: ObservableObject {
     
     // MARK: - Get Available Strategies
     
-    func getStrategies() async throws -> [StrategyInfo] {
-        let response: StrategiesResponse = try await networkService.get("/backtest/strategies")
+    func getStrategies() async throws -> [BacktestStrategyInfo] {
+        let response: BacktestStrategiesResponse = try await networkService.get("/backtest/strategies")
         
         if response.success, let strategies = response.strategies {
             return strategies
