@@ -2011,6 +2011,7 @@ def pg_get_strategy_settings(user_id: int, strategy: str, exchange: str = None, 
                     # Break-Even settings
                     result[f"{prefix}be_enabled"] = row.get('be_enabled', False)
                     result[f"{prefix}be_trigger_pct"] = row.get('be_trigger_pct', 1.0)
+                    result[f"{prefix}be_offset_pct"] = row.get('be_offset_pct', 0.15)
                     # Partial Take Profit settings (срез маржи в 2 шага)
                     result[f"{prefix}partial_tp_enabled"] = row.get('partial_tp_enabled', False)
                     result[f"{prefix}partial_tp_1_trigger_pct"] = row.get('partial_tp_1_trigger_pct', 2.0)
@@ -2062,6 +2063,7 @@ def pg_get_strategy_settings(user_id: int, strategy: str, exchange: str = None, 
             # Break-Even → None (will fall through to user globals)
             result[f"{prefix}be_enabled"] = None
             result[f"{prefix}be_trigger_pct"] = None
+            result[f"{prefix}be_offset_pct"] = None
             # Partial Take Profit → keep defaults (no user-global equivalents)
             result[f"{prefix}partial_tp_enabled"] = defaults.get("partial_tp_enabled", False)
             result[f"{prefix}partial_tp_1_trigger_pct"] = defaults.get("partial_tp_1_trigger_pct", 2.0)

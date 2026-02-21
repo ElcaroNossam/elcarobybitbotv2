@@ -46,6 +46,7 @@ def upgrade(cur):
             -- Break-Even settings (move SL to entry price)
             be_enabled        BOOLEAN DEFAULT FALSE,
             be_trigger_pct    REAL DEFAULT 1.0,
+            be_offset_pct     REAL DEFAULT 0.15,
             
             -- Order settings
             order_type        TEXT DEFAULT 'market',

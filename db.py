@@ -1343,6 +1343,13 @@ def get_user_config(user_id: int) -> dict:
         ):
             if _col_exists(conn, "users", _exc_col):
                 cols.append(_exc_col)
+        # Auto-close settings (per exchange)
+        for _ac_col in (
+            "bybit_auto_close_enabled", "bybit_auto_close_time", "bybit_auto_close_timezone",
+            "hl_auto_close_enabled", "hl_auto_close_time", "hl_auto_close_timezone",
+        ):
+            if _col_exists(conn, "users", _ac_col):
+                cols.append(_ac_col)
 
         row = conn.execute(f"SELECT {', '.join(cols)} FROM users WHERE user_id=?",
                            (user_id,)).fetchone()
@@ -1647,7 +1654,7 @@ DEFAULT_HL_STRATEGY_SETTINGS = {
 _STRATEGY_DB_COLUMNS = [
     "enabled", "percent", "sl_percent", "tp_percent", "leverage",
     "use_atr", "atr_periods", "atr_multiplier_sl", "atr_trigger_pct", "atr_step_pct",
-    "be_enabled", "be_trigger_pct",  # Break-Even settings
+    "be_enabled", "be_trigger_pct", "be_offset_pct",  # Break-Even settings
     # Partial Take Profit settings (срез маржи в 2 шага)
     "partial_tp_enabled", 
     "partial_tp_1_trigger_pct", "partial_tp_1_close_pct",
@@ -1656,14 +1663,14 @@ _STRATEGY_DB_COLUMNS = [
     # LONG settings
     "long_percent", "long_sl_percent", "long_tp_percent", "long_leverage", "long_use_atr",
     "long_atr_periods", "long_atr_multiplier_sl", "long_atr_trigger_pct", "long_atr_step_pct",
-    "long_be_enabled", "long_be_trigger_pct",  # Long-specific BE
+    "long_be_enabled", "long_be_trigger_pct", "long_be_offset_pct",  # Long-specific BE
     "long_partial_tp_enabled",
     "long_partial_tp_1_trigger_pct", "long_partial_tp_1_close_pct",
     "long_partial_tp_2_trigger_pct", "long_partial_tp_2_close_pct",
     # SHORT settings
     "short_percent", "short_sl_percent", "short_tp_percent", "short_leverage", "short_use_atr",
     "short_atr_periods", "short_atr_multiplier_sl", "short_atr_trigger_pct", "short_atr_step_pct",
-    "short_be_enabled", "short_be_trigger_pct",  # Short-specific BE
+    "short_be_enabled", "short_be_trigger_pct", "short_be_offset_pct",  # Short-specific BE
     "short_partial_tp_enabled",
     "short_partial_tp_1_trigger_pct", "short_partial_tp_1_close_pct",
     "short_partial_tp_2_trigger_pct", "short_partial_tp_2_close_pct",

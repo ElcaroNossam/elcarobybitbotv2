@@ -832,6 +832,7 @@ TEXTS = {
     # SL/TP notifications
     'sl_auto_set': '🛡️ Stop-loss set @ {price:.6f}',
     'auto_close_position': '⚡ Auto-close: {symbol} (TF={tf})',
+    'auto_close_executed': '🔒 Auto-close: {count} {exchange} positions closed at {time}',
     'limit_order_filled': '✅ Limit order for {symbol} filled @ {price}',
     'limit_order_cancelled': '⚠️ Limit order for {symbol} cancelled.',
     'sl_tp_set': '✅ {symbol}: SL @ {sl_price}{tp_part}',

@@ -803,6 +803,7 @@ TEXTS = {
     
     'sl_auto_set': '🛡️ Стоп-лосс установлен @ {price:.6f}',
     'auto_close_position': '⚡ Автозакрытие: {symbol} (TF={tf})',
+    'auto_close_executed': '🔒 Авто-закрытие: {count} {exchange} позиций закрыто в {time}',
     'limit_order_filled': '✅ Лимитный ордер {symbol} исполнен @ {price}',
     'limit_order_cancelled': '⚠️ Лимитный ордер {symbol} отменён.',
     'sl_tp_set': '✅ {symbol}: SL @ {sl_price}{tp_part}',
