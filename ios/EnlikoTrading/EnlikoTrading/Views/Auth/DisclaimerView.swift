@@ -200,7 +200,7 @@ struct DisclaimerView: View {
         Task {
             do {
                 try await NetworkService.shared.postIgnoreResponse(
-                    "/api/users/disclaimer",
+                    "/users/disclaimer",
                     body: ["accepted": true]
                 )
             } catch {

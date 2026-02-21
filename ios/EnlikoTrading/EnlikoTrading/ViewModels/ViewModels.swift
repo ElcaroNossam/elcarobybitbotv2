@@ -316,13 +316,16 @@ class APIKeysViewModel: ObservableObject {
     
     // Request bodies
     struct BybitKeysRequest: Encodable {
+        let exchange: String
+        let account_type: String
         let api_key: String
         let api_secret: String
     }
     
     struct HLKeyRequest: Encodable {
+        let exchange: String
+        let account_type: String
         let private_key: String
-        let testnet: Bool
     }
     
     func saveBybitKeys(demo: Bool) async {
@@ -333,8 +336,13 @@ class APIKeysViewModel: ObservableObject {
         
         // Call API to save keys
         do {
-            let endpoint = demo ? "/api/v1/api-keys/bybit/demo" : "/api/v1/api-keys/bybit/real"
-            let body = BybitKeysRequest(api_key: key, api_secret: secret)
+            let endpoint = "/users/api-keys"
+            let body = BybitKeysRequest(
+                exchange: "bybit",
+                account_type: demo ? "demo" : "real",
+                api_key: key,
+                api_secret: secret
+            )
             
             let _: EmptyResponse = try await NetworkService.shared.post(endpoint, body: body)
             
@@ -352,8 +360,12 @@ class APIKeysViewModel: ObservableObject {
         let key = testnet ? hlTestnetKey : hlMainnetKey
         
         do {
-            let endpoint = "/api/v1/api-keys/hyperliquid"
-            let body = HLKeyRequest(private_key: key, testnet: testnet)
+            let endpoint = "/users/api-keys"
+            let body = HLKeyRequest(
+                exchange: "hyperliquid",
+                account_type: testnet ? "testnet" : "mainnet",
+                private_key: key
+            )
             
             let _: EmptyResponse = try await NetworkService.shared.post(endpoint, body: body)
             

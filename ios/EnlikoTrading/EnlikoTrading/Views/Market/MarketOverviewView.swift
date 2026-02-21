@@ -697,7 +697,7 @@ class MarketOverviewViewModel: ObservableObject {
     
     private func fetchMarketData() async {
         do {
-            let data: MarketDataResponse = try await network.get("/api/home/market", params: [:])
+            let data: MarketDataResponse = try await network.get("/home/market", params: [:])
             
             // BTC
             btcPrice = data.btc?.price ?? 0
@@ -737,7 +737,7 @@ class MarketOverviewViewModel: ObservableObject {
     
     private func fetchBTCChart() async {
         do {
-            let data: BTCChartResponse = try await network.get("/api/home/btc", params: [:])
+            let data: BTCChartResponse = try await network.get("/home/btc", params: [:])
             
             btcHigh = data.high24h ?? 0
             btcLow = data.low24h ?? 0
