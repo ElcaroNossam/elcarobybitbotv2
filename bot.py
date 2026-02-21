@@ -1961,9 +1961,9 @@ def get_api_settings_keyboard(t: dict, creds: dict, uid: int = None) -> InlineKe
     bybit_real_ok = bool(real_key and real_secret)
     bybit_any = bybit_demo_ok or bybit_real_ok
     
-    # Get exchange enabled status
-    bybit_enabled = db.is_bybit_enabled(uid) if uid else True
-    hl_enabled = db.is_hl_enabled(uid) if uid else False
+    # Get exchange enabled status (use raw flag for display, not combined credential check)
+    bybit_enabled = bool(db.get_user_field(uid, "bybit_enabled")) if uid else True
+    hl_enabled = bool(db.get_user_field(uid, "hl_enabled")) if uid else False
     
     # Get HL configuration status (check both testnet and mainnet keys)
     hl_testnet_configured = False
@@ -2530,7 +2530,8 @@ Use the buttons below to configure:"""
     
     # ─── Toggle Exchange Trading ───
     if action == "toggle_bybit":
-        current = db.is_bybit_enabled(uid)
+        # Use raw flag, not is_bybit_enabled() which also checks credentials
+        current = bool(db.get_user_field(uid, "bybit_enabled"))
         new_val = not current
         db.set_bybit_enabled(uid, new_val)
         
@@ -2544,7 +2545,8 @@ Use the buttons below to configure:"""
         return
     
     if action == "toggle_hl":
-        current = db.is_hl_enabled(uid)
+        # Use raw flag, not is_hl_enabled() which also checks credentials
+        current = bool(db.get_user_field(uid, "hl_enabled"))
         new_val = not current
         db.set_hl_enabled(uid, new_val)
         
