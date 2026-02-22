@@ -152,6 +152,7 @@ USER_FIELDS_WHITELIST = {
     "hl_mainnet_private_key",  # HL mainnet private key
     "hl_mainnet_wallet_address",  # HL mainnet wallet address
     # Margin mode settings
+    "bybit_enabled",  # 0/1 - is Bybit trading enabled
     "bybit_margin_mode",  # 'cross' or 'isolated' for Bybit
     "hl_margin_mode",  # 'cross' or 'isolated' for HyperLiquid
     # Routing policy
