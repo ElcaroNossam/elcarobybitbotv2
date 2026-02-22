@@ -2617,8 +2617,8 @@ When enabled, ALL Bybit positions will be closed automatically at the specified 
         return
     
     if action == "bybit_auto_close_toggle":
-        current = db.get_user_field(uid, "bybit_auto_close_enabled") or False
-        new_val = not current
+        current = db.get_user_field(uid, "bybit_auto_close_enabled") or 0
+        new_val = 0 if current else 1
         db.set_user_field(uid, "bybit_auto_close_enabled", new_val)
         
         status = "🟢 ON" if new_val else "🔴 OFF"
@@ -2743,8 +2743,8 @@ When enabled, ALL HyperLiquid positions will be closed automatically at the spec
         return
     
     if action == "hl_auto_close_toggle":
-        current = db.get_user_field(uid, "hl_auto_close_enabled") or False
-        new_val = not current
+        current = db.get_user_field(uid, "hl_auto_close_enabled") or 0
+        new_val = 0 if current else 1
         db.set_user_field(uid, "hl_auto_close_enabled", new_val)
         
         status = "🟢 ON" if new_val else "🔴 OFF"
