@@ -925,7 +925,7 @@ def set_live_enabled(user_id: int, enabled: bool):
     with get_conn() as conn:
         conn.execute(
             "UPDATE users SET live_enabled=? WHERE user_id=?",
-            (1 if enabled else 0, user_id)
+            (bool(enabled), user_id)
         )
         conn.commit()
     invalidate_user_cache(user_id)
