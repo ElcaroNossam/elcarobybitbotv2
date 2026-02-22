@@ -2145,6 +2145,15 @@ def get_api_settings_keyboard(t: dict, creds: dict, uid: int = None) -> InlineKe
     # ═══════════════════════════════════════════════════════════════════════════
     buttons.append([InlineKeyboardButton("═══ ⚙️ GLOBAL ═══", callback_data="api:noop")])
     
+    # Live/Real trading enabled toggle
+    live_enabled = False
+    if uid:
+        live_enabled = db.get_live_enabled(uid)
+    live_status = "🟢 ON" if live_enabled else "🔴 OFF"
+    buttons.append([
+        InlineKeyboardButton(f"💰 Real Trading: {live_status}", callback_data="api:toggle_live"),
+    ])
+    
     # Multi-exchange trading (trade on both exchanges at once)
     buttons.append([
         InlineKeyboardButton(f"🔀 Trade Both Exchanges: {multi_status}", callback_data="api:toggle_multi_exchange"),
@@ -2552,6 +2561,25 @@ Use the buttons below to configure:"""
         
         status = "🟢 ON" if new_val else "🔴 OFF"
         await q.answer(f"HyperLiquid Trading: {status}", show_alert=False)
+        
+        creds = get_all_user_credentials(uid)
+        msg = format_api_settings_message(t, creds, uid)
+        keyboard = get_api_settings_keyboard(t, creds, uid)
+        await safe_edit(msg, reply_markup=keyboard)
+        return
+    
+    # ─── Toggle Live/Real Trading ───
+    if action == "toggle_live":
+        current = db.get_live_enabled(uid)
+        new_val = not current
+        db.set_live_enabled(uid, new_val)
+        
+        status = "🟢 ON" if new_val else "🔴 OFF"
+        if new_val:
+            alert_msg = "⚠️ Real/Mainnet Trading ENABLED!\n\nSignals will now open positions on Real (Bybit) and Mainnet (HyperLiquid) accounts."
+        else:
+            alert_msg = "Real/Mainnet Trading DISABLED.\n\nSignals will only trade on Demo/Testnet accounts."
+        await q.answer(alert_msg, show_alert=True)
         
         creds = get_all_user_credentials(uid)
         msg = format_api_settings_message(t, creds, uid)
