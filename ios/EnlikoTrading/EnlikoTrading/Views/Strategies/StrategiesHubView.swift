@@ -338,9 +338,9 @@ struct StrategyRowCard: View {
                     
                     // Quick Stats
                     HStack(spacing: 16) {
-                        statItem(label: "entry".localized, value: "\(Int(strategy.percent))%")
-                        statItem(label: "TP", value: "\(Int(strategy.tpPercent))%")
-                        statItem(label: "SL", value: "\(Int(strategy.slPercent))%")
+                        statItem(label: "entry".localized, value: formatPct(strategy.percent))
+                        statItem(label: "TP", value: formatPct(strategy.tpPercent))
+                        statItem(label: "SL", value: formatPct(strategy.slPercent))
                         statItem(label: "leverage".localized, value: "\(strategy.leverage)x")
                     }
                     
@@ -401,6 +401,15 @@ struct StrategyRowCard: View {
                 .foregroundColor(.white)
         }
         .frame(maxWidth: .infinity)
+    }
+    
+    /// Smart percent formatting: 0.5 → "0.5%", 25.0 → "25%", 50.8 → "50.8%"
+    private func formatPct(_ value: Double) -> String {
+        if value == Double(Int(value)) {
+            return "\(Int(value))%"
+        } else {
+            return String(format: "%.1f%%", value)
+        }
     }
     
     private func sideToggle(label: String, enabled: Bool, color: Color, action: @escaping () -> Void) -> some View {
@@ -922,7 +931,7 @@ struct StrategyDetailView: View {
     let strategyName: String
     
     var body: some View {
-        StrategySettingsView()
+        StrategySettingsView(initialStrategy: strategyName)
     }
 }
 

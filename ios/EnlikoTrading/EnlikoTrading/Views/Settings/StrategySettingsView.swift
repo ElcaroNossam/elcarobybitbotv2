@@ -127,7 +127,7 @@ struct StrategySettingsView: View {
     @ObservedObject var localization = LocalizationManager.shared
     @ObservedObject private var strategyService = StrategyService.shared
     
-    @State private var selectedStrategy: StrategyInfo = StrategyInfo.all[0]
+    @State private var selectedStrategy: StrategyInfo
     @State private var selectedSide: String = "long"
     
     @State private var longSettings: SideSettings = .default
@@ -138,6 +138,15 @@ struct StrategySettingsView: View {
     @State private var showSaveSuccess = false
     @State private var ptpValidationError: String? = nil
     @State private var animateChange = false
+    
+    init(initialStrategy: String? = nil) {
+        if let name = initialStrategy,
+           let found = StrategyInfo.all.first(where: { $0.code == name }) {
+            _selectedStrategy = State(wrappedValue: found)
+        } else {
+            _selectedStrategy = State(wrappedValue: StrategyInfo.all[0])
+        }
+    }
     
     var currentSettings: Binding<SideSettings> {
         selectedSide == "long" ? $longSettings : $shortSettings
