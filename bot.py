@@ -25057,7 +25057,7 @@ async def auto_close_positions_loop(app: Application):
     
     Time format: "HH:MM" in the specified timezone (default UTC).
     """
-    from datetime import datetime
+    from datetime import datetime, timedelta
     import pytz
     
     bot = app.bot
