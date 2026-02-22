@@ -5544,7 +5544,7 @@ def is_bybit_enabled(user_id: int) -> bool:
     
     bybit_enabled = row[0]
     # If explicitly disabled, return False
-    if bybit_enabled == 0:
+    if bybit_enabled is False or bybit_enabled == 0:
         return False
     
     # Check if any credentials exist
@@ -5560,7 +5560,7 @@ def set_bybit_enabled(user_id: int, enabled: bool):
     with get_conn() as conn:
         conn.execute(
             "UPDATE users SET bybit_enabled = ? WHERE user_id = ?",
-            (1 if enabled else 0, user_id)
+            (bool(enabled), user_id)
         )
         conn.commit()
     invalidate_user_cache(user_id)
