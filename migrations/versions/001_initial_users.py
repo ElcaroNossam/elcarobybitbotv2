@@ -139,6 +139,14 @@ def upgrade(cur):
             -- UI State
             last_viewed_account TEXT,  -- 'demo', 'real', 'testnet', 'mainnet' for UI persistence
             
+            -- Auto-close settings per exchange
+            bybit_auto_close_enabled   INTEGER DEFAULT 0,
+            bybit_auto_close_time      TEXT,
+            bybit_auto_close_timezone  TEXT DEFAULT 'UTC',
+            hl_auto_close_enabled      INTEGER DEFAULT 0,
+            hl_auto_close_time         TEXT,
+            hl_auto_close_timezone     TEXT DEFAULT 'UTC',
+            
             -- Timestamps
             first_seen_ts      BIGINT,
             last_seen_ts       BIGINT,
